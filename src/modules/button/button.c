@@ -172,7 +172,7 @@ static void button_thread_fn(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	LOG_INF("Button module thread started");
+	LOG_DBG("Button module thread started!");
 
 	while (1) {
 		/* State machines are run from button_handler callback */

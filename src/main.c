@@ -8,44 +8,11 @@
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
 #include <zephyr/kernel.h>
-#include <zephyr/zbus/zbus.h>
 #include <zephyr/net/net_if.h>
 #include <string.h>
 
-#include "modules/button/button.h"
-#include "modules/led/led.h"
 #include "modules/messages.h"
-#include "modules/webserver/webserver.h"
-#include "modules/wifi/wifi.h"
-
-/* ============================================================================
- * APPLICATION STATE MONITORING
- * ============================================================================
- */
-
-/* Subscribe to WiFi events to start webserver when WiFi is ready */
-static void wifi_event_listener(const struct zbus_channel *chan)
-{
-	const struct wifi_msg *msg = zbus_chan_const_msg(chan);
-
-	if (msg->type == WIFI_SOFTAP_STARTED) {
-		LOG_INF("WiFi SoftAP started, starting webserver...");
-
-		/* Small delay to ensure network is fully configured */
-		k_sleep(K_SECONDS(2));
-
-		int ret = webserver_start();
-		if (ret < 0) {
-			LOG_ERR("Failed to start webserver: %d", ret);
-		}
-	}
-}
-
-ZBUS_LISTENER_DEFINE(wifi_event_listener_def, wifi_event_listener);
-
-/* Extern reference to WiFi channel */
-extern const struct zbus_channel WIFI_CHAN;
-ZBUS_CHAN_ADD_OBS(WIFI_CHAN, wifi_event_listener_def, 0);
+#include "modules/mode_selector/mode_selector.h"
 
 /* ============================================================================
  * MAIN APPLICATION
@@ -58,41 +25,78 @@ int main(void)
 	struct net_linkaddr *mac_addr = net_if_get_link_addr(iface);
 	const char *board_name;
 
-	/* Convert board name to proper case */
-	if (strcmp(CONFIG_BOARD, "nrf7002dk") == 0 ||
-	    strstr(CONFIG_BOARD, "nrf7002dk") != NULL) {
+	if (strstr(CONFIG_BOARD, "nrf7002dk") != NULL) {
 		board_name = "nRF7002DK";
-	} else if (strcmp(CONFIG_BOARD, "nrf54lm20dk") == 0 ||
-		   strstr(CONFIG_BOARD, "nrf54lm20dk") != NULL) {
+	} else if (strstr(CONFIG_BOARD, "nrf54lm20dk") != NULL) {
 		board_name = "nRF54LM20DK+nRF7002EBII";
 	} else {
 		board_name = CONFIG_BOARD;
 	}
 
+	const char *mode_str;
+
+	switch (mode_selector_get_active_mode()) {
+	case WIFI_MODE_SOFTAP:
+		mode_str = "SoftAP";
+		break;
+	case WIFI_MODE_STA:
+		mode_str = "STA";
+		break;
+	case WIFI_MODE_P2P:
+		mode_str = "P2P";
+		break;
+	default:
+		mode_str = "Unknown";
+		break;
+	}
+
 	LOG_INF("==============================================");
-	LOG_INF("Nordic WiFi SoftAP Webserver");
+	LOG_INF("Nordic WiFi Web Dashboard v2.0");
 	LOG_INF("==============================================");
 	LOG_INF("Build: %s %s", __DATE__, __TIME__);
 	LOG_INF("Board: %s", board_name);
 
-	/* Print MAC address in the format "MAC: F4:CE:36:00:8B:E9" */
 	if (mac_addr && mac_addr->len == 6) {
-		LOG_INF("MAC: %02X:%02X:%02X:%02X:%02X:%02X", mac_addr->addr[0],
-			mac_addr->addr[1], mac_addr->addr[2], mac_addr->addr[3],
+		LOG_INF("MAC: %02X:%02X:%02X:%02X:%02X:%02X",
+			mac_addr->addr[0], mac_addr->addr[1],
+			mac_addr->addr[2], mac_addr->addr[3],
 			mac_addr->addr[4], mac_addr->addr[5]);
 	}
 
+	LOG_INF("Active Wi-Fi mode: %s", mode_str);
 	LOG_INF("==============================================");
 
-	LOG_INF("All modules initialized via SYS_INIT");
-	LOG_INF("WiFi SoftAP will start automatically");
-	LOG_INF("Connect to WiFi SSID: %s", CONFIG_APP_WIFI_SSID);
-	LOG_INF("Use password configured in overlay-wifi-credentials.conf.");
-	LOG_INF("Or default WiFi Password 12345678 for SSID nRF70-WebServer.");
-	LOG_INF("Then browse to: http://192.168.7.1:%d", CONFIG_APP_HTTP_PORT);
+	switch (mode_selector_get_active_mode()) {
+	case WIFI_MODE_SOFTAP:
+		LOG_INF("SoftAP mode: SSID='%s' -> connect and open "
+			"http://192.168.7.1:%d",
+			CONFIG_APP_WIFI_SSID, CONFIG_APP_HTTP_PORT);
+		LOG_INF("Default password: 12345678 (override via "
+			"overlay-wifi-credentials.conf)");
+		break;
+
+	case WIFI_MODE_STA:
+		LOG_INF("STA mode: connect via serial shell:");
+		LOG_INF("  wifi scan                                 -- scan");
+		LOG_INF("  wifi connect -s <SSID> -p <password> -k 1 -- WPA2");
+		LOG_INF("  wifi connect --help                       -- help");
+		LOG_INF("Dashboard at http://<IP>:%d after connect.",
+			CONFIG_APP_HTTP_PORT);
+		break;
+
+	case WIFI_MODE_P2P:
+		LOG_INF("P2P mode: auto-starting peer discovery...");
+		LOG_INF("  wifi p2p find                           -- search for peers");
+		LOG_INF("Enable Wi-Fi Direct on your phone, then wait device MAC appears.");
+		LOG_INF("  wifi p2p peer                           -- list peers and find phone MAC");
+		LOG_INF("  wifi p2p connect <phone MAC> pbc -g 0   -- connect to target phone");
+		LOG_INF("Press ACCEPT button on your phone for Invitation to connect.");
+		break;
+	}
+
+	LOG_INF("Type 'wifi_mode [SOFTAP|STA|P2P]' to change mode (reboots).");
 	LOG_INF("==============================================");
 
-	/* Main thread can sleep forever - everything runs in module threads */
 	while (1) {
 		k_sleep(K_FOREVER);
 	}

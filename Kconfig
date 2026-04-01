@@ -4,11 +4,11 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-menu "Nordic WiFi SoftAP Webserver"
+menu "Nordic WiFi Web Dashboard"
 
 config APP_WIFI_SSID
 	string "WiFi SoftAP SSID"
-	default "nRF70-WebServer"
+	default "WebDashboard_AP"
 	help
 	  SSID of the WiFi SoftAP to create. Override this value in
 	  overlay-wifi-credentials.conf (listed in .gitignore) to avoid committing
@@ -28,6 +28,7 @@ config APP_HTTP_PORT
 	help
 	  HTTP server port number
 
+rsource "src/modules/mode_selector/Kconfig.mode_selector"
 rsource "src/modules/network/Kconfig.network"
 rsource "src/modules/button/Kconfig.button"
 rsource "src/modules/led/Kconfig.led"

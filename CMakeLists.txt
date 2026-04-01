@@ -7,7 +7,7 @@
 cmake_minimum_required(VERSION 3.20.0)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(nordic_wifi_softap_webserver)
+project(nordic_wifi_webdash)
 
 target_include_directories(app PUBLIC ${ZEPHYR_BASE}/subsys/net/ip)
 
@@ -37,6 +37,7 @@ foreach(web_resource
 endforeach()
 
 # Add subdirectories for modules
+add_subdirectory(src/modules/mode_selector)
 add_subdirectory(src/modules/network)
 add_subdirectory(src/modules/button)
 add_subdirectory(src/modules/led)
