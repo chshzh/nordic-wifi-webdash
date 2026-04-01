@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nordic WiFi Controller</title>
+    <title>Nordic WiFi Web Dashboard</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🌐 Nordic WiFi SoftAP Controller</h1>
-            <p class="subtitle">nRF7002DK / nRF54LM20DK+nRF7002EBII Web Interface</p>
+            <h1>🌐 Nordic WiFi Web Dashboard</h1>
+            <!-- Mode banner: updated by /api/system polling -->
+            <div class="mode-banner" id="mode-banner">
+                <span class="mode-label" id="mode-label">Loading...</span>
+            </div>
         </header>
 
         <main>
@@ -35,12 +38,24 @@
                 <h2>ℹ️ System Information</h2>
                 <div class="info-grid">
                     <div class="info-item">
+                        <span class="info-label">Board:</span>
+                        <span class="info-value" id="board-name">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Wi-Fi Mode:</span>
+                        <span class="info-value" id="wifi-mode">Loading...</span>
+                    </div>
+                    <div class="info-item">
                         <span class="info-label">WiFi SSID:</span>
                         <span class="info-value" id="wifi-ssid">Loading...</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">IP Address:</span>
-                        <span class="info-value">192.168.7.1</span>
+                        <span class="info-value" id="wifi-ip">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Uptime:</span>
+                        <span class="info-value" id="uptime">--</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Connection:</span>

@@ -1,5 +1,5 @@
-/* 
- * Nordic WiFi SoftAP Webserver - Main Styles
+/*
+ * Nordic WiFi Web Dashboard - Main Styles (v2.0)
  */
 
 * {
@@ -54,6 +54,23 @@ header h1 {
 .subtitle {
     font-size: 1.1rem;
     opacity: 0.9;
+}
+
+/* Mode Banner */
+.mode-banner {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 6px 18px;
+    border-radius: 20px;
+    background-color: #1565c0;
+    transition: background-color 0.4s ease;
+}
+
+.mode-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.03em;
 }
 
 /* Cards */
