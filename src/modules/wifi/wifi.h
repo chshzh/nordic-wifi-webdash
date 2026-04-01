@@ -6,24 +6,24 @@
 
 /**
  * @file wifi.h
- * @brief WiFi SoftAP module header
+ * @brief Multi-mode WiFi module header (v2.0: SoftAP / STA / P2P)
  */
 
 #ifndef WIFI_H
 #define WIFI_H
 
 #include <zephyr/kernel.h>
+#include "../messages.h"
 
 /**
- * @brief Initialize WiFi module
- * @return 0 on success, negative error code on failure
+ * @brief Initialize WiFi module.
+ *
+ * Called automatically via SYS_INIT at APPLICATION priority 10.
+ * Reads WIFI_MODE_CHAN (published by mode_selector at priority 0) to determine
+ * which Wi-Fi path to activate.
+ *
+ * @return 0 on success, negative error code on failure.
  */
 int wifi_module_init(void);
-
-/**
- * @brief Start WiFi SoftAP
- * @return 0 on success, negative error code on failure
- */
-int wifi_start_softap(void);
 
 #endif /* WIFI_H */

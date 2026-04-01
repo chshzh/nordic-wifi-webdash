@@ -4,16 +4,15 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-config WIFI_MODULE
-	bool "WiFi Module"
+config APP_WIFI_MODULE
+	bool "Enable WiFi module (SoftAP / STA / P2P)"
 	default y
 	help
-	  Enable WiFi SoftAP module with SMF state machine
-
-if WIFI_MODULE
+	  Enable the multi-mode WiFi module. The active mode is selected at
+	  boot by the mode_selector module.  All three modes (SoftAP, STA,
+	  P2P) are supported on both nRF7002DK and nRF54LM20DK when the
+	  firmware is built with the -S wifi-p2p snippet.
 
 module = WIFI_MODULE
 module-str = wifi_module
 source "subsys/logging/Kconfig.template.log_config"
-
-endif # WIFI_MODULE

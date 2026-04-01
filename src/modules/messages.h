@@ -72,6 +72,27 @@ static inline const char *app_led_label(size_t index)
 }
 
 /* ============================================================================
+ * WI-FI MODE (v2.0)
+ * ============================================================================
+ */
+
+/**
+ * @brief Wi-Fi operating mode
+ */
+enum wifi_mode {
+	WIFI_MODE_SOFTAP = 0, /**< Device creates its own AP */
+	WIFI_MODE_STA    = 1, /**< Device connects to existing AP */
+	WIFI_MODE_P2P    = 2, /**< Wi-Fi Direct to phone/peer */
+};
+
+/**
+ * @brief Wi-Fi mode message (published once at boot by mode_selector)
+ */
+struct wifi_mode_msg {
+	enum wifi_mode mode;
+};
+
+/* ============================================================================
  * BUTTON MESSAGES
  * ============================================================================
  */
@@ -130,7 +151,7 @@ struct led_state_msg {
 };
 
 /* ============================================================================
- * WIFI MESSAGES
+ * WIFI MESSAGES (v2.0 — multi-mode)
  * ============================================================================
  */
 
@@ -138,11 +159,12 @@ struct led_state_msg {
  * @brief WiFi message types
  */
 enum wifi_msg_type {
-	WIFI_SOFTAP_STARTED,      /**< SoftAP started */
-	WIFI_SOFTAP_STOPPED,      /**< SoftAP stopped */
-	WIFI_CLIENT_CONNECTED,    /**< Client connected */
-	WIFI_CLIENT_DISCONNECTED, /**< Client disconnected */
-	WIFI_ERROR,               /**< WiFi error */
+	WIFI_SOFTAP_STARTED,      /**< SoftAP started, clients may connect */
+	WIFI_STA_CONNECTED,       /**< STA associated and IP assigned */
+	WIFI_STA_DISCONNECTED,    /**< STA lost connection */
+	WIFI_P2P_CONNECTED,       /**< P2P group established, IP assigned */
+	WIFI_P2P_DISCONNECTED,    /**< P2P group removed */
+	WIFI_ERROR,               /**< WiFi subsystem error */
 };
 
 /**
@@ -150,13 +172,14 @@ enum wifi_msg_type {
  */
 struct wifi_msg {
 	enum wifi_msg_type type;
-	char ssid[32];
-	uint8_t channel;
-	int error_code;
+	enum wifi_mode     active_mode;  /**< Mode that produced this event */
+	char               ip_addr[16]; /**< Dotted-decimal IP, filled on connect */
+	char               ssid[33];    /**< SSID, filled on connect */
+	int                error_code;
 };
 
 /* ============================================================================
- * WEBSERVER MESSAGES
+ * WEBSERVER MESSAGES (kept for backward compat, unused internally)
  * ============================================================================
  */
 

@@ -6,20 +6,31 @@
 
 #include "wifi.h"
 #include "../messages.h"
+#include "../mode_selector/mode_selector.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(wifi_module, CONFIG_WIFI_MODULE_LOG_LEVEL);
 
 #include "net_private.h"
+#include <string.h>
 #include <zephyr/kernel.h>
+#include <zephyr/net/conn_mgr_connectivity.h>
+#include <zephyr/net/conn_mgr_monitor.h>
+#include <zephyr/net/dhcpv4.h>
 #include <zephyr/net/dhcpv4_server.h>
 #include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/wifi_mgmt.h>
-#include <zephyr/smf.h>
 #include <zephyr/zbus/zbus.h>
+
+/* ============================================================================
+ * EXTERNAL CHANNEL (defined in mode_selector.c)
+ * ============================================================================
+ */
+
+extern const struct zbus_channel WIFI_MODE_CHAN;
 
 /* ============================================================================
  * ZBUS CHANNEL DEFINITION
@@ -30,79 +41,77 @@ ZBUS_CHAN_DEFINE(WIFI_CHAN, struct wifi_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0));
 
 /* ============================================================================
- * STATE MACHINE CONTEXT
+ * MODULE STATE
  * ============================================================================
  */
 
-/* Forward declarations */
-static void wifi_idle_entry(void *obj);
-static void wifi_starting_entry(void *obj);
-static enum smf_state_result wifi_starting_run(void *obj);
-static void wifi_active_entry(void *obj);
-static enum smf_state_result wifi_active_run(void *obj);
-static void wifi_error_entry(void *obj);
+static enum wifi_mode active_mode = WIFI_MODE_SOFTAP;
 
-/* State table */
-static const struct smf_state wifi_states[] = {
-	[0] = SMF_CREATE_STATE(wifi_idle_entry, NULL, NULL, NULL, NULL),
-	[1] = SMF_CREATE_STATE(wifi_starting_entry, wifi_starting_run, NULL,
-			       NULL, NULL),
-	[2] = SMF_CREATE_STATE(wifi_active_entry, wifi_active_run, NULL, NULL,
-			       NULL),
-	[3] = SMF_CREATE_STATE(wifi_error_entry, NULL, NULL, NULL, NULL),
-};
+/* SSID captured at L4_CONNECTED; used for disconnect logging and P2P
+ * detection.  A SSID starting with "DIRECT-" is a P2P/Wi-Fi Direct session. */
+static char sta_ssid[WIFI_SSID_MAX_LEN + 1];
 
-/* WiFi state machine object */
-struct wifi_sm_object {
-	struct smf_ctx ctx;
-	bool softap_ready;
-	bool start_requested;
-	int error_code;
-};
-
-static struct wifi_sm_object wifi_sm;
-
-/* Network management callbacks */
-static struct net_mgmt_event_callback wifi_mgmt_cb;
-static struct net_mgmt_event_callback net_mgmt_cb;
+/* Network management event callbacks */
+static struct net_mgmt_event_callback wifi_mgmt_cb; /* AP events          */
+static struct net_mgmt_event_callback net_mgmt_cb;  /* DHCP bound         */
+static struct net_mgmt_event_callback l4_mgmt_cb;   /* L4 connect/disconn */
 
 /* ============================================================================
- * STATE MACHINE IMPLEMENTATIONS
+ * HELPER UTILITIES
  * ============================================================================
  */
 
-static void wifi_idle_entry(void *obj)
+static const char *mode_to_str(enum wifi_mode mode)
 {
-	LOG_INF("WiFi in IDLE state");
+	switch (mode) {
+	case WIFI_MODE_SOFTAP:
+		return "SoftAP";
+	case WIFI_MODE_STA:
+		return "STA";
+	case WIFI_MODE_P2P:
+		return "P2P";
+	default:
+		return "Unknown";
+	}
 }
 
-static void wifi_starting_entry(void *obj)
+/* ============================================================================
+ * AP PATH
+ * ============================================================================
+ */
+
+static void wifi_softap_start(void)
 {
-	struct wifi_sm_object *sm = (struct wifi_sm_object *)obj;
+	struct net_if *iface = net_if_get_first_wifi();
 	int ret;
 
-	LOG_INF("Starting WiFi SoftAP...");
-
-	struct net_if *iface = net_if_get_first_wifi();
 	if (!iface) {
 		LOG_ERR("No WiFi interface found");
-		sm->error_code = -ENODEV;
-		smf_set_state(SMF_CTX(sm), &wifi_states[3]);
 		return;
 	}
 
+	/* Force-drop any in-progress STA connection before starting SoftAP.
+	 * The NO_AUTO_CONNECT flag was already set at SYS_INIT, but the wifi
+	 * driver may have queued a connection in the small race window.
+	 * Without this disconnect the AP enable call fails with -EBUSY (-16)
+	 * because the interface is not in the DISCONNECTED state. */
+	conn_mgr_all_if_disconnect(false);
+	k_sleep(K_MSEC(300));
+	conn_mgr_if_set_flag(iface, CONN_MGR_IF_NO_AUTO_CONNECT, true);
+
 	/* Set regulatory domain */
 	struct wifi_reg_domain regd = {0};
+
 	regd.oper = WIFI_MGMT_SET;
 	strncpy(regd.country_code, "US", WIFI_COUNTRY_CODE_LEN + 1);
 	ret = net_mgmt(NET_REQUEST_WIFI_REG_DOMAIN, iface, &regd, sizeof(regd));
 	if (ret) {
-		LOG_WRN("Failed to set regulatory domain: %d", ret);
-		/* Continue anyway, not fatal */
+		LOG_WRN("Failed to set regulatory domain: %d (continuing)", ret);
 	}
 
-	/* Setup DHCP server */
+	/* Start DHCP server */
 	struct in_addr pool_start;
+
 	ret = inet_pton(AF_INET, "192.168.7.2", &pool_start);
 	if (ret == 1) {
 		ret = net_dhcpv4_server_start(iface, &pool_start);
@@ -111,78 +120,35 @@ static void wifi_starting_entry(void *obj)
 		} else if (ret < 0) {
 			LOG_ERR("Failed to start DHCP server: %d", ret);
 		} else {
-			LOG_INF("DHCP server started");
+			LOG_INF("DHCP server started (pool: 192.168.7.2+)");
 		}
 	}
 
-	/* Start SoftAP */
+	/* Enable SoftAP */
 	struct wifi_connect_req_params params = {
-		.ssid = (uint8_t *)CONFIG_APP_WIFI_SSID,
+		.ssid        = (uint8_t *)CONFIG_APP_WIFI_SSID,
 		.ssid_length = strlen(CONFIG_APP_WIFI_SSID),
-		.psk = (uint8_t *)CONFIG_APP_WIFI_PASSWORD,
-		.psk_length = strlen(CONFIG_APP_WIFI_PASSWORD),
-		.security = WIFI_SECURITY_TYPE_PSK,
-		.band = WIFI_FREQ_BAND_2_4_GHZ,
-		.channel = 1,
+		.psk         = (uint8_t *)CONFIG_APP_WIFI_PASSWORD,
+		.psk_length  = strlen(CONFIG_APP_WIFI_PASSWORD),
+		.security    = WIFI_SECURITY_TYPE_PSK,
+		.band        = WIFI_FREQ_BAND_2_4_GHZ,
+		.channel     = 1,
 	};
 
 	ret = net_mgmt(NET_REQUEST_WIFI_AP_ENABLE, iface, &params,
-		       sizeof(struct wifi_connect_req_params));
+		       sizeof(params));
 	if (ret) {
 		LOG_ERR("Failed to enable SoftAP: %d", ret);
-		sm->error_code = ret;
-		smf_set_state(SMF_CTX(sm), &wifi_states[3]);
+		struct wifi_msg err_msg = {
+			.type        = WIFI_ERROR,
+			.active_mode = WIFI_MODE_SOFTAP,
+			.error_code  = ret,
+		};
+		zbus_chan_pub(&WIFI_CHAN, &err_msg, K_NO_WAIT);
 		return;
 	}
 
 	LOG_INF("SoftAP enable requested: SSID='%s'", CONFIG_APP_WIFI_SSID);
-
-	/* Message will be published when SoftAP is actually started (in event*/
-	/* handler)*/
-}
-
-static enum smf_state_result wifi_starting_run(void *obj)
-{
-	struct wifi_sm_object *sm = (struct wifi_sm_object *)obj;
-
-	if (sm->softap_ready) {
-		smf_set_state(SMF_CTX(sm), &wifi_states[2]);
-	}
-
-	return SMF_EVENT_HANDLED;
-}
-
-static void wifi_active_entry(void *obj)
-{
-	struct wifi_msg msg;
-
-	LOG_INF("WiFi SoftAP active");
-
-	msg.type = WIFI_SOFTAP_STARTED;
-	snprintf(msg.ssid, sizeof(msg.ssid), "%s", CONFIG_APP_WIFI_SSID);
-	msg.channel = 0;
-	msg.error_code = 0;
-
-	zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
-}
-
-static enum smf_state_result wifi_active_run(void *obj)
-{
-	/* Stay in active state */
-	return SMF_EVENT_HANDLED;
-}
-
-static void wifi_error_entry(void *obj)
-{
-	struct wifi_sm_object *sm = (struct wifi_sm_object *)obj;
-	struct wifi_msg msg;
-
-	LOG_ERR("WiFi error: %d", sm->error_code);
-
-	msg.type = WIFI_ERROR;
-	msg.error_code = sm->error_code;
-
-	zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
 }
 
 /* ============================================================================
@@ -196,48 +162,53 @@ static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
 	ARG_UNUSED(iface);
 
 	switch (mgmt_event) {
+
 	case NET_EVENT_WIFI_AP_ENABLE_RESULT: {
 		const struct wifi_status *status =
 			(const struct wifi_status *)cb->info;
 
 		if (status->status == 0) {
-			LOG_INF("SoftAP enabled successfully");
-			wifi_sm.softap_ready = true;
-			smf_run_state(SMF_CTX(&wifi_sm));
+			LOG_INF("SoftAP enabled: SSID='%s' IP=192.168.7.1",
+				CONFIG_APP_WIFI_SSID);
+
+			struct wifi_msg msg = {
+				.type        = WIFI_SOFTAP_STARTED,
+				.active_mode = WIFI_MODE_SOFTAP,
+				.error_code  = 0,
+			};
+			snprintf(msg.ip_addr, sizeof(msg.ip_addr), "192.168.7.1");
+			snprintf(msg.ssid, sizeof(msg.ssid), "%s",
+				 CONFIG_APP_WIFI_SSID);
+			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
 		} else {
 			LOG_ERR("SoftAP enable failed: %d", status->status);
-			wifi_sm.error_code = status->status;
-			smf_set_state(SMF_CTX(&wifi_sm), &wifi_states[3]);
-			smf_run_state(SMF_CTX(&wifi_sm));
+
+			struct wifi_msg msg = {
+				.type        = WIFI_ERROR,
+				.active_mode = WIFI_MODE_SOFTAP,
+				.error_code  = status->status,
+			};
+			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
 		}
 		break;
 	}
 
 	case NET_EVENT_WIFI_AP_STA_CONNECTED: {
-		const struct wifi_ap_sta_info *sta_info =
+		const struct wifi_ap_sta_info *sta =
 			(const struct wifi_ap_sta_info *)cb->info;
-		LOG_INF("Station connected: %02x:%02x:%02x:%02x:%02x:%02x",
-			sta_info->mac[0], sta_info->mac[1], sta_info->mac[2],
-			sta_info->mac[3], sta_info->mac[4], sta_info->mac[5]);
-
-		struct wifi_msg msg = {
-			.type = WIFI_CLIENT_CONNECTED,
-		};
-		zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+		LOG_INF("SoftAP: client connected %02x:%02x:%02x:%02x:%02x:%02x",
+			sta->mac[0], sta->mac[1], sta->mac[2], sta->mac[3],
+			sta->mac[4], sta->mac[5]);
 		break;
 	}
 
 	case NET_EVENT_WIFI_AP_STA_DISCONNECTED: {
-		const struct wifi_ap_sta_info *sta_info =
+		const struct wifi_ap_sta_info *sta =
 			(const struct wifi_ap_sta_info *)cb->info;
-		LOG_INF("Station disconnected: %02x:%02x:%02x:%02x:%02x:%02x",
-			sta_info->mac[0], sta_info->mac[1], sta_info->mac[2],
-			sta_info->mac[3], sta_info->mac[4], sta_info->mac[5]);
-
-		struct wifi_msg msg = {
-			.type = WIFI_CLIENT_DISCONNECTED,
-		};
-		zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+		LOG_INF("SoftAP: client disconnected "
+			"%02x:%02x:%02x:%02x:%02x:%02x",
+			sta->mac[0], sta->mac[1], sta->mac[2], sta->mac[3],
+			sta->mac[4], sta->mac[5]);
 		break;
 	}
 
@@ -249,29 +220,133 @@ static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
 static void net_mgmt_event_handler(struct net_mgmt_event_callback *cb,
 				   uint64_t mgmt_event, struct net_if *iface)
 {
+	if (mgmt_event != NET_EVENT_IPV4_DHCP_BOUND) {
+		return;
+	}
+
+	/* Only meaningful in STA or P2P mode */
+	if (active_mode != WIFI_MODE_STA && active_mode != WIFI_MODE_P2P) {
+		LOG_DBG("DHCP bound in mode %d, ignoring", active_mode);
+		return;
+	}
+
+	const struct net_if_dhcpv4 *dhcpv4 = cb->info;
+	char ip[NET_IPV4_ADDR_LEN] = "0.0.0.0";
+
+	net_addr_ntop(AF_INET, &dhcpv4->requested_ip, ip, sizeof(ip));
+
+	/* Re-query SSID at DHCP time — the iface status is fully settled here,
+	 * resolving the race where ssid_len == 0 at L4_CONNECTED time. */
+	struct wifi_iface_status wstatus = {0};
+
+	if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface, &wstatus,
+		     sizeof(wstatus)) == 0 && wstatus.ssid_len > 0) {
+		snprintf(sta_ssid, sizeof(sta_ssid), "%.*s",
+			 wstatus.ssid_len, (char *)wstatus.ssid);
+	}
+
+	/* A SSID starting with "DIRECT-" is a P2P/Wi-Fi Direct connection
+	 * regardless of active_mode (P2P shell commands work from STA mode). */
+	bool is_p2p = (strncmp(sta_ssid, "DIRECT-", 7) == 0);
+
+	if (is_p2p) {
+		LOG_INF("P2P CONNECTED - SSID: %s, IP: %s", sta_ssid, ip);
+
+		struct wifi_msg msg = {
+			.type        = WIFI_P2P_CONNECTED,
+			.active_mode = WIFI_MODE_P2P,
+		};
+		snprintf(msg.ip_addr, sizeof(msg.ip_addr), "%s", ip);
+		snprintf(msg.ssid, sizeof(msg.ssid), "%s", sta_ssid);
+		zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+	} else {
+		LOG_INF("STA CONNECTED - SSID: %s, IP: %s",
+			sta_ssid[0] ? sta_ssid : "<unknown>", ip);
+
+		struct wifi_msg msg = {
+			.type        = WIFI_STA_CONNECTED,
+			.active_mode = WIFI_MODE_STA,
+		};
+		snprintf(msg.ip_addr, sizeof(msg.ip_addr), "%s", ip);
+		snprintf(msg.ssid, sizeof(msg.ssid), "%s", sta_ssid);
+		zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+	}
+}
+
+static void l4_mgmt_event_handler(struct net_mgmt_event_callback *cb,
+				  uint64_t mgmt_event, struct net_if *iface)
+{
 	ARG_UNUSED(cb);
 	ARG_UNUSED(iface);
 
+	if (active_mode == WIFI_MODE_SOFTAP) {
+		return; /* SoftAP uses AP events, not L4 events */
+	}
+
 	switch (mgmt_event) {
-	case NET_EVENT_IPV4_ADDR_ADD:
-		LOG_INF("IPv4 address added");
+
+	case NET_EVENT_L4_CONNECTED: {
+		/* Query SSID early — may be empty here if the driver hasn't
+		 * settled yet; it is re-queried at DHCP_BOUND time. */
+		struct wifi_iface_status status = {0};
+
+		sta_ssid[0] = '\0';
+		if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, iface,
+			     &status, sizeof(status)) == 0 &&
+		    status.ssid_len > 0) {
+			snprintf(sta_ssid, sizeof(sta_ssid), "%.*s",
+				 status.ssid_len, (char *)status.ssid);
+		}
+
+		bool is_p2p = (strncmp(sta_ssid, "DIRECT-", 7) == 0);
+
+		if (sta_ssid[0]) {
+			LOG_INF("WiFi %s connected (SSID: %s)"
+				" - awaiting DHCP binding",
+				is_p2p ? "P2P" : "STA", sta_ssid);
+		} else {
+			LOG_INF("WiFi connected - awaiting DHCP binding");
+		}
 		break;
+	}
+
+	case NET_EVENT_L4_DISCONNECTED: {
+		/* Detect P2P vs STA from the SSID captured at connect time. */
+		bool was_p2p = (strncmp(sta_ssid, "DIRECT-", 7) == 0);
+
+		if (was_p2p || active_mode == WIFI_MODE_P2P) {
+			if (sta_ssid[0]) {
+				LOG_INF("P2P DISCONNECTED (SSID: %s)", sta_ssid);
+			} else {
+				LOG_INF("P2P DISCONNECTED");
+			}
+			struct wifi_msg msg = {
+				.type        = WIFI_P2P_DISCONNECTED,
+				.active_mode = WIFI_MODE_P2P,
+			};
+			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+		} else {
+			if (sta_ssid[0]) {
+				LOG_INF("WiFi STA DISCONNECTED (SSID: %s)",
+					sta_ssid);
+			} else {
+				LOG_INF("WiFi STA DISCONNECTED");
+			}
+			LOG_INF("  Reconnect: wifi connect -s <SSID>"
+				" -p <password> -k 1");
+			struct wifi_msg msg = {
+				.type        = WIFI_STA_DISCONNECTED,
+				.active_mode = WIFI_MODE_STA,
+			};
+			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+		}
+		sta_ssid[0] = '\0';
+		break;
+	}
 
 	default:
 		break;
 	}
-}
-
-/* ============================================================================
- * PUBLIC API
- * ============================================================================
- */
-
-int wifi_start_softap(void)
-{
-	wifi_sm.start_requested = true;
-	smf_set_state(SMF_CTX(&wifi_sm), &wifi_states[1]);
-	return smf_run_state(SMF_CTX(&wifi_sm));
 }
 
 /* ============================================================================
@@ -285,25 +360,41 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
 
-	LOG_INF("WiFi module thread started");
+	LOG_INF("WiFi module thread started (mode: %s)",
+		mode_to_str(active_mode));
 
-	/* Give system time to initialize */
+	/* Give the network stack a moment to settle before starting Wi-Fi. */
 	k_sleep(K_SECONDS(2));
 
-	/* Start SoftAP */
-	wifi_start_softap();
+	switch (active_mode) {
+	case WIFI_MODE_SOFTAP:
+		wifi_softap_start();
+		break;
+
+	case WIFI_MODE_STA:
+		break;
+
+	case WIFI_MODE_P2P:
+		break;
+
+	default:
+		LOG_WRN("Unknown Wi-Fi mode %d, falling back to SoftAP",
+			active_mode);
+		active_mode = WIFI_MODE_SOFTAP;
+		wifi_softap_start();
+		break;
+	}
 
 	while (1) {
-		k_sleep(K_SECONDS(10));
+		k_sleep(K_SECONDS(30));
 	}
 }
 
-/* Thread stack size increased for SoftAP mode with WPA supplicant */
 K_THREAD_DEFINE(wifi_thread_id, 8192, wifi_thread_fn, NULL, NULL, NULL, 5, 0,
 		0);
 
 /* ============================================================================
- * MODULE INITIALIZATION
+ * MODULE INITIALIZATION (SYS_INIT priority 10)
  * ============================================================================
  */
 
@@ -311,27 +402,54 @@ int wifi_module_init(void)
 {
 	LOG_INF("Initializing WiFi module");
 
-	/* Initialize state machine */
-	wifi_sm.softap_ready = false;
-	wifi_sm.start_requested = false;
-	wifi_sm.error_code = 0;
-	smf_set_initial(SMF_CTX(&wifi_sm), &wifi_states[0]);
+	/* Read the active mode published by mode_selector (priority 0) */
+	struct wifi_mode_msg mode_msg = {.mode = WIFI_MODE_SOFTAP};
+	int ret = zbus_chan_read(&WIFI_MODE_CHAN, &mode_msg, K_NO_WAIT);
 
-	/* Setup network management callbacks */
-	net_mgmt_init_event_callback(
-		&wifi_mgmt_cb, wifi_mgmt_event_handler,
-		NET_EVENT_WIFI_AP_ENABLE_RESULT |
-			NET_EVENT_WIFI_AP_STA_CONNECTED |
-			NET_EVENT_WIFI_AP_STA_DISCONNECTED);
+	if (ret) {
+		LOG_WRN("Failed to read WIFI_MODE_CHAN (%d), defaulting to "
+			"SoftAP", ret);
+		active_mode = WIFI_MODE_SOFTAP;
+	} else {
+		active_mode = mode_msg.mode;
+	}
+
+	LOG_INF("Active Wi-Fi mode: %s", mode_to_str(active_mode));
+
+	/* For P2P and SoftAP, block conn_mgr from auto-connecting to any
+	 * stored STA credentials.  Must be done at SYS_INIT (priority 10),
+	 * before conn_mgr has a chance to kick off a connection attempt. */
+	if (active_mode != WIFI_MODE_STA) {
+		struct net_if *iface = net_if_get_first_wifi();
+
+		if (iface) {
+			conn_mgr_if_set_flag(iface,
+					     CONN_MGR_IF_NO_AUTO_CONNECT, true);
+			LOG_INF("conn_mgr auto-connect blocked (mode=%s)",
+				mode_to_str(active_mode));
+		}
+	}
+
+	/* SoftAP: AP enable result and client connect/disconnect events */
+	net_mgmt_init_event_callback(&wifi_mgmt_cb, wifi_mgmt_event_handler,
+				     NET_EVENT_WIFI_AP_ENABLE_RESULT |
+				     NET_EVENT_WIFI_AP_STA_CONNECTED |
+				     NET_EVENT_WIFI_AP_STA_DISCONNECTED);
 	net_mgmt_add_event_callback(&wifi_mgmt_cb);
 
+	/* STA / P2P: DHCP bound → publish connected event with IP and SSID */
 	net_mgmt_init_event_callback(&net_mgmt_cb, net_mgmt_event_handler,
-				     NET_EVENT_IPV4_ADDR_ADD);
+				     NET_EVENT_IPV4_DHCP_BOUND);
 	net_mgmt_add_event_callback(&net_mgmt_cb);
 
-	LOG_INF("WiFi module initialized");
+	/* STA / P2P: L4 connect (early log) and disconnect (notify webserver) */
+	net_mgmt_init_event_callback(&l4_mgmt_cb, l4_mgmt_event_handler,
+				     NET_EVENT_L4_CONNECTED |
+				     NET_EVENT_L4_DISCONNECTED);
+	net_mgmt_add_event_callback(&l4_mgmt_cb);
 
+	LOG_INF("WiFi module initialized");
 	return 0;
 }
 
-SYS_INIT(wifi_module_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+SYS_INIT(wifi_module_init, APPLICATION, 10);
