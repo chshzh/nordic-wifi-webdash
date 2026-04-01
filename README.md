@@ -183,8 +183,8 @@ That's it—by referencing the official instructions you get a reproducible work
   - (If you applied the credential overlay, use your custom SSID/password.)
   - **Limit**: Only two stations can be connected at a time; disconnect another client before adding a third.
 4. **Open browser** to:
-   - `http://192.168.7.1` (static IP — always works in SoftAP mode)
-   - `http://nrfwifi.local` is **not available in SoftAP mode** (see mDNS note below)
+   - `http://192.168.7.1` (static IP)
+   - `http://nrfwifi.local` (mDNS — macOS/iOS/Windows; see note below)
 
 ## 📡 WiFi Configuration
 
@@ -202,10 +202,9 @@ Static IP configuration:
 - **Gateway**: 192.168.7.1
 - **DHCP Server**: Enabled with exactly two leases (192.168.7.2 – 192.168.7.3)
 - **Client Ceiling**: WiFi + HTTP layers enforce max 2 stations (each expected to run one browser session)
-- **mDNS Hostname**: `nrfwifi.local` — available in **STA and P2P modes only**
+- **mDNS Hostname**: `nrfwifi.local` — all three modes (SoftAP, STA, P2P)
 
-> **mDNS note**: In **SoftAP mode** `nrfwifi.local` does **not** work — the nRF7002 AP driver does not reflect IPv4 multicast from client stations back to the host IP stack, so mDNS queries never reach the responder. Use `http://192.168.7.1` directly.
-> In **STA / P2P mode** `http://nrfwifi.local` resolves correctly on macOS, iOS, and Windows (Bonjour). Android lacks native mDNS support — use the DHCP-assigned IP shown in the device logs.
+> **mDNS note**: `http://nrfwifi.local` works on macOS, iOS, and Windows (Bonjour) in all modes. Android lacks native mDNS support — use the IP address shown in the device logs instead (`192.168.7.1` for SoftAP, DHCP-assigned for STA/P2P).
 
 ### 🔒 Security Note
 

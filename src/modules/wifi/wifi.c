@@ -90,14 +90,15 @@ static void wifi_softap_start(void)
 		return;
 	}
 
-	/* Force-drop any in-progress STA connection before starting SoftAP.
-	 * The NO_AUTO_CONNECT flag was already set at SYS_INIT, but the wifi
-	 * driver may have queued a connection in the small race window.
-	 * Without this disconnect the AP enable call fails with -EBUSY (-16)
-	 * because the interface is not in the DISCONNECTED state. */
-	conn_mgr_all_if_disconnect(false);
+	/* If conn_mgr queued a STA connection in the race window before
+	 * NO_AUTO_CONNECT was set, the AP enable call returns -EBUSY (-16).
+	 * Use a direct WPA-level disconnect (NET_REQUEST_WIFI_DISCONNECT)
+	 * instead of conn_mgr_all_if_disconnect() to clear any in-progress
+	 * attempt WITHOUT firing NET_EVENT_L4_DISCONNECTED.  The conn_mgr
+	 * event tears down mDNS multicast group membership on the interface
+	 * and it is not reliably restored when the AP comes back up. */
+	net_mgmt(NET_REQUEST_WIFI_DISCONNECT, iface, NULL, 0);
 	k_sleep(K_MSEC(300));
-	conn_mgr_if_set_flag(iface, CONN_MGR_IF_NO_AUTO_CONNECT, true);
 
 	/* Set regulatory domain */
 	struct wifi_reg_domain regd = {0};
@@ -168,6 +169,23 @@ static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
 			(const struct wifi_status *)cb->info;
 
 		if (status->status == 0) {
+			/* Re-assert the static IP on the AP interface.
+			 * The connection manager disconnect issued before AP
+			 * enable can remove the manual address or disrupt the
+			 * mDNS IGMP membership.  Removing and re-adding the
+			 * address fires NET_EVENT_IPV4_ADDR_ADD which lets the
+			 * mDNS responder re-register on the correct interface. */
+			struct net_if *ap_iface = net_if_get_first_wifi();
+			struct in_addr addr, netmask;
+
+			inet_pton(AF_INET, "192.168.7.1", &addr);
+			inet_pton(AF_INET, "255.255.255.0", &netmask);
+			net_if_ipv4_addr_rm(ap_iface, &addr);
+			net_if_ipv4_addr_add(ap_iface, &addr,
+					     NET_ADDR_MANUAL, 0);
+			net_if_ipv4_set_netmask_by_addr(ap_iface, &addr,
+							&netmask);
+
 			LOG_INF("SoftAP enabled: SSID='%s' IP=192.168.7.1",
 				CONFIG_APP_WIFI_SSID);
 
