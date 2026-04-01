@@ -1,0 +1,95 @@
+schema: spec-driven
+
+# Project context
+context: |
+  Product: Nordic WiFi Web Dashboard (nordic-wifi-webdash)
+  Version: v2.0.0
+  Tech stack: Zephyr RTOS v4.2.99, Nordic NCS v3.2.4, nRF5340 + nRF7002 Wi-Fi
+  Architecture: SMF + Zbus modular design
+  Domain: Multi-mode Wi-Fi dashboard with real-time device state control
+
+  Supported boards:
+    - nrf7002dk/nrf5340/cpuapp  (nRF5340 + nRF7002, 2 buttons, 2 LEDs)
+    - nrf54lm20dk/nrf54lm20a/cpuapp + shield nrf7002eb2 (nRF54LM20A + nRF7002EBII, 3 buttons, 4 LEDs)
+
+  Wi-Fi modes (runtime selectable, persisted in NVS):
+    - SoftAP (default): Device creates own AP; HTTP server at 192.168.7.1
+    - STA: Device connects to existing AP; HTTP server on DHCP-assigned IP
+    - P2P (Wi-Fi Direct): Device connects to phone/peer; HTTP server on DHCP-assigned IP from GO
+      P2P available on nRF54LM20DK only (requires -S wifi-p2p snippet)
+
+  Mode selection UX:
+    - Hold Button 1 (DK index 0) >3 s during boot to enter selection mode
+    - Shell prints numbered menu; user types 1/2/3 + Enter
+    - Selected mode saved to NVS key "app/wifi_mode"; factory default is SoftAP
+    - nRF7002DK: SoftAP + STA at boot; P2P via shell re-select only
+    - nRF54LM20DK: all 3 modes at boot
+
+  Conventions:
+    - Use SYS_INIT for module initialization (priority-based startup)
+    - Zbus channels for inter-module communication
+    - SMF (State Machine Framework) for stateful modules
+    - All feature modules under src/modules/ with own Kconfig
+    - Optional features via overlay configs
+    - LOG_MODULE_REGISTER in each module
+    - Use CONFIG_ prefix for Kconfig symbols
+
+  Existing modules (v1.0):
+    - src/modules/button/     — GPIO button monitoring, SMF 3-state
+    - src/modules/led/        — LED control, SMF 2-state per LED
+    - src/modules/wifi/       — SoftAP management, SMF 4-state
+    - src/modules/network/    — network event handlers
+    - src/modules/webserver/  — HTTP server + REST API
+    - src/modules/memory/     — heap monitor
+
+  New modules (v2.0):
+    - src/modules/mode_selector/ — boot-time mode selection, NVS persistence
+
+  Zbus channels:
+    - BUTTON_CHAN     — button pressed/released events
+    - LED_CMD_CHAN    — LED control commands (from webserver)
+    - LED_STATE_CHAN  — LED current state
+    - WIFI_CHAN       — Wi-Fi connectivity status
+    - WIFI_MODE_CHAN  — Wi-Fi mode selection (NEW in v2.0)
+
+  Build commands:
+    SoftAP/STA (nRF7002DK):
+      west build -p -b nrf7002dk/nrf5340/cpuapp
+
+    SoftAP/STA (nRF54LM20DK):
+      west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -- -DSHIELD=nrf7002eb2
+
+    P2P (nRF54LM20DK only):
+      west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -S wifi-p2p -- -DSHIELD=nrf7002eb2
+
+  Code style:
+    - Nordic NCS coding style (Linux kernel style)
+    - LOG_MODULE_REGISTER in each module
+    - Use CONFIG_ prefix for Kconfig symbols
+    - Kconfig symbol prefix: APP_ for application-level options
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Keep proposals focused on single features or small related changes
+    - Include memory/flash impact estimates (critical for embedded)
+    - Specify Kconfig options and default values
+    - Include testing steps (build, flash, observe UART logs)
+    - Always include "Non-goals" section to limit scope
+    - Note which boards are affected
+
+  tasks:
+    - Break tasks into testable increments (<4 hours each)
+    - Include verification steps: build test, flash, UART log check
+    - Tag with module name (e.g., [wifi], [mode_selector], [button])
+    - Specify required hardware (DK board, UART console, Android phone for P2P)
+
+  spec:
+    - Use PRD.md for high-level product vision
+    - Use specs for detailed module/feature technical documentation
+    - Include state machine diagrams for SMF modules (Mermaid)
+    - Include sequence diagrams for complex interactions
+    - Document Zbus message formats (struct definitions)
+    - List dependencies (Kconfig, other modules)
+    - Specify RAM/flash footprint per module
+    - Document board differences (button/LED counts, P2P availability)

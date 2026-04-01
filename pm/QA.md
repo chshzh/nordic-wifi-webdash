@@ -4,7 +4,7 @@
 **Project Repository**: /opt/nordic/ncs/myApps/nordic_wifi_softap_webserver
 **Review Date**: February 3, 2026
 **Reviewer(s)**: GitHub Copilot (Product Manager skill)
-**NCS Version**: v3.2.1
+**NCS Version**: v3.2.4
 **Project Version**: v1.0.1 (per README roadmap)
 **Board/Platform**: nrf7002dk/nrf5340/cpuapp (primary), nrf54lm20dk/nrf54lm20a+shield (secondary)
 
