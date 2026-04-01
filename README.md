@@ -1,134 +1,149 @@
-# Nordic WiFi SoftAP Webserver
+# Nordic WiFi Web Dashboard
 
-[![Build and Test Nordic WiFi SoftAP Webserver](https://github.com/chshzh/nordic-wifi-softap-webserver/actions/workflows/build.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-softap-webserver/actions/workflows/build.yml)
+[![Build](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-LicenseRef--Nordic--5--Clause-blue.svg)](LICENSE)
-[![NCS Version](https://img.shields.io/badge/NCS-v3.2.1-green.svg)](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK)
+[![NCS Version](https://img.shields.io/badge/NCS-v3.2.4-green.svg)](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK)
 ![Nordic Semiconductor](https://img.shields.io/badge/Nordic%20Semiconductor-nRF7002DK-blue)
 ![Nordic Semiconductor](https://img.shields.io/badge/Nordic%20Semiconductor-nRF54LM20DK%2BnRF7002EBII-red)
 
-A professional WiFi SoftAP web server application for **nRF7002DK** and **nRF54LM20DK+nRF7002EBII** development kits. Features a modular SMF+Zbus architecture for button monitoring and LED control via a web interface.
+A professional IoT demo and reference platform for **nRF70 series Wi-Fi development kits**. Provides real-time device state control (buttons, LEDs) through a browser-based dashboard served directly from the nRF device — no cloud required.
+
+**v2.0** upgrades from single SoftAP mode to a **three-mode Wi-Fi platform**: SoftAP, STA (Station), and P2P (Wi-Fi Direct). The active mode is persisted in NVS and can be changed at any time via the `wifi_mode` shell command — the board reboots automatically to apply the new mode.
 
 ## 🎯 Features
 
-- ✅ **WiFi SoftAP Mode** - Creates its own WiFi access point
-- ✅ **Static Web Server** - Serves HTML/CSS/JavaScript interface
-- ✅ **Button Monitoring** - Real-time button state and press count tracking
-- ✅ **LED Control** - On/Off/Toggle control via web interface
-- ✅ **SMF + Zbus Architecture** - Modular, maintainable, production-ready design
-- ✅ **RESTful API** - JSON-based HTTP API for integration
-- ✅ **Auto-Refresh** - Real-time updates every 500ms
-- ✅ **Dual-Client Guardrail** - SoftAP and HTTP stack enforce a strict two-station limit for demo stability
+- ✅ **Three Wi-Fi Modes** — SoftAP (own AP), STA (join existing network), P2P (Wi-Fi Direct to phone)
+- ✅ **Runtime Mode Selector** — `wifi_mode [AP|STA|P2P]` changes mode at any time; saved to NVS, board reboots
+- ✅ **Mode-Aware Dashboard** — colour-coded mode banner (blue=SoftAP, green=STA, purple=P2P)
+- ✅ **REST API** — `/api/system`, `/api/buttons`, `/api/leds`, `/api/led`
+- ✅ **Static Web Server** — gzip-compressed HTML/CSS/JS served from flash
+- ✅ **Button Monitoring** — real-time state and press count (2 buttons on nRF7002DK, 3 on nRF54LM20DK)
+- ✅ **LED Control** — ON/OFF/Toggle per LED (2 LEDs on nRF7002DK, 4 on nRF54LM20DK)
+- ✅ **SMF + Zbus Architecture** — modular, event-driven, production-ready
+- ✅ **Auto-Refresh** — 500 ms polling for button/LED/system state
+- ✅ **mDNS** — accessible at `http://nrfwifi.local` in SoftAP and STA modes
 
 ## 📁 Project Structure
 
 ```
-nordic_wifi_softap_webserver/
+nordic-wifi-webdash/
 ├── CMakeLists.txt           # Main build configuration
 ├── Kconfig                  # Kconfig menu
-├── prj.conf                 # Project configuration
+├── prj.conf                 # Project configuration (SoftAP + STA)
 ├── LICENSE                  # Nordic 5-Clause license
 ├── README.md                # This file
-├── .gitignore              # Git ignore patterns
+├── .gitignore
 │
 ├── boards/                  # Board-specific configs
-│   └── nrf7002dk_nrf5340_cpuapp.conf
 │
 ├── src/
-│   ├── main.c              # Application entry point
+│   ├── main.c              # Startup banner
 │   └── modules/
-│       ├── messages.h      # Common message definitions
-│       ├── button/         # Button module
-│       │   ├── button.c
-│       │   ├── button.h
-│       │   ├── CMakeLists.txt
-│       │   └── Kconfig.button
-│       ├── led/            # LED module
-│       │   ├── led.c
-│       │   ├── led.h
-│       │   ├── CMakeLists.txt
-│       │   └── Kconfig.led
-│       ├── wifi/           # WiFi SoftAP module
-│       │   ├── wifi.c
-│       │   ├── wifi.h
-│       │   ├── CMakeLists.txt
-│       │   └── Kconfig.wifi
-│       └── webserver/      # HTTP server module
-│           ├── webserver.c
-│           ├── webserver.h
-│           ├── CMakeLists.txt
-│           └── Kconfig.webserver
+│       ├── messages.h           # Shared Zbus message types
+│       ├── mode_selector/       # NEW v2.0 — runtime mode selection + NVS
+│       ├── button/              # GPIO button, press events
+│       ├── led/                 # LED state control
+│       ├── wifi/                # Multi-mode WiFi (SoftAP/STA/P2P)
+│       ├── network/             # Net mgmt event handler
+│       ├── webserver/           # HTTP server + REST API
+│       └── memory/              # Heap monitor
 │
-└── www/                    # Web interface files
-    ├── index.html
-    ├── main.js
+└── www/                    # Web dashboard files
+    ├── index.html           # Mode banner + button/LED panels
+    ├── main.js              # /api/system polling, mode colours
     └── styles.css
 ```
 
 ## 📋 Architecture
 
-This project uses Nordic's recommended **SMF (State Machine Framework) + Zbus (Message Bus)** modular architecture:
+**SMF + Zbus** modular architecture. All inter-module communication is via Zbus channels.
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Button    │────▶│    Zbus     │◀────│     LED     │
-│   Module    │     │  (Messages) │     │   Module    │
-└─────────────┘     └─────────────┘     └─────────────┘
-                           │
-                    ┌──────┴──────┐
-                    │             │
-              ┌─────▼─────┐ ┌────▼─────┐
-              │   WiFi    │ │Webserver │
-              │  Module   │ │  Module  │
-              └───────────┘ └──────────┘
-```
+| Module | SYS_INIT Priority | Purpose |
+|--------|-------------------|---------|
+| Mode Selector | 0 | Read NVS mode; publish `WIFI_MODE_CHAN`; `wifi_mode` shell cmd saves + reboots |
+| WiFi | 10 | Read `WIFI_MODE_CHAN`; start SoftAP / STA / P2P path |
+| Button | default | GPIO IRQ → press/release events → `BUTTON_CHAN` |
+| LED | default | LED GPIO; respond to `LED_CMD_CHAN` |
+| Network | default | Net mgmt event registration |
+| Webserver | default | HTTP server; start on `WIFI_CHAN` connected event |
 
-### Module Breakdown
+### Zbus Channels
 
-| Module | Purpose | State Machine |
-|--------|---------|---------------|
-| **Button** | GPIO button monitoring with debouncing | 3 states: Idle → Pressed → Released |
-| **LED** | LED output control | 2 states: On ↔ Off |
-| **WiFi** | SoftAP management | 4 states: Idle → Starting → Active → Error |
-| **Webserver** | HTTP server and API endpoints | Stateless (request handlers) |
-
-All inter-module communication uses **Zbus channels** for loose coupling.
+| Channel | Publisher | Subscribers |
+|---------|-----------|-------------|
+| `WIFI_MODE_CHAN` | mode_selector | wifi |
+| `WIFI_CHAN` | wifi | webserver |
+| `BUTTON_CHAN` | button | webserver |
+| `LED_CMD_CHAN` | webserver | led |
+| `LED_STATE_CHAN` | led | webserver |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- nRF Connect SDK v3.2.1 or later
-- One of the supported hardware combinations:
-  - nRF7002DK (nrf7002dk/nrf5340/cpuapp)
-  - nRF54LM20DK + nRF7002EBII (nrf54lm20dk/nrf54lm20a/cpuapp + shield)
-- Toolchain setup complete
+- nRF Connect SDK **v3.2.4**
+- Supported hardware (both support SoftAP + STA + P2P when built with `-S wifi-p2p`):
+  - nRF7002DK (`nrf7002dk/nrf5340/cpuapp`)
+  - nRF54LM20DK + nRF7002EBII (`nrf54lm20dk/nrf54lm20a/cpuapp` + shield)
 
 ### Build & Flash
 
-#### For nRF7002DK
-
 ```bash
-cd nordic_wifi_softap_webserver
+# nRF7002DK — SoftAP + STA + P2P
+west build -p -b nrf7002dk/nrf5340/cpuapp -S wifi-p2p
+west flash
 
-west build -p -b nrf7002dk/nrf5340/cpuapp
-
+# nRF54LM20DK + nRF7002EBII shield — SoftAP + STA + P2P
+west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -S wifi-p2p -- -DSHIELD=nrf7002eb2
 west flash
 ```
 
-#### For nRF54LM20DK + nRF7002EBII
+> **Note (nRF54LM20DK + nRF7002EBII):** BUTTON3 is unavailable due to shield pin conflicts. BUTTON0–BUTTON2 and all 4 LEDs are functional.
 
-```bash
-cd nordic_wifi_softap_webserver
+### Mode Selection
 
-west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -- \
-  -Dnordic_wifi_softap_webserver_SHIELD=nrf7002eb2 \
-  -Dnordic_wifi_softap_webserver_SNIPPET=nrf70-wifi
+| Mode | How to connect | Dashboard URL |
+|------|---------------|---------------|
+| **SoftAP** (default) | Connect to Wi-Fi `WebDashboard_AP` (password `12345678`) | `http://192.168.7.1` |
+| **STA** | Type `wifi connect <SSID> <password>` in serial shell | `http://<DHCP-IP>` |
+| **P2P** | Wi-Fi Direct from phone | `http://192.168.49.x` |
 
-west flash
+**To change mode**, open a serial terminal (`uart:~$`) and run the `wifi_mode` command at any time:
+
+```
+uart:~$ wifi_mode STA
+Switching to STA mode -- rebooting...
+[00:00:xx.xxx] <inf> mode_selector: Mode saved: STA -> rebooting
+*** Booting nRF Connect SDK v3.2.4 ***
+[00:00:00.163,283] <inf> mode_selector: Stored mode: STA
 ```
 
-> **⚠️ Hardware Limitation (nRF54LM20DK + nRF7002EBII):**
-> When using the nRF7002EBII shield, **BUTTON3 is not available** due to pin conflicts with the shield's UART30 configuration (the shield overlay deletes `button_3`). Only **BUTTON0, BUTTON1, and BUTTON2** are functional on this hardware combination. All 4 LEDs remain available.
+The board saves the new mode to NVS and performs a cold reboot. The selected mode persists across all subsequent power cycles until changed again.
+
+#### wifi_mode command reference
+
+```
+uart:~$ wifi_mode
+Current mode: SoftAP
+Usage: wifi_mode [SOFTAP|STA|P2P]
+  SOFTAP  (creates own AP, IP 192.168.7.1)
+  STA     (connects to existing Wi-Fi)
+  P2P     (Wi-Fi Direct, requires -S wifi-p2p build)
+Board reboots automatically after mode change.
+```
+
+### STA Connection (per session)
+
+Connect to your router after the board boots in STA mode:
+
+```
+uart:~$ wifi scan
+uart:~$ wifi connect "MyNetworkSSID" "MyPassword"
+```
+
+The dashboard becomes available at `http://<DHCP-IP>` once the device gets an IP from your router.
+
+> **Note:** `wifi connect` connects for the current session only — no credentials are stored. This intentionally prevents auto-connection from triggering in SoftAP or P2P mode if you switch modes later. If you want to check whether a connection is active: `wifi status`.
 
 ## 🧭 Workspace Application Setup
 
@@ -144,7 +159,7 @@ manifest:
       url-base: https://github.com/nrfconnect
   projects:
     - name: nrf
-      revision: v3.2.1
+      revision: v3.2.4
       import: true
   self:
     path: nordic_wifi_softap_webserver
@@ -163,20 +178,20 @@ That's it—by referencing the official instructions you get a reproducible work
 1. **Power on** the development kit
 2. **Wait ~5 seconds** for WiFi SoftAP to start
 3. **Connect your phone/laptop** to WiFi:
-   - SSID: `nRF70-WebServer`
+   - SSID: `WebDashboard_AP`
    - Password: `12345678`
   - (If you applied the credential overlay, use your custom SSID/password.)
   - **Limit**: Only two stations can be connected at a time; disconnect another client before adding a third.
 4. **Open browser** to:
-   - `http://192.168.7.1` (static IP)
-   - `http://nrfwifi.local` (mDNS hostname - may not work on all devices)
+   - `http://192.168.7.1` (static IP — always works in SoftAP mode)
+   - `http://nrfwifi.local` is **not available in SoftAP mode** (see mDNS note below)
 
 ## 📡 WiFi Configuration
 
 Default settings (customizable in `prj.conf`):
 
 ```properties
-CONFIG_APP_WIFI_SSID="nRF70-WebServer"
+CONFIG_APP_WIFI_SSID="WebDashboard_AP"
 CONFIG_APP_WIFI_PASSWORD="12345678"
 CONFIG_APP_HTTP_PORT=80
 ```
@@ -187,9 +202,10 @@ Static IP configuration:
 - **Gateway**: 192.168.7.1
 - **DHCP Server**: Enabled with exactly two leases (192.168.7.2 – 192.168.7.3)
 - **Client Ceiling**: WiFi + HTTP layers enforce max 2 stations (each expected to run one browser session)
-- **mDNS Hostname**: nrfwifi.local (enabled for easy discovery)
+- **mDNS Hostname**: `nrfwifi.local` — available in **STA and P2P modes only**
 
-> **Note**: mDNS (`.local` hostname) may not work on all devices. Android devices often lack native mDNS support. Use the static IP `192.168.7.1` for guaranteed access.
+> **mDNS note**: In **SoftAP mode** `nrfwifi.local` does **not** work — the nRF7002 AP driver does not reflect IPv4 multicast from client stations back to the host IP stack, so mDNS queries never reach the responder. Use `http://192.168.7.1` directly.
+> In **STA / P2P mode** `http://nrfwifi.local` resolves correctly on macOS, iOS, and Windows (Bonjour). Android lacks native mDNS support — use the DHCP-assigned IP shown in the device logs.
 
 ### 🔒 Security Note
 
