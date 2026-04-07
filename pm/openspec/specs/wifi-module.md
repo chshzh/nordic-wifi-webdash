@@ -305,7 +305,7 @@ config APP_WIFI_MODULE
 
 config APP_WIFI_SSID
     string "SoftAP SSID"
-    default "WebDashboard_AP"
+    default "WebDash_AP"
     depends on APP_WIFI_MODULE
 
 config APP_WIFI_PASSWORD
@@ -354,7 +354,7 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -S wifi-p2p -- -DSHIELD=nrf7002eb
 ### SoftAP Verification
 
 1. Flash and power on
-2. Confirm SSID `WebDashboard_AP` visible
+2. Confirm SSID `WebDash_AP` visible
 3. Connect phone, verify IP in `192.168.7.x` range
 4. Navigate to `http://192.168.7.1`, verify dashboard loads
 
@@ -363,7 +363,7 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -S wifi-p2p -- -DSHIELD=nrf7002eb
 1. Run `wifi cred add "TestAP" 3 "password"` via shell
 2. Reboot
 3. Confirm `[wifi] WiFi STA CONNECTED - IP: <ip>` log
-4. Navigate to `http://<ip>` or `http://nrfwifi.local`
+4. Navigate to `http://<ip>` or `http://nrfwebdash.local`
 
 ### P2P Verification (WCS-106 procedure)
 

@@ -115,8 +115,8 @@ v1.0 locked the device into SoftAP mode, which requires users to disconnect from
 
 | ID | User Story | Acceptance Criteria | Spec Reference |
 |----|-----------|---------------------|----------------|
-| FR-001 | As a user, I want to connect my device in SoftAP mode and access the dashboard | - SSID `WebDashboard_AP` visible<br>- Dashboard accessible at `http://192.168.7.1`<br>- Max 2 clients enforced | [wifi-module.md](openspec/specs/wifi-module.md) — SoftAP path |
-| FR-002 | As a user, I want to connect my device in STA mode to my existing network | - Device connects with stored `wifi_cred` credentials<br>- Dashboard accessible at DHCP IP or `http://nrfwifi.local`<br>- `[wifi] STA CONNECTED IP: <x>` logged | [wifi-module.md](openspec/specs/wifi-module.md) — STA path |
+| FR-001 | As a user, I want to connect my device in SoftAP mode and access the dashboard | - SSID `WebDash_AP` visible<br>- Dashboard accessible at `http://192.168.7.1`<br>- Max 2 clients enforced | [wifi-module.md](openspec/specs/wifi-module.md) — SoftAP path |
+| FR-002 | As a user, I want to connect my device in STA mode to my existing network | - Device connects with stored `wifi_cred` credentials<br>- Dashboard accessible at DHCP IP or `http://nrfwebdash.local`<br>- `[wifi] STA CONNECTED IP: <x>` logged | [wifi-module.md](openspec/specs/wifi-module.md) — STA path |
 | FR-003 | As a user, I want to connect my phone directly to the device using Wi-Fi Direct (P2P) | - Device auto-starts P2P find at boot in P2P mode<br>- `wifi p2p peer` shows phone in list<br>- `wifi p2p connect <MAC> pin -g 0` connects<br>- Dashboard accessible at P2P IP<br>- nRF54LM20DK only | [wifi-module.md](openspec/specs/wifi-module.md) — P2P path |
 | FR-004 | As a user, I want to select which Wi-Fi mode the device uses by holding Button 1 at boot | - Hold Button 1 >3 s during boot → shell menu appears<br>- Menu shows: `1. SoftAP  2. STA  3. P2P`<br>- User inputs 1/2/3 + Enter → mode changes<br>- Mode saved to NVS and survives reboot | [mode-selector.md](openspec/specs/mode-selector.md) |
 | FR-005 | As a user, I want the last selected Wi-Fi mode to be remembered after power cycle | - NVS key `app/wifi_mode` persists selection<br>- Factory default is SoftAP on first boot<br>- No button press required on subsequent boots | [mode-selector.md](openspec/specs/mode-selector.md) |
@@ -343,7 +343,7 @@ Full API specification: [webserver-module.md](openspec/specs/webserver-module.md
 
 #### TC-001: SoftAP mode — dashboard access
 
-**Steps**: Boot in SoftAP mode → connect to `WebDashboard_AP` → open `http://192.168.7.1`
+**Steps**: Boot in SoftAP mode → connect to `WebDash_AP` → open `http://192.168.7.1`
 
 **Pass**: Dashboard loads, mode banner shows `AP Mode — 192.168.7.1`
 
@@ -353,7 +353,7 @@ Full API specification: [webserver-module.md](openspec/specs/webserver-module.md
 
 #### TC-002: STA mode — dashboard access
 
-**Steps**: Add credentials via shell → wifi_cred auto_connect or reboot → log shows `STA CONNECTED IP: x.x.x.x` → open `http://nrfwifi.local` or DHCP IP
+**Steps**: Add credentials via shell → wifi_cred auto_connect or reboot → log shows `STA CONNECTED IP: x.x.x.x` → open `http://nrfwebdash.local` or DHCP IP
 
 **Pass**: Dashboard loads, mode banner shows `Station Mode — <IP>`
 

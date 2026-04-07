@@ -232,15 +232,15 @@ sequenceDiagram
 - Kconfig: `CONFIG_NRF70_AP_MODE=y`, `CONFIG_WIFI_NM_WPA_SUPPLICANT_AP=y`
 - Static IP: `192.168.7.1/24`
 - DHCP server: leases `192.168.7.2–192.168.7.3` (max 2 clients)
-- HTTP server: `http://192.168.7.1` or `http://nrfwifi.local`
-- WiFi SSID: `CONFIG_APP_WIFI_SSID` (default `WebDashboard_AP`)
+- HTTP server: `http://192.168.7.1` or `http://nrfwebdash.local`
+- WiFi SSID: `CONFIG_APP_WIFI_SSID` (default `WebDash_AP`)
 
 ### STA Path (mode = 1)
 
 - Kconfig: `CONFIG_WIFI_NM_WPA_SUPPLICANT=y`, `CONFIG_WIFI_CREDENTIALS=y`
 - Credentials: stored via `wifi cred add "<SSID>" <sec_type> "<PSK>"` shell command
 - IP: DHCP-assigned from AP
-- HTTP server: `http://<dhcp-ip>` or `http://nrfwifi.local`
+- HTTP server: `http://<dhcp-ip>` or `http://nrfwebdash.local`
 - Connection Manager: `conn_mgr_all_if_connect()`
 
 ### P2P Path (mode = 2, nRF54LM20DK only)

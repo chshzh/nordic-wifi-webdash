@@ -33,8 +33,8 @@ The HTTP server starts after receiving `WIFI_SOFTAP_STARTED`, `WIFI_STA_CONNECTE
 
 | Mode | Server starts on | Access URL |
 |------|-----------------|------------|
-| SoftAP | `WIFI_SOFTAP_STARTED` | `http://192.168.7.1` or `http://nrfwifi.local` |
-| STA | `WIFI_STA_CONNECTED` | `http://<dhcp-ip>` or `http://nrfwifi.local` |
+| SoftAP | `WIFI_SOFTAP_STARTED` | `http://192.168.7.1` or `http://nrfwebdash.local` |
+| STA | `WIFI_STA_CONNECTED` | `http://<dhcp-ip>` or `http://nrfwebdash.local` |
 | P2P | `WIFI_P2P_CONNECTED` | `http://<p2p-dhcp-ip>` (mDNS may not work on all phones) |
 
 ---
@@ -50,7 +50,7 @@ Returns current Wi-Fi mode, IP address, and SSID.
 {
   "mode": "SoftAP",
   "ip": "192.168.7.1",
-  "ssid": "WebDashboard_AP",
+  "ssid": "WebDash_AP",
   "uptime_s": 42
 }
 ```
@@ -156,7 +156,7 @@ sequenceDiagram
 
     Browser->>HTTP: GET /api/system
     HTTP->>Web: Handler
-    Web-->>Browser: {"mode":"SoftAP","ip":"192.168.7.1","ssid":"WebDashboard_AP"}
+    Web-->>Browser: {"mode":"SoftAP","ip":"192.168.7.1","ssid":"WebDash_AP"}
 ```
 
 ---
@@ -213,7 +213,7 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 ### TC-WEB-001: Dashboard loads in SoftAP mode
 
 1. Boot in SoftAP mode
-2. Connect phone to `WebDashboard_AP`
+2. Connect phone to `WebDash_AP`
 3. Navigate to `http://192.168.7.1`
 4. Verify mode banner shows `AP Mode — 192.168.7.1`
 
@@ -221,7 +221,7 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 
 1. Boot in STA mode (with stored credentials)
 2. Note DHCP IP from logs
-3. Navigate to `http://<dhcp-ip>` or `http://nrfwifi.local`
+3. Navigate to `http://<dhcp-ip>` or `http://nrfwebdash.local`
 4. Verify mode banner shows `Station Mode — <IP>`
 
 ### TC-WEB-003: Dashboard loads in P2P mode
@@ -235,7 +235,7 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 
 ```bash
 curl http://192.168.7.1/api/system
-# Expected: {"mode":"SoftAP","ip":"192.168.7.1","ssid":"WebDashboard_AP","uptime_s":15}
+# Expected: {"mode":"SoftAP","ip":"192.168.7.1","ssid":"WebDash_AP","uptime_s":15}
 ```
 
 ### TC-WEB-005: LED and button API (regression)

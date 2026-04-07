@@ -8,7 +8,7 @@ menu "Nordic WiFi Web Dashboard"
 
 config APP_WIFI_SSID
 	string "WiFi SoftAP SSID"
-	default "WebDashboard_AP"
+	default "WebDash_AP"
 	help
 	  SSID of the WiFi SoftAP to create. Override this value in
 	  overlay-wifi-credentials.conf (listed in .gitignore) to avoid committing

@@ -31,7 +31,7 @@ Supported hardware:
 - Browser dashboard for button status, LED control, and system information
 - REST API for `/api/system`, `/api/buttons`, `/api/leds`, and `/api/led`
 - Gzip-compressed static web assets served from flash
-- mDNS hostname support via `http://nrfwifi.local`
+- mDNS hostname support via `http://nrfwebdash.local`
 - Modular architecture based on SMF + Zbus
 
 ### Project Structure
@@ -80,7 +80,7 @@ Download the pre-built `.hex` for your board from the [Releases](https://github.
 
 Open a serial terminal at `115200` baud and follow the instructions printed by the firmware.
 
-- SoftAP: connect to Wi-Fi `WebDashboard_AP` with password `12345678`, then open `http://192.168.7.1`
+- SoftAP: connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
 - STA: run `wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
 - P2P: run `wifi_mode P2P` and follow the Wi-Fi Direct instructions printed in the terminal
 
@@ -127,10 +127,10 @@ For broader product context and implementation details, refer to [pm/PRD.md](pm/
 Key application settings are in [prj.conf](prj.conf):
 
 ```properties
-CONFIG_APP_WIFI_SSID="WebDashboard_AP"
+CONFIG_APP_WIFI_SSID="WebDash_AP"
 CONFIG_APP_WIFI_PASSWORD="12345678"
 CONFIG_APP_HTTP_PORT=80
-CONFIG_NET_HOSTNAME="nrfwifi"
+CONFIG_NET_HOSTNAME="nrfwebdash"
 ```
 
 For production credentials, generate `overlay-wifi-credentials.conf` from [overlay-wifi-credentials.conf.template](overlay-wifi-credentials.conf.template) and keep the real file out of version control.
