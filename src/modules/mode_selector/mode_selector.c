@@ -10,7 +10,7 @@
  * Loads the persisted Wi-Fi mode from NVS at SYS_INIT time and publishes
  * it on WIFI_MODE_CHAN so the WiFi module can start in the correct mode.
  *
- * The `wifi_mode [AP|STA|P2P]` shell command can be run at any time to change
+ * The `wifi_mode [SoftAP|STA|P2P]` shell command can be run at any time to change
  * the mode.  It saves the new mode to NVS and performs a cold reboot so
  * the system comes up cleanly in the selected mode.
  */
@@ -34,8 +34,8 @@ LOG_MODULE_REGISTER(mode_selector, CONFIG_MODE_SELECTOR_LOG_LEVEL);
  * ============================================================================
  */
 
-ZBUS_CHAN_DEFINE(WIFI_MODE_CHAN, struct wifi_mode_msg, NULL, NULL,
-		 ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+ZBUS_CHAN_DEFINE(WIFI_MODE_CHAN, struct wifi_mode_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
+		 ZBUS_MSG_INIT(0));
 
 /* ============================================================================
  * MODULE STATE
@@ -49,8 +49,7 @@ static enum wifi_mode selected_mode = WIFI_MODE_SOFTAP;
  * ============================================================================
  */
 
-static int settings_set_cb(const char *key, size_t len,
-			    settings_read_cb read_cb, void *cb_arg)
+static int settings_set_cb(const char *key, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
 	if (strcmp(key, "wifi_mode") == 0 && len == sizeof(uint8_t)) {
 		uint8_t val;
@@ -63,8 +62,7 @@ static int settings_set_cb(const char *key, size_t len,
 	return 0;
 }
 
-SETTINGS_STATIC_HANDLER_DEFINE(mode_selector_settings, "app", NULL,
-				settings_set_cb, NULL, NULL);
+SETTINGS_STATIC_HANDLER_DEFINE(mode_selector_settings, "app", NULL, settings_set_cb, NULL, NULL);
 
 static int nvs_save_mode(enum wifi_mode mode)
 {
@@ -107,7 +105,7 @@ static void publish_mode(enum wifi_mode mode)
 }
 
 /* ============================================================================
- * SHELL COMMAND: wifi_mode [AP|STA|P2P]
+ * SHELL COMMAND: wifi_mode [SoftAP|STA|P2P]
  *
  * Can be run at any time — not just at boot.  Saves the new mode to NVS
  * and performs a cold reboot so the system starts cleanly in that mode.
@@ -119,8 +117,8 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 	if (argc < 2) {
 		shell_print(sh,
 			    "Current mode: %s\r\n"
-			    "Usage: wifi_mode [AP|STA|P2P]\r\n"
-			    "  AP  (creates own AP, IP 192.168.7.1)\r\n"
+			    "Usage: wifi_mode [SoftAP|STA|P2P]\r\n"
+			    "  SoftAP  (creates own SoftAP, IP 192.168.7.1)\r\n"
 			    "  STA     (connects to existing Wi-Fi)\r\n"
 			    "  P2P     (Wi-Fi Direct, build with -S wifi-p2p)\r\n"
 			    "Board reboots automatically after mode change.",
@@ -131,27 +129,23 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 	const char *arg = argv[1];
 	enum wifi_mode new_mode;
 
-	if (strcasecmp(arg, "AP") == 0) {
+	if (strcasecmp(arg, "SoftAP") == 0) {
 		new_mode = WIFI_MODE_SOFTAP;
 	} else if (strcasecmp(arg, "STA") == 0) {
 		new_mode = WIFI_MODE_STA;
 	} else if (strcasecmp(arg, "P2P") == 0) {
 		new_mode = WIFI_MODE_P2P;
 	} else {
-		shell_error(sh,
-			    "Invalid mode '%s'. Use AP, STA, or P2P.",
-			    arg);
+		shell_error(sh, "Invalid mode '%s'. Use SoftAP, STA, or P2P.", arg);
 		return -EINVAL;
 	}
 
 	if (new_mode == selected_mode) {
-		shell_print(sh, "Already in %s mode, no change.",
-			    mode_to_str(selected_mode));
+		shell_print(sh, "Already in %s mode, no change.", mode_to_str(selected_mode));
 		return 0;
 	}
 
-	shell_print(sh, "Switching to %s mode -- rebooting...",
-		    mode_to_str(new_mode));
+	shell_print(sh, "Switching to %s mode -- rebooting...", mode_to_str(new_mode));
 
 	int ret = nvs_save_mode(new_mode);
 
@@ -166,8 +160,7 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-SHELL_CMD_ARG_REGISTER(wifi_mode, NULL,
-		       "Set Wi-Fi mode and reboot: wifi_mode [AP|STA|P2P]",
+SHELL_CMD_ARG_REGISTER(wifi_mode, NULL, "Set Wi-Fi mode and reboot: wifi_mode [SoftAP|STA|P2P]",
 		       cmd_wifi_mode, 1, 1);
 
 /* ============================================================================

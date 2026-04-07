@@ -13,7 +13,7 @@
  *   2. Publish the mode on WIFI_MODE_CHAN so the WiFi module starts
  *      in the correct mode.
  *
- * To change mode at any time, run the `wifi_mode [AP|STA|P2P]` shell command.
+ * To change mode at any time, run the `wifi_mode [SoftAP|STA|P2P]` shell command.
  * It saves the new mode to NVS and performs a cold reboot.
  */
 

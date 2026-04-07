@@ -25,35 +25,35 @@
 #if defined(CONFIG_BOARD_NRF7002DK_NRF5340_CPUAPP)
 #define APP_NUM_BUTTONS 2
 #define APP_NUM_LEDS    2
-#define APP_BUTTON_LABELS                                                      \
-	{                                                                      \
-		"Button 1", "Button 2"                                         \
+#define APP_BUTTON_LABELS                                                                          \
+	{                                                                                          \
+		"Button 1", "Button 2"                                                             \
 	}
-#define APP_LED_LABELS                                                         \
-	{                                                                      \
-		"LED1", "LED2"                                                 \
+#define APP_LED_LABELS                                                                             \
+	{                                                                                          \
+		"LED1", "LED2"                                                                     \
 	}
 #elif defined(CONFIG_BOARD_NRF54LM20DK_NRF54LM20A_CPUAPP)
 #define APP_NUM_BUTTONS 3
 #define APP_NUM_LEDS    4
-#define APP_BUTTON_LABELS                                                      \
-	{                                                                      \
-		"BUTTON0", "BUTTON1", "BUTTON2"                                \
+#define APP_BUTTON_LABELS                                                                          \
+	{                                                                                          \
+		"BUTTON0", "BUTTON1", "BUTTON2"                                                    \
 	}
-#define APP_LED_LABELS                                                         \
-	{                                                                      \
-		"LED0", "LED1", "LED2", "LED3"                                 \
+#define APP_LED_LABELS                                                                             \
+	{                                                                                          \
+		"LED0", "LED1", "LED2", "LED3"                                                     \
 	}
 #else
 #define APP_NUM_BUTTONS 4
 #define APP_NUM_LEDS    4
-#define APP_BUTTON_LABELS                                                      \
-	{                                                                      \
-		"Button 1", "Button 2", "Button 3", "Button 4"                 \
+#define APP_BUTTON_LABELS                                                                          \
+	{                                                                                          \
+		"Button 1", "Button 2", "Button 3", "Button 4"                                     \
 	}
-#define APP_LED_LABELS                                                         \
-	{                                                                      \
-		"LED 1", "LED 2", "LED 3", "LED 4"                             \
+#define APP_LED_LABELS                                                                             \
+	{                                                                                          \
+		"LED 1", "LED 2", "LED 3", "LED 4"                                                 \
 	}
 #endif
 
@@ -80,9 +80,9 @@ static inline const char *app_led_label(size_t index)
  * @brief Wi-Fi operating mode
  */
 enum wifi_mode {
-	WIFI_MODE_SOFTAP = 0, /**< Device creates its own AP */
-	WIFI_MODE_STA    = 1, /**< Device connects to existing AP */
-	WIFI_MODE_P2P    = 2, /**< Wi-Fi Direct to phone/peer */
+	WIFI_MODE_SOFTAP = 0, /**< Device creates its own SoftAP */
+	WIFI_MODE_STA = 1,    /**< Device connects to existing SoftAP */
+	WIFI_MODE_P2P = 2,    /**< Wi-Fi Direct to phone/peer */
 };
 
 /**
@@ -159,12 +159,12 @@ struct led_state_msg {
  * @brief WiFi message types
  */
 enum wifi_msg_type {
-	WIFI_SOFTAP_STARTED,      /**< SoftAP started, clients may connect */
-	WIFI_STA_CONNECTED,       /**< STA associated and IP assigned */
-	WIFI_STA_DISCONNECTED,    /**< STA lost connection */
-	WIFI_P2P_CONNECTED,       /**< P2P group established, IP assigned */
-	WIFI_P2P_DISCONNECTED,    /**< P2P group removed */
-	WIFI_ERROR,               /**< WiFi subsystem error */
+	WIFI_SOFTAP_STARTED,   /**< SoftAP started, clients may connect */
+	WIFI_STA_CONNECTED,    /**< STA associated and IP assigned */
+	WIFI_STA_DISCONNECTED, /**< STA lost connection */
+	WIFI_P2P_CONNECTED,    /**< P2P group established, IP assigned */
+	WIFI_P2P_DISCONNECTED, /**< P2P group removed */
+	WIFI_ERROR,            /**< WiFi subsystem error */
 };
 
 /**
@@ -172,10 +172,10 @@ enum wifi_msg_type {
  */
 struct wifi_msg {
 	enum wifi_msg_type type;
-	enum wifi_mode     active_mode;  /**< Mode that produced this event */
-	char               ip_addr[16]; /**< Dotted-decimal IP, filled on connect */
-	char               ssid[33];    /**< SSID, filled on connect */
-	int                error_code;
+	enum wifi_mode active_mode; /**< Mode that produced this event */
+	char ip_addr[16];           /**< Dotted-decimal IP, filled on connect */
+	char ssid[33];              /**< SSID, filled on connect */
+	int error_code;
 };
 
 /* ============================================================================

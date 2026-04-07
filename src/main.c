@@ -57,10 +57,8 @@ int main(void)
 	LOG_INF("Board: %s", board_name);
 
 	if (mac_addr && mac_addr->len == 6) {
-		LOG_INF("MAC: %02X:%02X:%02X:%02X:%02X:%02X",
-			mac_addr->addr[0], mac_addr->addr[1],
-			mac_addr->addr[2], mac_addr->addr[3],
-			mac_addr->addr[4], mac_addr->addr[5]);
+		LOG_INF("MAC: %02X:%02X:%02X:%02X:%02X:%02X", mac_addr->addr[0], mac_addr->addr[1],
+			mac_addr->addr[2], mac_addr->addr[3], mac_addr->addr[4], mac_addr->addr[5]);
 	}
 
 	LOG_INF("Active Wi-Fi mode: %s", mode_str);
@@ -80,21 +78,21 @@ int main(void)
 		LOG_INF("  wifi scan                                 -- scan");
 		LOG_INF("  wifi connect -s <SSID> -p <password> -k 1 -- WPA2");
 		LOG_INF("  wifi connect --help                       -- help");
-		LOG_INF("Dashboard at http://<IP>:%d after connect.",
-			CONFIG_APP_HTTP_PORT);
+		LOG_INF("Dashboard at http://<IP>:%d after connect.", CONFIG_APP_HTTP_PORT);
 		break;
 
 	case WIFI_MODE_P2P:
-		LOG_INF("P2P mode: auto-starting peer discovery...");
+		LOG_INF("P2P mode: manually starting peer discovery...");
 		LOG_INF("  wifi p2p find                           -- search for peers");
 		LOG_INF("Enable Wi-Fi Direct on your phone, then wait device MAC appears.");
-		LOG_INF("  wifi p2p peer                           -- list peers and find phone MAC");
+		LOG_INF("  wifi p2p peer                           -- list peers and find phone "
+			"MAC");
 		LOG_INF("  wifi p2p connect <phone MAC> pbc -g 0   -- connect to target phone");
 		LOG_INF("Press ACCEPT button on your phone for Invitation to connect.");
 		break;
 	}
 
-	LOG_INF("Type 'wifi_mode [SOFTAP|STA|P2P]' to change mode (reboots).");
+	LOG_INF("Type 'wifi_mode [SoftAP|STA|P2P]' to change mode (reboots).");
 	LOG_INF("==============================================");
 
 	while (1) {

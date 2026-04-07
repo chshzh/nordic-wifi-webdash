@@ -14,7 +14,7 @@ config APP_MODE_SELECTOR
 	help
 	  Reads the persisted Wi-Fi mode from NVS on every boot and publishes
 	  it on WIFI_MODE_CHAN before the WiFi module starts.  The
-	  `wifi_mode [AP|STA|P2P]` shell command can be used at any time to change
+	  `wifi_mode [SoftAP|STA|P2P]` shell command can be used at any time to change
 	  the active mode; the board reboots automatically to apply the change.
 
 if APP_MODE_SELECTOR
