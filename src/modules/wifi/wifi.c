@@ -25,6 +25,7 @@ LOG_MODULE_REGISTER(wifi_module, CONFIG_WIFI_MODULE_LOG_LEVEL);
 #include <zephyr/net/socket.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/zbus/zbus.h>
+#include <net/wifi_ready.h>
 
 /* ============================================================================
  * EXTERNAL CHANNEL (defined in mode_selector.c)
@@ -57,6 +58,13 @@ static struct net_mgmt_event_callback net_mgmt_cb;  /* DHCP bound         */
 static struct net_mgmt_event_callback l4_mgmt_cb;   /* L4 connect/disconn */
 
 /* ============================================================================
+ * WIFI READY — semaphore signalled by wifi_ready_cb when WPA supplicant is up
+ * ============================================================================
+ */
+
+static K_SEM_DEFINE(wifi_ready_sem, 0, 1);
+
+/* ============================================================================
  * HELPER UTILITIES
  * ============================================================================
  */
@@ -72,6 +80,17 @@ static const char *mode_to_str(enum wifi_mode mode)
 		return "P2P";
 	default:
 		return "Unknown";
+	}
+}
+
+static void wifi_ready_cb(bool ready)
+{
+	if (ready) {
+		LOG_INF("Wi-Fi ready (WPA supplicant up)-starting mode %s",
+			mode_to_str(active_mode));
+		k_sem_give(&wifi_ready_sem);
+	} else {
+		LOG_WRN("Wi-Fi not ready");
 	}
 }
 
@@ -381,8 +400,27 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
 
 	LOG_INF("WiFi module thread started (mode: %s)", mode_to_str(active_mode));
 
-	/* Give the network stack a moment to settle before starting Wi-Fi. */
-	k_sleep(K_SECONDS(2));
+	/* Wait until the WPA supplicant signals it is ready.
+	 * net_if_get_first_wifi() returns NULL until the supplicant has
+	 * fully initialised and set eth_if_type = L2_ETH_IF_TYPE_WIFI, which
+	 * happens asynchronously after SYS_INIT APPLICATION completes.
+	 * The blind 2 s sleep was not reliable; wifi_ready_cb fires on
+	 * NET_EVENT_SUPPLICANT_READY which is the correct synchronisation
+	 * point (mirrors the NCS softap sample pattern). */
+	k_sem_take(&wifi_ready_sem, K_FOREVER);
+
+	/* Now that the supplicant is up, the interface is findable.
+	 * For SoftAP / P2P: block conn_mgr auto-connect to stored STA
+	 * credentials before we call AP_ENABLE. */
+	if (active_mode != WIFI_MODE_STA) {
+		struct net_if *iface = net_if_get_first_wifi();
+
+		if (iface) {
+			conn_mgr_if_set_flag(iface, CONN_MGR_IF_NO_AUTO_CONNECT, true);
+			LOG_INF("conn_mgr auto-connect blocked (mode=%s)",
+				mode_to_str(active_mode));
+		}
+	}
 
 	switch (active_mode) {
 	case WIFI_MODE_SOFTAP:
@@ -433,17 +471,15 @@ int wifi_module_init(void)
 
 	LOG_INF("Active Wi-Fi mode: %s", mode_to_str(active_mode));
 
-	/* For P2P and SoftAP, block conn_mgr from auto-connecting to any
-	 * stored STA credentials.  Must be done at SYS_INIT (priority 10),
-	 * before conn_mgr has a chance to kick off a connection attempt. */
-	if (active_mode != WIFI_MODE_STA) {
-		struct net_if *iface = net_if_get_first_wifi();
+	/* Register the wifi_ready callback.  It fires on
+	 * NET_EVENT_SUPPLICANT_READY, which is the reliable signal that the
+	 * WPA supplicant — and therefore net_if_get_first_wifi() — is usable.
+	 * Pass iface=NULL so it fires for whichever WiFi interface comes up. */
+	static wifi_ready_callback_t wr_cb = {.wifi_ready_cb = wifi_ready_cb};
 
-		if (iface) {
-			conn_mgr_if_set_flag(iface, CONN_MGR_IF_NO_AUTO_CONNECT, true);
-			LOG_INF("conn_mgr auto-connect blocked (mode=%s)",
-				mode_to_str(active_mode));
-		}
+	ret = register_wifi_ready_callback(wr_cb, NULL);
+	if (ret && ret != -EALREADY) {
+		LOG_WRN("register_wifi_ready_callback failed (%d) — thread will hang", ret);
 	}
 
 	/* SoftAP: SoftAP enable result and client connect/disconnect events */
