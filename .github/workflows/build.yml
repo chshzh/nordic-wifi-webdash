@@ -64,7 +64,10 @@ jobs:
         run: |
           BUILD_LOG="${{ matrix.config.build_dir }}/build.log"
           EXTRA_ARGS="${{ matrix.config.cmake_args }}"
+
+          mkdir -p "${{ matrix.config.build_dir }}"
           set -o pipefail
+
           if [ -n "$EXTRA_ARGS" ]; then
             west build -p -b ${{ matrix.config.board }} -d ${{ matrix.config.build_dir }} -- $EXTRA_ARGS 2>&1 | tee "$BUILD_LOG"
           else
@@ -78,8 +81,13 @@ jobs:
           BUILD_LOG="${{ matrix.config.build_dir }}/build.log"
           USAGE_SUMMARY="${{ matrix.config.build_dir }}/usage-summary.txt"
 
-          ROM_USAGE="$(awk '/^[[:space:]]*FLASH:/ {print $2 " " $3 " / " $4 " " $5 " (" $6 ")"}' "$BUILD_LOG" | tail -n 1)"
-          RAM_USAGE="$(awk '/^[[:space:]]*RAM:/ {print $2 " " $3 " / " $4 " " $5 " (" $6 ")"}' "$BUILD_LOG" | tail -n 1)"
+          if [ -f "$BUILD_LOG" ]; then
+            ROM_USAGE="$(awk '/^[[:space:]]*FLASH:/ {print $2 " " $3 " / " $4 " " $5 " (" $6 ")"}' "$BUILD_LOG" | tail -n 1)"
+            RAM_USAGE="$(awk '/^[[:space:]]*RAM:/ {print $2 " " $3 " / " $4 " " $5 " (" $6 ")"}' "$BUILD_LOG" | tail -n 1)"
+          else
+            ROM_USAGE="n/a"
+            RAM_USAGE="n/a"
+          fi
 
           : "${ROM_USAGE:=n/a}"
           : "${RAM_USAGE:=n/a}"
@@ -103,7 +111,12 @@ jobs:
           echo "ELF: ${ELF_PATH}" > "$SIZE_REPORT"
           echo "Tool: ${SIZE_TOOL}" >> "$SIZE_REPORT"
           echo >> "$SIZE_REPORT"
-          "$SIZE_TOOL" "$ELF_PATH" >> "$SIZE_REPORT"
+
+          if [ -f "$ELF_PATH" ] && [ -n "$SIZE_TOOL" ]; then
+            "$SIZE_TOOL" "$ELF_PATH" >> "$SIZE_REPORT"
+          else
+            echo "size data unavailable" >> "$SIZE_REPORT"
+          fi
 
           echo "Generated size report: $SIZE_REPORT"
 
@@ -111,6 +124,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: warn
           name: build-${{ matrix.config.build_dir }}
           path: |
             app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/merged.hex
