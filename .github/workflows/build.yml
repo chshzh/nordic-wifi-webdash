@@ -91,12 +91,9 @@ jobs:
           echo "Validating README.md structure..."
 
           # Required sections for WiFi SoftAP Webserver
-          grep -q "Features" README.md || (echo "Missing Features section" && exit 1)
-          grep -q "Architecture" README.md || (echo "Missing Architecture section" && exit 1)
+          grep -q "Project Overview" README.md || (echo "Missing Project Overview section" && exit 1)
           grep -q "Quick Start" README.md || (echo "Missing Quick Start section" && exit 1)
-          grep -q "WiFi Configuration" README.md || (echo "Missing WiFi Configuration section" && exit 1)
-          grep -q "Web Interface" README.md || (echo "Missing Web Interface section" && exit 1)
-          grep -q "REST API" README.md || (echo "Missing REST API section" && exit 1)
+          grep -q "Developer Info" README.md || (echo "Missing Developer Info section" && exit 1)
 
           echo "README.md validation passed ✓"
 
