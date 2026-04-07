@@ -1,4 +1,4 @@
-name: Build and Test Nordic WiFi SoftAP Webserver
+name: Build and Test Nordic WiFi Web Dashboard
 
 on:
   push:
@@ -20,11 +20,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: app-workspace/nordic_wifi_softap_webserver
+          path: app-workspace/nordic-wifi-webdash
 
       - name: Extract NCS version from west.yml
         id: extract-version
-        working-directory: app-workspace/nordic_wifi_softap_webserver
+        working-directory: app-workspace/nordic-wifi-webdash
         run: |
           NCS_VERSION=$(grep 'revision:' west.yml | awk '{print $2}')
           echo "NCS_VERSION=${NCS_VERSION}" >> $GITHUB_OUTPUT
@@ -39,28 +39,28 @@ jobs:
     strategy:
       matrix:
         config:
-          - name: "nRF7002DK SoftAP"
+          - name: "nRF7002DK"
             build_dir: "build_nrf7002dk"
             board: "nrf7002dk/nrf5340/cpuapp"
             cmake_args: ""
           - name: "nRF54LM20DK + nRF7002EBII"
-            build_dir: "build_nrf54lm20dk"
+            build_dir: "build_nrf54lm20"
             board: "nrf54lm20dk/nrf54lm20a/cpuapp"
-            cmake_args: "-Dnordic_wifi_softap_webserver_SHIELD=nrf7002eb2 -Dnordic_wifi_softap_webserver_SNIPPET=nrf70-wifi"
+            cmake_args: "-Dnordic_wifi_webdash_SHIELD=nrf7002eb2 -Dnordic_wifi_webdash_SNIPPET=nrf70-wifi"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: app-workspace/nordic_wifi_softap_webserver
+          path: app-workspace/nordic-wifi-webdash
 
       - name: Prepare west workspace
         working-directory: app-workspace
         run: |
-          west init -l nordic_wifi_softap_webserver
+          west init -l nordic-wifi-webdash
           west update -o=--depth=1 -n
 
       - name: Build ${{ matrix.config.name }}
-        working-directory: app-workspace/nordic_wifi_softap_webserver
+        working-directory: app-workspace/nordic-wifi-webdash
         run: |
           EXTRA_ARGS="${{ matrix.config.cmake_args }}"
           if [ -n "$EXTRA_ARGS" ]; then
@@ -75,7 +75,7 @@ jobs:
         with:
           name: build-${{ matrix.config.build_dir }}
           path: |
-            app-workspace/nordic_wifi_softap_webserver/${{ matrix.config.build_dir }}/merged.hex
+            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/merged.hex
 
   validate-documentation:
     runs-on: ubuntu-24.04
@@ -83,10 +83,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: app-workspace/nordic_wifi_softap_webserver
+          path: app-workspace/nordic-wifi-webdash
 
       - name: Validate README structure
-        working-directory: app-workspace/nordic_wifi_softap_webserver
+        working-directory: app-workspace/nordic-wifi-webdash
         run: |
           echo "Validating README.md structure..."
 
@@ -101,7 +101,7 @@ jobs:
           echo "README.md validation passed ✓"
 
       - name: Validate configuration files exist
-        working-directory: app-workspace/nordic_wifi_softap_webserver
+        working-directory: app-workspace/nordic-wifi-webdash
         run: |
           echo "Checking configuration files..."
 
@@ -127,12 +127,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          path: app-workspace/nordic_wifi_softap_webserver
+          path: app-workspace/nordic-wifi-webdash
 
       - name: Prepare west project
         working-directory: app-workspace
         run: |
-          west init -l nordic_wifi_softap_webserver
+          west init -l nordic-wifi-webdash
           west update -o=--depth=1 -n
 
       - name: Run Zephyr checkpatch
@@ -141,11 +141,11 @@ jobs:
           echo "Running Zephyr checkpatch on source files..."
 
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-            cd nordic_wifi_softap_webserver && git diff HEAD~1 | ../zephyr/scripts/checkpatch.pl --no-tree -
+            cd nordic-wifi-webdash && git diff HEAD~1 | ../zephyr/scripts/checkpatch.pl --no-tree -
           else
             echo "Single commit detected, checking all source files..."
-            if [ -d nordic_wifi_softap_webserver/src/ ]; then
-              for file in $(find nordic_wifi_softap_webserver/src/ -name "*.c" -o -name "*.h"); do
+            if [ -d nordic-wifi-webdash/src/ ]; then
+              for file in $(find nordic-wifi-webdash/src/ -name "*.c" -o -name "*.h"); do
                 if [ -f "$file" ]; then
                   echo "Checking $file..."
                   ./zephyr/scripts/checkpatch.pl --no-tree --file "$file" || true
@@ -167,7 +167,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          path: app-workspace/nordic_wifi_softap_webserver
+          path: app-workspace/nordic-wifi-webdash
 
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
@@ -176,14 +176,14 @@ jobs:
 
       - name: Generate release notes
         id: release-notes
-        working-directory: app-workspace/nordic_wifi_softap_webserver
+        working-directory: app-workspace/nordic-wifi-webdash
         run: |
           # Get the previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
           if [ -z "$PREV_TAG" ]; then
             echo "First release - no previous tag found"
-            CHANGELOG="Initial release of Nordic WiFi SoftAP Webserver"
+            CHANGELOG="Initial release of Nordic WiFi Web Dashboard"
           else
             echo "Generating changelog from $PREV_TAG to ${{ github.ref_name }}"
             CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD)
@@ -200,7 +200,7 @@ jobs:
       - name: Prepare release body
         run: |
           cat > /tmp/release-body.txt << 'EOF'
-          ## Nordic WiFi SoftAP Webserver Release ${{ github.ref_name }}
+          ## Nordic WiFi Web Dashboard Release ${{ github.ref_name }}
 
           > **Note**: Built with NCS ${{ needs.set-version.outputs.NCS_VERSION }}
 
@@ -208,8 +208,8 @@ jobs:
 
           | Board | File | Description |
           |-------|------|-------------|
-          | nRF7002DK | `nordic-wifi-softap-webserver-nrf7002dk-${{ github.ref_name }}.hex` | nRF7002DK (nrf7002dk/nrf5340/cpuapp) |
-          | nRF54LM20DK + nRF7002EBII | `nordic-wifi-softap-webserver-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex` | nRF54LM20DK with nRF7002EBII shield |
+          | nRF7002DK | `nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex` | nRF7002DK (nrf7002dk/nrf5340/cpuapp) |
+          | nRF54LM20DK + nRF7002EBII | `nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex` | nRF54LM20DK with nRF7002EBII shield |
 
           ### 🚀 Quick Flash
 
@@ -237,17 +237,17 @@ jobs:
           # Copy and rename hex files
           if [ -f "artifacts/build-build_nrf7002dk/merged.hex" ]; then
             cp "artifacts/build-build_nrf7002dk/merged.hex" \
-               "release-package/nordic-wifi-softap-webserver-nrf7002dk-${{ github.ref_name }}.hex"
+               "release-package/nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex"
           fi
 
-          if [ -f "artifacts/build-build_nrf54lm20dk/merged.hex" ]; then
-            cp "artifacts/build-build_nrf54lm20dk/merged.hex" \
-               "release-package/nordic-wifi-softap-webserver-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex"
+          if [ -f "artifacts/build-build_nrf54lm20/merged.hex" ]; then
+            cp "artifacts/build-build_nrf54lm20/merged.hex" \
+               "release-package/nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex"
           fi
 
           # Create zip archive
           cd release-package
-          zip -r "../nordic-wifi-softap-webserver-firmware-${{ github.ref_name }}.zip" .
+          zip -r "../nordic-wifi-webdash-firmware-${{ github.ref_name }}.zip" .
           cd ..
 
           ls -la release-package/
@@ -255,11 +255,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: "Nordic WiFi SoftAP Webserver ${{ github.ref_name }}"
+          name: "Nordic WiFi Web Dashboard ${{ github.ref_name }}"
           body_path: /tmp/release-body.txt
           files: |
             release-package/*.hex
-            nordic-wifi-softap-webserver-firmware-*.zip
+            nordic-wifi-webdash-firmware-*.zip
           draft: false
           prerelease: false
         env:
