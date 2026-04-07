@@ -82,13 +82,14 @@ int main(void)
 		break;
 
 	case WIFI_MODE_P2P:
-		LOG_INF("P2P mode: manually starting peer discovery...");
-		LOG_INF("  wifi p2p find                           -- search for peers");
-		LOG_INF("Enable Wi-Fi Direct on your phone, then wait device MAC appears.");
-		LOG_INF("  wifi p2p peer                           -- list peers and find phone "
+		LOG_INF("P2P mode: manually starting peer connection...");
+		LOG_INF("1.Device: wifi p2p find                   -- search for peers");
+		LOG_INF("2.Phone: Enable Wi-Fi Direct, then wait device MAC appears.");
+		LOG_INF("3.Device: wifi p2p peer                   -- list peers and find phone "
 			"MAC");
-		LOG_INF("  wifi p2p connect <phone MAC> pbc -g 0   -- connect to target phone");
-		LOG_INF("Press ACCEPT button on your phone for Invitation to connect.");
+		LOG_INF("4.Device: wifi p2p connect <phone MAC> pbc -g 0   -- connect to target "
+			"phone");
+		LOG_INF("5.Phone: Press ACCEPT button on your phone for Invitation to connect.");
 		break;
 	}
 
