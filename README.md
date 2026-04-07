@@ -16,8 +16,8 @@ The firmware supports three Wi-Fi operating modes: SoftAP, STA, and P2P. The sel
 
 This project is designed for two common use cases:
 
-- a ready-to-flash demo for users who want to try the dashboard quickly
-- a structured NCS workspace application for developers who want to build, modify, and extend it
+- **Demo User** — grab a pre-built `.hex` from the [Releases](https://github.com/chshzh/nordic-wifi-webdash/releases) page, flash it, and follow the [Quick Start](#quick-start) guide to reach the dashboard in two steps.
+- **Application Developer** — clone the workspace, build from source, and customise the firmware; see [Developer Info](#developer-info) and [pm/PRD.md](pm/PRD.md) for architecture and requirements.
 
 Supported hardware:
 

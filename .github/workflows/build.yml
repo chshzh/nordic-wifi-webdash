@@ -283,18 +283,7 @@ jobs:
           | nRF7002DK | [nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex](https://github.com/chshzh/nordic-wifi-webdash/releases/download/${{ github.ref_name }}/nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex) | nRF7002DK (nrf7002dk/nrf5340/cpuapp) | ${NRF7002DK_ROM} | ${NRF7002DK_RAM} |
           | nRF54LM20DK + nRF7002EBII | [nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex](https://github.com/chshzh/nordic-wifi-webdash/releases/download/${{ github.ref_name }}/nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex) | nRF54LM20DK with nRF7002EBII shield | ${NRF54LM20_ROM} | ${NRF54LM20_RAM} |
 
-          ### 🚀 Quick Start
-
-          **Step 1 — Flash the firmware**
-          Open **nRF Connect for Desktop → Programmer**, select your board, add the `.hex` file above, and click **Erase & Write**.
-
-          **Step 2 — Connect and open the dashboard**
-          Open a serial terminal (115200 baud) to read the boot log, then follow the instructions printed there:
-          - **SoftAP (default):** Connect your phone/laptop to Wi-Fi `WebDashboard_AP` (password `12345678`) and open `http://192.168.7.1`.
-          - **STA:** Run `wifi_mode STA` in the shell, reboot, then run `wifi connect -s <SSID> -p <password> -k 1`. Open `http://<DHCP-IP>` shown in the log.
-          - **P2P:** Run `wifi_mode P2P` and follow the Wi-Fi Direct pairing instructions in the terminal.
-
-          > To switch modes at any time: `uart:~$ wifi_mode [SoftAP|STA|P2P]` — the board reboots and persists the choice.
+          For flashing and connection instructions, see the [Quick Start guide](https://github.com/chshzh/nordic-wifi-webdash/blob/main/README.md#quick-start) in the README.
 
           ### 📝 Changes Since Last Release
 
