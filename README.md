@@ -55,7 +55,28 @@ nordic-wifi-webdash/
 ```
 ## 🚀 Quick Start
 
-### Prerequisites
+### Step 1 — Flash the firmware
+
+Download the pre-built `.hex` for your board from the [Releases](https://github.com/chshzh/nordic-wifi-webdash/releases) page, then open **nRF Connect for Desktop → Programmer**, select your board, add the `.hex` file, and click **Write**.
+
+| Board | Download |
+|-------|----------|
+| nRF7002DK | [nordic-wifi-webdash-nrf7002dk-latest.hex](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
+| nRF54LM20DK + nRF7002EBII | [nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-latest.hex](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
+
+### Step 2 — Choose Wi-Fi mode and open the dashboard
+
+Open a serial terminal at **115200 baud** and read the boot log — it prints the exact next steps for the active mode.
+
+| Mode | How to activate | Dashboard URL |
+|------|----------------|---------------|
+| **SoftAP** (default) | No action needed — boots directly into AP | Connect to `WebDashboard_AP` / `12345678`, then open `http://192.168.7.1` |
+| **STA** | `uart:~$ wifi_mode STA` → reboot → `wifi connect -s <SSID> -p <pass> -k 1` | `http://<DHCP-IP>` shown in the boot log |
+| **P2P** | `uart:~$ wifi_mode P2P` → reboot, follow Wi-Fi Direct instructions in terminal | `http://192.168.49.x` |
+
+> **Switching modes:** run `uart:~$ wifi_mode [SoftAP|STA|P2P]` at any time — the board saves the choice to NVS and reboots automatically.
+
+### Build from source
 
 - nRF Connect SDK **v3.2.4**
 - Supported hardware (both support SoftAP + STA + P2P when built with `-S wifi-p2p`):
