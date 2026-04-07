@@ -2,7 +2,7 @@ menu "Memory diagnostics"
 
 config APP_HEAP_MONITOR
 	bool "Enable runtime heap monitor"
-	default y
+	default n
 	select SYS_HEAP_RUNTIME_STATS
 	select SYS_HEAP_LISTENER
 	help

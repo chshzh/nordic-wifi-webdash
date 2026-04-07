@@ -1,19 +1,19 @@
 # Nordic WiFi Web Dashboard
 
 [![Build](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml)
-[![License](https://img.shields.io/badge/License-LicenseRef--Nordic--5--Clause-blue.svg)](LICENSE)
 [![NCS Version](https://img.shields.io/badge/NCS-v3.2.4-green.svg)](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK)
 ![Nordic Semiconductor](https://img.shields.io/badge/Nordic%20Semiconductor-nRF7002DK-blue)
 ![Nordic Semiconductor](https://img.shields.io/badge/Nordic%20Semiconductor-nRF54LM20DK%2BnRF7002EBII-red)
+[![License](https://img.shields.io/badge/License-LicenseRef--Nordic--5--Clause-blue.svg)](LICENSE)
 
-A professional IoT demo and reference platform for **nRF70 series Wi-Fi development kits**. Provides real-time device state control (buttons, LEDs) through a browser-based dashboard served directly from the nRF device — no cloud required.
+A professional IoT demo and reference platform for Nordic **nRF7x series Wi-Fi development kits**. Provides real-time device state control (buttons, LEDs) through a browser-based dashboard served directly from the nRF device — no cloud required.
 
 **v2.0** upgrades from single SoftAP mode to a **three-mode Wi-Fi platform**: SoftAP, STA (Station), and P2P (Wi-Fi Direct). The active mode is persisted in NVS and can be changed at any time via the `wifi_mode` shell command — the board reboots automatically to apply the new mode.
 
 ## 🎯 Features
 
-- ✅ **Three Wi-Fi Modes** — SoftAP (own AP), STA (join existing network), P2P (Wi-Fi Direct to phone)
-- ✅ **Runtime Mode Selector** — `wifi_mode [AP|STA|P2P]` changes mode at any time; saved to NVS, board reboots
+- ✅ **Three Wi-Fi Modes** — SoftAP (own SoftAP), STA (join existing network), P2P (Wi-Fi Direct to phone)
+- ✅ **Runtime Mode Selector** — `wifi_mode [SoftAP|STA|P2P]` changes mode at any time; saved to NVS, board reboots
 - ✅ **Mode-Aware Dashboard** — colour-coded mode banner (blue=SoftAP, green=STA, purple=P2P)
 - ✅ **REST API** — `/api/system`, `/api/buttons`, `/api/leds`, `/api/led`
 - ✅ **Static Web Server** — gzip-compressed HTML/CSS/JS served from flash
@@ -53,30 +53,6 @@ nordic-wifi-webdash/
     ├── main.js              # /api/system polling, mode colours
     └── styles.css
 ```
-
-## 📋 Architecture
-
-**SMF + Zbus** modular architecture. All inter-module communication is via Zbus channels.
-
-| Module | SYS_INIT Priority | Purpose |
-|--------|-------------------|---------|
-| Mode Selector | 0 | Read NVS mode; publish `WIFI_MODE_CHAN`; `wifi_mode` shell cmd saves + reboots |
-| WiFi | 10 | Read `WIFI_MODE_CHAN`; start SoftAP / STA / P2P path |
-| Button | default | GPIO IRQ → press/release events → `BUTTON_CHAN` |
-| LED | default | LED GPIO; respond to `LED_CMD_CHAN` |
-| Network | default | Net mgmt event registration |
-| Webserver | default | HTTP server; start on `WIFI_CHAN` connected event |
-
-### Zbus Channels
-
-| Channel | Publisher | Subscribers |
-|---------|-----------|-------------|
-| `WIFI_MODE_CHAN` | mode_selector | wifi |
-| `WIFI_CHAN` | wifi | webserver |
-| `BUTTON_CHAN` | button | webserver |
-| `LED_CMD_CHAN` | webserver | led |
-| `LED_STATE_CHAN` | led | webserver |
-
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -125,8 +101,8 @@ The board saves the new mode to NVS and performs a cold reboot. The selected mod
 ```
 uart:~$ wifi_mode
 Current mode: SoftAP
-Usage: wifi_mode [SOFTAP|STA|P2P]
-  SOFTAP  (creates own AP, IP 192.168.7.1)
+Usage: wifi_mode [SoftAP|STA|P2P]
+  SoftAP  (creates own SoftAP, IP 192.168.7.1)
   STA     (connects to existing Wi-Fi)
   P2P     (Wi-Fi Direct, requires -S wifi-p2p build)
 Board reboots automatically after mode change.
@@ -447,7 +423,7 @@ Copyright (c) 2026 Nordic Semiconductor ASA
 
 SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
-## �️ Development
+## 🤖 Development
 
 This project was developed using [Charlie Skills](https://github.com/chshzh/charlie-skills) with Product Manager and Developer roles for systematic requirements management, architecture design, and implementation.
 
