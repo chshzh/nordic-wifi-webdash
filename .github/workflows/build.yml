@@ -42,11 +42,11 @@ jobs:
           - name: "nRF7002DK"
             build_dir: "build_nrf7002dk"
             board: "nrf7002dk/nrf5340/cpuapp"
-            cmake_args: ""
+            cmake_args: "-Dnordic_wifi_webdash_SNIPPET=wifi-p2p"
           - name: "nRF54LM20DK + nRF7002EBII"
             build_dir: "build_nrf54lm20"
             board: "nrf54lm20dk/nrf54lm20a/cpuapp"
-            cmake_args: "-Dnordic_wifi_webdash_SHIELD=nrf7002eb2 -Dnordic_wifi_webdash_SNIPPET=nrf70-wifi"
+            cmake_args: "-Dnordic_wifi_webdash_SHIELD=nrf7002eb2 -Dnordic_wifi_webdash_SNIPPET=wifi-p2p"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
