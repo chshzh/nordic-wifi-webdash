@@ -69,7 +69,7 @@ This section is intentionally short so a non-developer can get to a working dash
 
 ### Step 1 - Flash the firmware
 
-Download the pre-built `.hex` for your board from the [Releases](https://github.com/chshzh/nordic-wifi-webdash/releases) page, then open **nRF Connect for Desktop -> Programmer**, select your board, add the `.hex` file, and click **Write**.
+Download the pre-built `.hex` for your board from the [Releases](https://github.com/chshzh/nordic-wifi-webdash/releases) page, then open **nRF Connect for Desktop -> Programmer**, select your board, add the `.hex` file, and click **Erase & Write**.
 
 | Board | Release page |
 |-------|--------------|
