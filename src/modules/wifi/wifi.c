@@ -47,15 +47,17 @@ ZBUS_CHAN_DEFINE(WIFI_CHAN, struct wifi_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY, Z
  */
 
 static enum wifi_mode active_mode = WIFI_MODE_SOFTAP;
+static bool dhcp_server_started;  /* guards against double DHCP server start */
 
 /* SSID captured at L4_CONNECTED; used for disconnect logging and P2P
  * detection.  A SSID starting with "DIRECT-" is a P2P/Wi-Fi Direct session. */
 static char sta_ssid[WIFI_SSID_MAX_LEN + 1];
 
 /* Network management event callbacks */
-static struct net_mgmt_event_callback wifi_mgmt_cb; /* SoftAP events          */
-static struct net_mgmt_event_callback net_mgmt_cb;  /* DHCP bound         */
-static struct net_mgmt_event_callback l4_mgmt_cb;   /* L4 connect/disconn */
+static struct net_mgmt_event_callback iface_event_cb; /* IF UP/DOWN         */
+static struct net_mgmt_event_callback wifi_mgmt_cb;   /* SoftAP events      */
+static struct net_mgmt_event_callback net_mgmt_cb;    /* DHCP bound         */
+static struct net_mgmt_event_callback l4_mgmt_cb;     /* L4 connect/disconn */
 
 /* ============================================================================
  * WIFI READY — semaphore signalled by wifi_ready_cb when WPA supplicant is up
@@ -63,6 +65,8 @@ static struct net_mgmt_event_callback l4_mgmt_cb;   /* L4 connect/disconn */
  */
 
 static K_SEM_DEFINE(wifi_ready_sem, 0, 1);
+/* Signals when the first Wi-Fi interface comes up (NET_EVENT_IF_UP) */
+static K_SEM_DEFINE(iface_up_sem, 0, 1);
 
 /* ============================================================================
  * HELPER UTILITIES
@@ -95,6 +99,31 @@ static void wifi_ready_cb(bool ready)
 }
 
 /* ============================================================================
+ * INTERFACE EVENT HANDLER (matches audio net_event_mgmt.c pattern)
+ * ============================================================================
+ */
+
+static void l2_iface_event_handler(struct net_mgmt_event_callback *cb,
+				   uint64_t mgmt_event, struct net_if *iface)
+{
+	char ifname[IFNAMSIZ + 1] = {0};
+
+	net_if_get_name(iface, ifname, sizeof(ifname) - 1);
+
+	switch (mgmt_event) {
+	case NET_EVENT_IF_UP:
+		LOG_INF("Network interface %s is up", ifname);
+		k_sem_give(&iface_up_sem);
+		break;
+	case NET_EVENT_IF_DOWN:
+		LOG_INF("Network interface %s is down", ifname);
+		break;
+	default:
+		break;
+	}
+}
+
+/* ============================================================================
  * SoftAP PATH
  * ============================================================================
  */
@@ -119,41 +148,57 @@ static void wifi_softap_start(void)
 	net_mgmt(NET_REQUEST_WIFI_DISCONNECT, iface, NULL, 0);
 	k_sleep(K_MSEC(300));
 
-	/* Set regulatory domain */
+	/* Set regulatory domain (CONFIG_APP_SOFTAP_REG_DOMAIN) */
 	struct wifi_reg_domain regd = {0};
 
 	regd.oper = WIFI_MGMT_SET;
-	strncpy(regd.country_code, "US", WIFI_COUNTRY_CODE_LEN + 1);
+	strncpy(regd.country_code, CONFIG_APP_SOFTAP_REG_DOMAIN, WIFI_COUNTRY_CODE_LEN + 1);
 	ret = net_mgmt(NET_REQUEST_WIFI_REG_DOMAIN, iface, &regd, sizeof(regd));
 	if (ret) {
-		LOG_WRN("Failed to set regulatory domain: %d (continuing)", ret);
+		LOG_WRN("Failed to set regulatory domain %s: %d (continuing)",
+			CONFIG_APP_SOFTAP_REG_DOMAIN, ret);
+	} else {
+		LOG_INF("Regulatory domain set to %s", CONFIG_APP_SOFTAP_REG_DOMAIN);
 	}
 
-	/* Start DHCP server */
-	struct in_addr pool_start;
+	/* Start DHCP server — guarded against double-start on mode re-entry */
+	if (!dhcp_server_started) {
+		struct in_addr pool_start;
 
-	ret = inet_pton(AF_INET, "192.168.7.2", &pool_start);
-	if (ret == 1) {
-		ret = net_dhcpv4_server_start(iface, &pool_start);
-		if (ret == -EALREADY) {
-			LOG_INF("DHCP server already running");
-		} else if (ret < 0) {
-			LOG_ERR("Failed to start DHCP server: %d", ret);
-		} else {
-			LOG_INF("DHCP server started (pool: 192.168.7.2+)");
+		ret = inet_pton(AF_INET, "192.168.7.2", &pool_start);
+		if (ret == 1) {
+			ret = net_dhcpv4_server_start(iface, &pool_start);
+			if (ret == -EALREADY) {
+				LOG_INF("DHCP server already running");
+				dhcp_server_started = true;
+			} else if (ret < 0) {
+				LOG_ERR("Failed to start DHCP server: %d", ret);
+			} else {
+				dhcp_server_started = true;
+				LOG_INF("DHCP server started (pool: 192.168.7.2+)");
+			}
 		}
+	} else {
+		LOG_DBG("DHCP server already started, skipping");
 	}
 
-	/* Enable SoftAP */
+	/* Enable SoftAP — band/channel driven by Kconfig (APP_SOFTAP_BAND / APP_SOFTAP_CHANNEL) */
 	struct wifi_connect_req_params params = {
 		.ssid = (uint8_t *)CONFIG_APP_WIFI_SSID,
 		.ssid_length = strlen(CONFIG_APP_WIFI_SSID),
 		.psk = (uint8_t *)CONFIG_APP_WIFI_PASSWORD,
 		.psk_length = strlen(CONFIG_APP_WIFI_PASSWORD),
 		.security = WIFI_SECURITY_TYPE_PSK,
+#if defined(CONFIG_APP_SOFTAP_BAND_5_GHZ)
+		.band = WIFI_FREQ_BAND_5_GHZ,
+#else
 		.band = WIFI_FREQ_BAND_2_4_GHZ,
-		.channel = 1,
+#endif
+		.channel = CONFIG_APP_SOFTAP_CHANNEL,
 	};
+	LOG_INF("SoftAP params: band=%s ch=%d SSID='%s'",
+		IS_ENABLED(CONFIG_APP_SOFTAP_BAND_5_GHZ) ? "5GHz" : "2.4GHz",
+		CONFIG_APP_SOFTAP_CHANNEL, CONFIG_APP_WIFI_SSID);
 
 	ret = net_mgmt(NET_REQUEST_WIFI_AP_ENABLE, iface, &params, sizeof(params));
 	if (ret) {
@@ -400,13 +445,15 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
 
 	LOG_INF("WiFi module thread started (mode: %s)", mode_to_str(active_mode));
 
-	/* Wait until the WPA supplicant signals it is ready.
+	/* Step 1 — wait for network interface to come up (NET_EVENT_IF_UP).
+	 * Matches the audio net_event_mgmt.c iface_up_sem sequencing. */
+	k_sem_take(&iface_up_sem, K_FOREVER);
+	LOG_INF("Network interface up");
+
+	/* Step 2 — wait for WPA supplicant ready.
 	 * net_if_get_first_wifi() returns NULL until the supplicant has
-	 * fully initialised and set eth_if_type = L2_ETH_IF_TYPE_WIFI, which
-	 * happens asynchronously after SYS_INIT APPLICATION completes.
-	 * The blind 2 s sleep was not reliable; wifi_ready_cb fires on
-	 * NET_EVENT_SUPPLICANT_READY which is the correct synchronisation
-	 * point (mirrors the NCS softap sample pattern). */
+	 * fully initialised; wifi_ready_cb fires on NET_EVENT_SUPPLICANT_READY
+	 * (wifi_ready_lib handles the boot-time race internally). */
 	k_sem_take(&wifi_ready_sem, K_FOREVER);
 
 	/* Now that the supplicant is up, the interface is findable.
@@ -471,6 +518,12 @@ int wifi_module_init(void)
 
 	LOG_INF("Active Wi-Fi mode: %s", mode_to_str(active_mode));
 
+	/* Step 1: Interface UP/DOWN — register first (matches audio net_event_mgmt ordering) */
+	net_mgmt_init_event_callback(&iface_event_cb, l2_iface_event_handler,
+				     NET_EVENT_IF_UP | NET_EVENT_IF_DOWN);
+	net_mgmt_add_event_callback(&iface_event_cb);
+
+	/* Step 2: WPA supplicant ready — wifi_ready_lib handles boot-time race internally */
 	/* Register the wifi_ready callback.  It fires on
 	 * NET_EVENT_SUPPLICANT_READY, which is the reliable signal that the
 	 * WPA supplicant — and therefore net_if_get_first_wifi() — is usable.
@@ -482,7 +535,7 @@ int wifi_module_init(void)
 		LOG_WRN("register_wifi_ready_callback failed (%d) — thread will hang", ret);
 	}
 
-	/* SoftAP: SoftAP enable result and client connect/disconnect events */
+	/* Step 3: SoftAP enable result and client connect/disconnect events */
 	net_mgmt_init_event_callback(&wifi_mgmt_cb, wifi_mgmt_event_handler,
 				     NET_EVENT_WIFI_AP_ENABLE_RESULT |
 					     NET_EVENT_WIFI_AP_STA_CONNECTED |
