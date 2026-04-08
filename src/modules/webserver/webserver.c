@@ -16,8 +16,10 @@ LOG_MODULE_REGISTER(webserver_module, CONFIG_WEBSERVER_MODULE_LOG_LEVEL);
 #include <string.h>
 #include <zephyr/data/json.h>
 #include <zephyr/kernel.h>
+#include <zephyr/net/dns_sd.h>
 #include <zephyr/net/http/service.h>
 #include <zephyr/smf.h>
+#include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/zbus/zbus.h>
 
@@ -151,6 +153,16 @@ extern const struct zbus_channel LED_CMD_CHAN;
 ZBUS_CHAN_ADD_OBS(BUTTON_CHAN, button_listener_def, 0);
 
 static uint16_t http_service_port = CONFIG_APP_HTTP_PORT;
+
+/* DNS-SD / mDNS: advertise "_http._tcp.local" so browsers and apps can
+ * discover the dashboard via service discovery on all Wi-Fi modes
+ * (SoftAP, STA, P2P).  DNS-SD requires the port in network byte order.
+ */
+static const uint16_t http_dns_sd_port = sys_cpu_to_be16(CONFIG_APP_HTTP_PORT);
+
+DNS_SD_REGISTER_SERVICE(webdash_http, CONFIG_NET_HOSTNAME,
+			"_http", "_tcp", "local", DNS_SD_EMPTY_TXT,
+			&http_dns_sd_port);
 
 HTTP_SERVICE_DEFINE(webserver_service, NULL, &http_service_port,
 		    MAX_WEB_CLIENTS, MAX_WEB_CLIENTS, NULL, NULL, NULL);
