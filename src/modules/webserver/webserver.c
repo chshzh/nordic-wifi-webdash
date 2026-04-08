@@ -42,8 +42,8 @@ BUILD_ASSERT(MAX_WEB_CLIENTS > 0, "At least one web client must be allowed");
  */
 
 static char cached_mode_str[8] = "SoftAP"; /* "SoftAP", "STA", "P2P" */
-static char cached_ip[16]      = "0.0.0.0";
-static char cached_ssid[33]    = "";
+static char cached_ip[16] = "0.0.0.0";
+static char cached_ssid[33] = "";
 static bool server_started;
 
 /* ============================================================================
@@ -67,11 +67,10 @@ static void button_listener(const struct zbus_channel *chan)
 		int idx = msg->button_number;
 
 		button_states[idx].button_number = msg->button_number;
-		button_states[idx].press_count   = msg->press_count;
-		button_states[idx].is_pressed    = (msg->type == BUTTON_PRESSED);
+		button_states[idx].press_count = msg->press_count;
+		button_states[idx].is_pressed = (msg->type == BUTTON_PRESSED);
 
-		LOG_DBG("Button %d state updated: %s, count=%d",
-			msg->button_number,
+		LOG_DBG("Button %d state updated: %s, count=%d", msg->button_number,
 			button_states[idx].is_pressed ? "pressed" : "released",
 			button_states[idx].press_count);
 	}
@@ -95,24 +94,21 @@ static void wifi_event_listener(const struct zbus_channel *chan)
 		snprintf(cached_mode_str, sizeof(cached_mode_str), "SoftAP");
 		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
 		snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
-		LOG_INF("WIFI_SOFTAP_STARTED -> mode=%s ip=%s", cached_mode_str,
-			cached_ip);
+		LOG_INF("WIFI_SOFTAP_STARTED -> mode=%s ip=%s", cached_mode_str, cached_ip);
 		break;
 
 	case WIFI_STA_CONNECTED:
 		snprintf(cached_mode_str, sizeof(cached_mode_str), "STA");
 		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
 		snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
-		LOG_INF("WIFI_STA_CONNECTED -> ip=%s ssid=%s", cached_ip,
-			cached_ssid);
+		LOG_INF("WIFI_STA_CONNECTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
 		break;
 
 	case WIFI_P2P_CONNECTED:
 		snprintf(cached_mode_str, sizeof(cached_mode_str), "P2P");
 		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
 		snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
-		LOG_INF("WIFI_P2P_CONNECTED -> ip=%s ssid=%s", cached_ip,
-			cached_ssid);
+		LOG_INF("WIFI_P2P_CONNECTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
 		break;
 
 	case WIFI_STA_DISCONNECTED:
@@ -121,8 +117,7 @@ static void wifi_event_listener(const struct zbus_channel *chan)
 		return; /* keep server running */
 
 	case WIFI_ERROR:
-		LOG_ERR("WiFi error %d -> not starting HTTP server",
-			msg->error_code);
+		LOG_ERR("WiFi error %d -> not starting HTTP server", msg->error_code);
 		return;
 
 	default:
@@ -160,12 +155,11 @@ static uint16_t http_service_port = CONFIG_APP_HTTP_PORT;
  */
 static const uint16_t http_dns_sd_port = sys_cpu_to_be16(CONFIG_APP_HTTP_PORT);
 
-DNS_SD_REGISTER_SERVICE(webdash_http, CONFIG_NET_HOSTNAME,
-			"_http", "_tcp", "local", DNS_SD_EMPTY_TXT,
-			&http_dns_sd_port);
+DNS_SD_REGISTER_SERVICE(webdash_http, CONFIG_NET_HOSTNAME, "_http", "_tcp", "local",
+			DNS_SD_EMPTY_TXT, &http_dns_sd_port);
 
-HTTP_SERVICE_DEFINE(webserver_service, NULL, &http_service_port,
-		    MAX_WEB_CLIENTS, MAX_WEB_CLIENTS, NULL, NULL, NULL);
+HTTP_SERVICE_DEFINE(webserver_service, NULL, &http_service_port, MAX_WEB_CLIENTS, MAX_WEB_CLIENTS,
+		    NULL, NULL, NULL);
 
 /* ============================================================================
  * STATIC WEB RESOURCES
@@ -186,12 +180,11 @@ struct http_resource_detail_static index_html_resource_detail = {
 			.content_type = "text/html",
 		},
 	/* clang-format on */
-	.static_data     = index_html_gz,
+	.static_data = index_html_gz,
 	.static_data_len = sizeof(index_html_gz),
 };
 
-HTTP_RESOURCE_DEFINE(index_html_resource, webserver_service, "/",
-		     &index_html_resource_detail);
+HTTP_RESOURCE_DEFINE(index_html_resource, webserver_service, "/", &index_html_resource_detail);
 
 /* Main JS */
 static const uint8_t main_js_gz[] = {
@@ -207,12 +200,11 @@ struct http_resource_detail_static main_js_resource_detail = {
 			.content_type = "application/javascript",
 		},
 	/* clang-format on */
-	.static_data     = main_js_gz,
+	.static_data = main_js_gz,
 	.static_data_len = sizeof(main_js_gz),
 };
 
-HTTP_RESOURCE_DEFINE(main_js_resource, webserver_service, "/main.js",
-		     &main_js_resource_detail);
+HTTP_RESOURCE_DEFINE(main_js_resource, webserver_service, "/main.js", &main_js_resource_detail);
 
 /* Styles CSS */
 static const uint8_t styles_css_gz[] = {
@@ -228,7 +220,7 @@ struct http_resource_detail_static styles_css_resource_detail = {
 			.content_type = "text/css",
 		},
 	/* clang-format on */
-	.static_data     = styles_css_gz,
+	.static_data = styles_css_gz,
 	.static_data_len = sizeof(styles_css_gz),
 };
 
@@ -242,11 +234,9 @@ HTTP_RESOURCE_DEFINE(styles_css_resource, webserver_service, "/styles.css",
 
 static uint8_t system_api_buf[320];
 
-static int system_api_handler(struct http_client_ctx *client,
-			      enum http_data_status status,
+static int system_api_handler(struct http_client_ctx *client, enum http_data_status status,
 			      const struct http_request_ctx *request_ctx,
-			      struct http_response_ctx *response_ctx,
-			      void *user_data)
+			      struct http_response_ctx *response_ctx, void *user_data)
 {
 	ARG_UNUSED(client);
 	ARG_UNUSED(request_ctx);
@@ -262,8 +252,7 @@ static int system_api_handler(struct http_client_ctx *client,
 			   "{\"mode\":\"%s\",\"ip\":\"%s\","
 			   "\"ssid\":\"%s\",\"uptime_s\":%u,"
 			   "\"board\":\"%s\"}",
-			   cached_mode_str, cached_ip, cached_ssid, uptime_s,
-			   CONFIG_BOARD);
+			   cached_mode_str, cached_ip, cached_ssid, uptime_s, CONFIG_BOARD);
 
 	if (len <= 0 || len >= (int)sizeof(system_api_buf)) {
 		return -ENOMEM;
@@ -271,10 +260,10 @@ static int system_api_handler(struct http_client_ctx *client,
 
 	LOG_INF("GET /api/system -> mode=%s ip=%s", cached_mode_str, cached_ip);
 
-	response_ctx->body        = system_api_buf;
-	response_ctx->body_len    = len;
+	response_ctx->body = system_api_buf;
+	response_ctx->body_len = len;
 	response_ctx->final_chunk = true;
-	response_ctx->status      = HTTP_200_OK;
+	response_ctx->status = HTTP_200_OK;
 
 	return 0;
 }
@@ -287,13 +276,12 @@ static struct http_resource_detail_dynamic system_api_detail = {
 			.content_type = "application/json",
 		},
 	/* clang-format on */
-	.cb        = system_api_handler,
-	.holder    = NULL,
+	.cb = system_api_handler,
+	.holder = NULL,
 	.user_data = NULL,
 };
 
-HTTP_RESOURCE_DEFINE(system_api_resource, webserver_service, "/api/system",
-		     &system_api_detail);
+HTTP_RESOURCE_DEFINE(system_api_resource, webserver_service, "/api/system", &system_api_detail);
 
 /* ============================================================================
  * GET /api/buttons
@@ -302,11 +290,9 @@ HTTP_RESOURCE_DEFINE(system_api_resource, webserver_service, "/api/system",
 
 static uint8_t button_api_buf[512];
 
-static int button_api_handler(struct http_client_ctx *client,
-			      enum http_data_status status,
+static int button_api_handler(struct http_client_ctx *client, enum http_data_status status,
 			      const struct http_request_ctx *request_ctx,
-			      struct http_response_ctx *response_ctx,
-			      void *user_data)
+			      struct http_response_ctx *response_ctx, void *user_data)
 {
 	ARG_UNUSED(client);
 	ARG_UNUSED(request_ctx);
@@ -316,10 +302,9 @@ static int button_api_handler(struct http_client_ctx *client,
 		return 0;
 	}
 
-	int offset    = 0;
+	int offset = 0;
 	int remaining = sizeof(button_api_buf);
-	int written   = snprintf((char *)button_api_buf + offset, remaining,
-				 "{\"buttons\":[");
+	int written = snprintf((char *)button_api_buf + offset, remaining, "{\"buttons\":[");
 
 	if (written < 0 || written >= remaining) {
 		return -ENOMEM;
@@ -328,18 +313,17 @@ static int button_api_handler(struct http_client_ctx *client,
 	remaining -= written;
 
 	for (int i = 0; i < NUM_BUTTONS; i++) {
-		const bool is_last      = (i == NUM_BUTTONS - 1);
-		const uint8_t btn_num   = button_states[i].button_number;
-		const char *btn_name    = app_button_label(btn_num);
+		const bool is_last = (i == NUM_BUTTONS - 1);
+		const uint8_t btn_num = button_states[i].button_number;
+		const char *btn_name = app_button_label(btn_num);
 
-		written = snprintf(
-			(char *)button_api_buf + offset, remaining,
-			/* clang-format off */
+		written = snprintf((char *)button_api_buf + offset, remaining,
+				   /* clang-format off */
 			"{\"number\":%u,\"name\":\"%s\",\"pressed\":%s,\"count\":%u}%s",
-			/* clang-format on */
-			btn_num, btn_name ? btn_name : "",
-			button_states[i].is_pressed ? "true" : "false",
-			button_states[i].press_count, is_last ? "" : ",");
+				   /* clang-format on */
+				   btn_num, btn_name ? btn_name : "",
+				   button_states[i].is_pressed ? "true" : "false",
+				   button_states[i].press_count, is_last ? "" : ",");
 		if (written < 0 || written >= remaining) {
 			return -ENOMEM;
 		}
@@ -353,10 +337,10 @@ static int button_api_handler(struct http_client_ctx *client,
 	}
 	offset += written;
 
-	response_ctx->body        = button_api_buf;
-	response_ctx->body_len    = offset;
+	response_ctx->body = button_api_buf;
+	response_ctx->body_len = offset;
 	response_ctx->final_chunk = true;
-	response_ctx->status      = HTTP_200_OK;
+	response_ctx->status = HTTP_200_OK;
 
 	return 0;
 }
@@ -369,13 +353,12 @@ static struct http_resource_detail_dynamic button_api_detail = {
 			.content_type = "application/json",
 		},
 	/* clang-format on */
-	.cb        = button_api_handler,
-	.holder    = NULL,
+	.cb = button_api_handler,
+	.holder = NULL,
 	.user_data = NULL,
 };
 
-HTTP_RESOURCE_DEFINE(button_api_resource, webserver_service, "/api/buttons",
-		     &button_api_detail);
+HTTP_RESOURCE_DEFINE(button_api_resource, webserver_service, "/api/buttons", &button_api_detail);
 
 /* ============================================================================
  * GET /api/leds
@@ -384,11 +367,9 @@ HTTP_RESOURCE_DEFINE(button_api_resource, webserver_service, "/api/buttons",
 
 static uint8_t led_get_api_buf[512];
 
-static int led_get_api_handler(struct http_client_ctx *client,
-			       enum http_data_status status,
+static int led_get_api_handler(struct http_client_ctx *client, enum http_data_status status,
 			       const struct http_request_ctx *request_ctx,
-			       struct http_response_ctx *response_ctx,
-			       void *user_data)
+			       struct http_response_ctx *response_ctx, void *user_data)
 {
 	ARG_UNUSED(client);
 	ARG_UNUSED(request_ctx);
@@ -398,14 +379,13 @@ static int led_get_api_handler(struct http_client_ctx *client,
 		return 0;
 	}
 
-	int written = led_get_all_states_json((char *)led_get_api_buf,
-					      sizeof(led_get_api_buf));
+	int written = led_get_all_states_json((char *)led_get_api_buf, sizeof(led_get_api_buf));
 
 	if (written > 0) {
-		response_ctx->body        = led_get_api_buf;
-		response_ctx->body_len    = written;
+		response_ctx->body = led_get_api_buf;
+		response_ctx->body_len = written;
 		response_ctx->final_chunk = true;
-		response_ctx->status      = HTTP_200_OK;
+		response_ctx->status = HTTP_200_OK;
 	}
 
 	return 0;
@@ -419,13 +399,12 @@ static struct http_resource_detail_dynamic led_get_api_detail = {
 			.content_type = "application/json",
 		},
 	/* clang-format on */
-	.cb        = led_get_api_handler,
-	.holder    = NULL,
+	.cb = led_get_api_handler,
+	.holder = NULL,
 	.user_data = NULL,
 };
 
-HTTP_RESOURCE_DEFINE(led_get_api_resource, webserver_service, "/api/leds",
-		     &led_get_api_detail);
+HTTP_RESOURCE_DEFINE(led_get_api_resource, webserver_service, "/api/leds", &led_get_api_detail);
 
 /* ============================================================================
  * POST /api/led
@@ -439,15 +418,12 @@ struct led_control_cmd {
 
 static const struct json_obj_descr led_control_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct led_control_cmd, led, JSON_TOK_NUMBER),
-	JSON_OBJ_DESCR_PRIM(struct led_control_cmd, action,
-			    JSON_TOK_STRING_BUF),
+	JSON_OBJ_DESCR_PRIM(struct led_control_cmd, action, JSON_TOK_STRING_BUF),
 };
 
-static int led_post_api_handler(struct http_client_ctx *client,
-				enum http_data_status status,
+static int led_post_api_handler(struct http_client_ctx *client, enum http_data_status status,
 				const struct http_request_ctx *request_ctx,
-				struct http_response_ctx *response_ctx,
-				void *user_data)
+				struct http_response_ctx *response_ctx, void *user_data)
 {
 	ARG_UNUSED(client);
 	ARG_UNUSED(user_data);
@@ -457,7 +433,7 @@ static int led_post_api_handler(struct http_client_ctx *client,
 	}
 
 	if (request_ctx->data == NULL || request_ctx->data_len == 0) {
-		response_ctx->status      = HTTP_400_BAD_REQUEST;
+		response_ctx->status = HTTP_400_BAD_REQUEST;
 		response_ctx->final_chunk = true;
 		return 0;
 	}
@@ -465,13 +441,12 @@ static int led_post_api_handler(struct http_client_ctx *client,
 	struct led_control_cmd cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
-	int ret = json_obj_parse((char *)request_ctx->data,
-				 request_ctx->data_len, led_control_descr,
-				 ARRAY_SIZE(led_control_descr), &cmd);
+	int ret = json_obj_parse((char *)request_ctx->data, request_ctx->data_len,
+				 led_control_descr, ARRAY_SIZE(led_control_descr), &cmd);
 
 	if (ret < 0) {
 		LOG_WRN("Failed to parse LED command: %d", ret);
-		response_ctx->status      = HTTP_400_BAD_REQUEST;
+		response_ctx->status = HTTP_400_BAD_REQUEST;
 		response_ctx->final_chunk = true;
 		return 0;
 	}
@@ -479,9 +454,8 @@ static int led_post_api_handler(struct http_client_ctx *client,
 	LOG_INF("POST /api/led -> LED %d action='%s'", cmd.led, cmd.action);
 
 	if (cmd.led >= NUM_LEDS) {
-		LOG_WRN("LED index out of range: %d (max %d)", cmd.led,
-			NUM_LEDS - 1);
-		response_ctx->status      = HTTP_400_BAD_REQUEST;
+		LOG_WRN("LED index out of range: %d (max %d)", cmd.led, NUM_LEDS - 1);
+		response_ctx->status = HTTP_400_BAD_REQUEST;
 		response_ctx->final_chunk = true;
 		return 0;
 	}
@@ -498,7 +472,7 @@ static int led_post_api_handler(struct http_client_ctx *client,
 		msg.type = LED_COMMAND_TOGGLE;
 	} else {
 		LOG_WRN("Unknown LED action: %s", cmd.action);
-		response_ctx->status      = HTTP_400_BAD_REQUEST;
+		response_ctx->status = HTTP_400_BAD_REQUEST;
 		response_ctx->final_chunk = true;
 		return 0;
 	}
@@ -522,13 +496,12 @@ static struct http_resource_detail_dynamic led_post_api_detail = {
 			.bitmask_of_supported_http_methods = BIT(HTTP_POST),
 		},
 	/* clang-format on */
-	.cb        = led_post_api_handler,
-	.holder    = NULL,
+	.cb = led_post_api_handler,
+	.holder = NULL,
 	.user_data = NULL,
 };
 
-HTTP_RESOURCE_DEFINE(led_post_api_resource, webserver_service, "/api/led",
-		     &led_post_api_detail);
+HTTP_RESOURCE_DEFINE(led_post_api_resource, webserver_service, "/api/led", &led_post_api_detail);
 
 /* ============================================================================
  * PUBLIC API
@@ -542,8 +515,8 @@ int webserver_start(void)
 		return 0;
 	}
 
-	LOG_INF("Starting HTTP server on port %d (mode=%s ip=%s)",
-		CONFIG_APP_HTTP_PORT, cached_mode_str, cached_ip);
+	LOG_INF("Starting HTTP server on port %d (mode=%s ip=%s)", CONFIG_APP_HTTP_PORT,
+		cached_mode_str, cached_ip);
 
 	int ret = http_server_start();
 
@@ -553,8 +526,7 @@ int webserver_start(void)
 	}
 
 	server_started = true;
-	LOG_INF("HTTP server started -> http://%s:%d", cached_ip,
-		CONFIG_APP_HTTP_PORT);
+	LOG_INF("HTTP server started -> http://%s:%d", cached_ip, CONFIG_APP_HTTP_PORT);
 
 	return 0;
 }
@@ -572,8 +544,8 @@ int webserver_module_init(void)
 
 	for (int i = 0; i < NUM_BUTTONS; i++) {
 		button_states[i].button_number = i;
-		button_states[i].is_pressed    = false;
-		button_states[i].press_count   = 0;
+		button_states[i].is_pressed = false;
+		button_states[i].press_count = 0;
 	}
 
 	LOG_INF("Webserver module initialized");
