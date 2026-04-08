@@ -20,7 +20,7 @@
  *   ────────────────────────────────
  *   Step 1 — wait iface_up_sem        (NET_EVENT_IF_UP)
  *   Step 2 — wait wifi_ready_sem      (NET_EVENT_SUPPLICANT_READY)
- *   Step 3 — block conn_mgr if needed
+ *   Step 3 — activate selected mode
  *   Step 4 — start selected Wi-Fi mode
  */
 
@@ -34,8 +34,6 @@ LOG_MODULE_REGISTER(network_module, CONFIG_NETWORK_MODULE_LOG_LEVEL);
 #include "net_private.h"
 #include <string.h>
 #include <zephyr/kernel.h>
-#include <zephyr/net/conn_mgr_connectivity.h>
-#include <zephyr/net/conn_mgr_monitor.h>
 #include <zephyr/net/dhcpv4.h>
 #include <zephyr/net/dhcpv4_server.h>
 #include <zephyr/net/igmp.h>
@@ -137,7 +135,7 @@ static void l3_wpa_supp_event_handler(struct net_mgmt_event_callback *cb, uint64
 
 	switch (mgmt_event) {
 	case NET_EVENT_SUPPLICANT_READY:
-		LOG_INF("WPA supplicant ready — mode %s", mode_to_str(active_mode));
+		LOG_INF("WPA supplicant ready - mode %s", mode_to_str(active_mode));
 		k_sem_give(&wifi_ready_sem);
 		break;
 	case NET_EVENT_SUPPLICANT_NOT_READY:
@@ -372,8 +370,8 @@ static void l4_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt_e
 				 (char *)status.ssid);
 		}
 
-		bool is_p2p = (active_mode == WIFI_MODE_P2P) ||
-			      (strncmp(sta_ssid, "DIRECT-", 7) == 0);
+		bool is_p2p =
+			(active_mode == WIFI_MODE_P2P) || (strncmp(sta_ssid, "DIRECT-", 7) == 0);
 
 		LOG_INF("WiFi %s connected (SSID: %s) — awaiting DHCP", is_p2p ? "P2P" : "STA",
 			sta_ssid[0] ? sta_ssid : "<unknown>");
@@ -520,18 +518,11 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
 	k_sem_take(&wifi_ready_sem, K_FOREVER);
 	LOG_INF("WPA supplicant ready");
 
-	/* Step 3 — block conn_mgr auto-connect in non-STA modes */
-	if (active_mode != WIFI_MODE_STA) {
-		struct net_if *iface = net_if_get_first_wifi();
-
-		if (iface) {
-			conn_mgr_if_set_flag(iface, CONN_MGR_IF_NO_AUTO_CONNECT, true);
-			LOG_INF("conn_mgr auto-connect blocked (mode=%s)",
-				mode_to_str(active_mode));
-		}
-	}
-
-	/* Step 4 — activate selected mode */
+	/* Step 3 — activate selected mode
+	 * Note: conn_mgr auto-connect is disabled globally via Kconfig
+	 * (CONFIG_L2_WIFI_CONNECTIVITY_AUTO_CONNECT=n), so no runtime flag
+	 * manipulation is needed here.
+	 */
 	switch (active_mode) {
 	case WIFI_MODE_SOFTAP:
 		wifi_softap_start();
