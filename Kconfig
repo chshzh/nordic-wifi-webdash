@@ -32,7 +32,6 @@ rsource "src/modules/mode_selector/Kconfig.mode_selector"
 rsource "src/modules/network/Kconfig.network"
 rsource "src/modules/button/Kconfig.button"
 rsource "src/modules/led/Kconfig.led"
-rsource "src/modules/wifi/Kconfig.wifi"
 rsource "src/modules/webserver/Kconfig.webserver"
 rsource "src/modules/memory/Kconfig.memory"
 

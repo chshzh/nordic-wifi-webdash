@@ -1,38 +1,60 @@
-# Network module Kconfig
+#
+# Copyright (c) 2026 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
 
 config NETWORK_MODULE
-	bool "Network event management module"
+	bool "Unified network / Wi-Fi event management module"
 	default y
 	help
-	  Enable network event management module for handling
-	  network interface events, WiFi SoftAP events, and
-	  station connection tracking.
+	  Enable the combined network and Wi-Fi module.  Handles interface
+	  UP/DOWN events, WPA supplicant ready sequencing, SoftAP bring-up,
+	  DHCP server, STA/P2P DHCP binding, and Zbus event publishing for
+	  all three Wi-Fi modes (SoftAP, STA, P2P).
 
-choice NETWORK_MODULE_LOG_LEVEL_CHOICE
-	prompt "Network module log level"
-	default NETWORK_MODULE_LOG_LEVEL_INF
+# ---------------------------------------------------------------------------
+# SoftAP configuration (formerly in wifi/Kconfig.wifi)
+# ---------------------------------------------------------------------------
 
-config NETWORK_MODULE_LOG_LEVEL_OFF
-	bool "Off"
+menu "SoftAP Configuration"
 
-config NETWORK_MODULE_LOG_LEVEL_ERR
-	bool "Error"
+config APP_SOFTAP_REG_DOMAIN
+	string "SoftAP regulatory domain"
+	default "US"
+	help
+	  Two-letter country code for the regulatory domain used in SoftAP
+	  mode (e.g. "US", "EU", "JP"). Use "00" for world/permissive mode.
 
-config NETWORK_MODULE_LOG_LEVEL_WRN
-	bool "Warning"
+choice APP_SOFTAP_BAND
+	prompt "SoftAP Wi-Fi band"
+	default APP_SOFTAP_BAND_2_4_GHZ
+	help
+	  Wi-Fi frequency band to use when hosting SoftAP.
 
-config NETWORK_MODULE_LOG_LEVEL_INF
-	bool "Info"
+config APP_SOFTAP_BAND_2_4_GHZ
+	bool "2.4 GHz"
 
-config NETWORK_MODULE_LOG_LEVEL_DBG
-	bool "Debug"
+config APP_SOFTAP_BAND_5_GHZ
+	bool "5 GHz"
 
-endchoice
+endchoice # APP_SOFTAP_BAND
 
-config NETWORK_MODULE_LOG_LEVEL
-	int
-	default 0 if NETWORK_MODULE_LOG_LEVEL_OFF
-	default 1 if NETWORK_MODULE_LOG_LEVEL_ERR
-	default 2 if NETWORK_MODULE_LOG_LEVEL_WRN
-	default 3 if NETWORK_MODULE_LOG_LEVEL_INF
-	default 4 if NETWORK_MODULE_LOG_LEVEL_DBG
+config APP_SOFTAP_CHANNEL
+	int "SoftAP channel"
+	default 1
+	range 1 196
+	help
+	  Wi-Fi channel number for SoftAP. Must be valid for the selected
+	  band and regulatory domain (e.g. 1-13 for 2.4 GHz; 36, 40, 44…
+	  for 5 GHz). Defaults to channel 1 (2.4 GHz).
+
+endmenu # "SoftAP Configuration"
+
+# ---------------------------------------------------------------------------
+# Log level (standard Zephyr template)
+# ---------------------------------------------------------------------------
+
+module = NETWORK_MODULE
+module-str = network_module
+source "subsys/logging/Kconfig.template.log_config"

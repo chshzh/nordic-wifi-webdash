@@ -5,4 +5,6 @@ target_sources(app PRIVATE
 
 target_include_directories(app PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}
+	# net_private.h (for NET_IPV4_ADDR_LEN etc.) lives here
+	${ZEPHYR_BASE}/subsys/net/ip
 )

@@ -30,7 +30,7 @@ foreach(web_resource
     )
   generate_inc_file_for_target(
     app
-    www/${web_resource}
+    src/modules/www/${web_resource}
     ${gen_dir}/${web_resource}.gz.inc
     --gzip
   )
@@ -41,7 +41,6 @@ add_subdirectory(src/modules/mode_selector)
 add_subdirectory(src/modules/network)
 add_subdirectory(src/modules/button)
 add_subdirectory(src/modules/led)
-add_subdirectory(src/modules/wifi)
 add_subdirectory(src/modules/webserver)
 add_subdirectory(src/modules/memory)
 

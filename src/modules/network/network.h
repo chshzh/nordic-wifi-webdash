@@ -8,35 +8,25 @@
 #define NETWORK_H
 
 #include <zephyr/kernel.h>
+#include "../messages.h"
 
 /**
- * @brief Initialize network event management module
+ * @brief Initialize unified network/Wi-Fi event management module.
  *
- * @return 0 on success, negative error code on failure
+ * Called automatically via SYS_INIT at APPLICATION priority 5.
+ * Reads WIFI_MODE_CHAN (published by mode_selector at priority 0) to determine
+ * which Wi-Fi mode to activate, registers all event callbacks, and starts
+ * the Wi-Fi thread.
+ *
+ * @return 0 on success, negative error code on failure.
  */
 int network_module_init(void);
 
 /**
- * @brief Wait for network interface to be up
+ * @brief Wait for a SoftAP client station to connect.
  *
  * @param timeout Maximum time to wait
- * @return 0 on success, negative error code on timeout
- */
-int network_wait_for_iface_up(k_timeout_t timeout);
-
-/**
- * @brief Wait for SoftAP to be enabled
- *
- * @param timeout Maximum time to wait
- * @return 0 on success, negative error code on timeout
- */
-int network_wait_for_softap_ready(k_timeout_t timeout);
-
-/**
- * @brief Wait for a station to connect
- *
- * @param timeout Maximum time to wait
- * @return 0 on success, negative error code on timeout
+ * @return 0 on success, -EAGAIN on timeout
  */
 int network_wait_for_station_connected(k_timeout_t timeout);
 
