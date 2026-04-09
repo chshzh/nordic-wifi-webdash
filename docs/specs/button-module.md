@@ -1,14 +1,19 @@
-# Button Module Specification — v2.0
+# Button Module Specification
+
+> **PRD Version**: 2026-04-09-12-00
+
+## Changelog
+
+| Version | Summary |
+|---|---|
+| 2026-04-09-12-00 | Remove mode-selector boot-sampling interaction; remove `is_boot_long_press` field; simplify boot sequence (no GPIO conflict to manage) |
+| 2026-03-31 | v2.0 — added `duration_ms`, `is_boot_long_press`, boot-window coordination |
+
+---
 
 ## Overview
 
 The Button module provides runtime GPIO button monitoring using the SMF (State Machine Framework). It detects press/release events, tracks press counts and durations, and publishes events via `BUTTON_CHAN`.
-
-In v2.0 the module is updated to:
-
-1. **Not conflict with mode_selector boot sampling** — mode_selector polls Button 1 GPIO directly during `SYS_INIT` priority 0 before the button module registers IRQs at priority 2.
-2. **Add `duration_ms` to button events** — the webserver and future modules can distinguish short vs. long presses at runtime.
-3. **Expose `is_boot_long_press` flag** — set on the first event after boot if the button was the one used for mode selection (informational only; mode_selector already handled the action).
 
 ---
 
@@ -41,7 +46,6 @@ struct button_msg {
     uint32_t duration_ms;            /* press duration (0 on PRESSED event) */
     uint32_t press_count;            /* total presses since boot, per button */
     uint32_t timestamp;              /* k_uptime_get_32() */
-    bool     is_boot_long_press;     /* true if this was the mode-select hold */
 };
 ```
 
@@ -79,31 +83,9 @@ stateDiagram-v2
 
 ---
 
-## Boot Interaction with Mode Selector
+## Boot Sequence
 
-The button module initializes at `SYS_INIT` priority **2** — after mode_selector (priority 0) has already completed its boot-window polling.
-
-This means:
-- mode_selector reads Button 1 GPIO **directly** using `gpio_pin_get()` with no IRQ
-- button module later registers GPIO callbacks (falling/rising edge) for runtime events
-- The first button event the button module sees is whatever happens *after* boot completes
-
-There is **no conflict** because mode_selector exits before button module registers its callbacks.
-
-```mermaid
-sequenceDiagram
-    participant ModeSel as mode_selector\npriority 0
-    participant Btn as button_module\npriority 2
-    participant GPIO as Button 1 GPIO
-
-    ModeSel->>GPIO: gpio_pin_get() [polling, no IRQ]
-    Note over ModeSel: Boot window (up to 3s + 30s menu)
-    ModeSel->>ModeSel: Done — publishes WIFI_MODE_CHAN
-
-    Note over Btn: Now priority 2 runs
-    Btn->>GPIO: gpio_pin_configure() + gpio_init_callback()
-    Note over Btn: IRQ-based monitoring active from here
-```
+The button module initializes at `SYS_INIT` priority **2**. Mode selector (priority 0) completes its NVS read and `WIFI_MODE_CHAN` publish before the button module registers any GPIO callbacks. There is no GPIO conflict.
 
 ---
 
@@ -188,12 +170,11 @@ config APP_BUTTON_MODULE_LOG_LEVEL
 2. Verify each button reports correct `button_number` (0-based)
 3. Verify press counts are independent per button
 
-### TC-BTN-003: No conflict with mode selector
+### TC-BTN-003: Boot sequence
 
-1. Boot with Button 1 held (triggers mode selector)
-2. After mode menu appears, release button
-3. Verify button module starts normally after mode selection completes
-4. Verify subsequent presses are detected correctly by button module
+1. Boot the device normally
+2. Verify button module logs `Button module initialized` after mode_selector logs `Booting in <mode> mode`
+3. Verify subsequent presses are detected correctly
 
 ### TC-BTN-004: Board button count
 
@@ -205,5 +186,4 @@ config APP_BUTTON_MODULE_LOG_LEVEL
 ## Related Specs
 
 - [architecture.md](architecture.md) — Zbus channels, SYS_INIT priority ordering
-- [mode-selector.md](mode-selector.md) — boot-time Button 1 polling (runs before this module)
 - [webserver-module.md](webserver-module.md) — reads button state for REST API

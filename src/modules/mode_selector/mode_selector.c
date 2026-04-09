@@ -120,7 +120,7 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 			    "Usage: wifi_mode [SoftAP|STA|P2P]\r\n"
 			    "  SoftAP  (creates own SoftAP, IP 192.168.7.1)\r\n"
 			    "  STA     (connects to existing Wi-Fi)\r\n"
-			    "  P2P     (Wi-Fi Direct, build with -S wifi-p2p)\r\n"
+			    "  P2P     (Wi-Fi Direct, build with -DSNIPPET=wifi-p2p)\r\n"
 			    "Board reboots automatically after mode change.",
 			    mode_to_str(selected_mode));
 		return 0;

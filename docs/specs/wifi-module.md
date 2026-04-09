@@ -1,8 +1,19 @@
-# WiFi Module Specification — v2.0
+# WiFi Module Specification
+
+> **PRD Version**: 2026-04-09-12-00
+
+## Changelog
+
+| Version | Summary |
+|---|---|
+| 2026-04-09-12-00 | STA: session-based connection (`wifi connect`) replaces stored credentials / conn_mgr auto-connect; P2P: now supported on both boards with `-DSNIPPET=wifi-p2p`; P2P connect method updated to `pbc` |
+| 2026-03-31 | v2.0 — multi-mode SoftAP/STA/P2P controller |
+
+---
 
 ## Overview
 
-The WiFi module manages all Wi-Fi connectivity for `nordic-wifi-webdash`. In v2.0 it is extended from a single-mode SoftAP manager to a **multi-mode Wi-Fi controller** supporting three runtime-selectable roles:
+The WiFi module manages all Wi-Fi connectivity for `nordic-wifi-webdash`. It supports three runtime-selectable roles:
 
 | Mode | Value | Description |
 |------|-------|-------------|
@@ -59,9 +70,8 @@ stateDiagram-v2
     SoftAP_Active --> SoftAP_Active: client connect/disconnect
 
     STA_Connecting --> STA_Connected: NET_EVENT_L4_CONNECTED
-    STA_Connecting --> STA_Reconnecting: timeout / no credentials
-    STA_Connected --> STA_Reconnecting: NET_EVENT_L4_DISCONNECTED
-    STA_Reconnecting --> STA_Connecting: retry (+1s delay)
+    STA_Connecting --> STA_Idle: timeout / no active connect command
+    STA_Connected --> STA_Idle: NET_EVENT_L4_DISCONNECTED
 
     P2P_Finding --> P2P_Connecting: wifi p2p connect issued
     P2P_Connecting --> P2P_Connected: P2P-GROUP-STARTED + DHCP
@@ -123,72 +133,48 @@ sequenceDiagram
 CONFIG_WIFI=y
 CONFIG_WIFI_NRF70=y
 CONFIG_WIFI_NM_WPA_SUPPLICANT=y
-# SoftAP AP mode NOT required for STA-only build
-# CONFIG_NRF70_AP_MODE is not needed
 
-CONFIG_NET_CONNECTION_MANAGER=y
-CONFIG_L2_WIFI_CONNECTIVITY=y
-CONFIG_L2_WIFI_CONNECTIVITY_AUTO_CONNECT=y
-
-CONFIG_WIFI_CREDENTIALS=y
-CONFIG_FLASH=y
-CONFIG_FLASH_MAP=y
-CONFIG_FLASH_PAGE_LAYOUT=y
-CONFIG_NVS=y
-CONFIG_SETTINGS=y
-CONFIG_SETTINGS_NVS=y
+# conn_mgr auto-connect is DISABLED; connections are started manually
+# via the wifi shell command
+CONFIG_NET_CONNECTION_MANAGER_AUTO_IF_DOWN=n
 
 CONFIG_NET_DHCPV4=y
 CONFIG_DNS_RESOLVER=y
 ```
 
-### Credential Setup (one-time, via shell)
+### Connection (session-based, via shell)
+
+STA connections are started manually each session. No credentials are stored in NVS:
 
 ```
-uart:~$ wifi cred add "MySSID" 3 "MyPassword"
-uart:~$ wifi cred auto_connect
+uart:~$ wifi connect -s <SSID> -p <password> -k 1
 ```
 
-Or using `wifi_cred` with WPA2 (security type 3):
-```
-uart:~$ wifi cred add "HomeNetwork" WPA2-PSK "mypassword"
-```
+The `-k 1` flag selects WPA2-PSK security. After a disconnect the device returns to STA idle state; the user must re-issue `wifi connect` for the next session.
 
 ### Event Flow
 
 ```mermaid
 sequenceDiagram
     participant WiFi as WiFi Module
-    participant ConnMgr as Connection Manager
     participant WPA as WPA Supplicant
     participant Net as Network Stack
     participant WIFI_CHAN
 
-    WiFi->>WiFi: wifi_sta_start() after 1s delay
-    WiFi->>ConnMgr: conn_mgr_all_if_up()
-    alt Credentials stored
-        WiFi->>ConnMgr: conn_mgr_all_if_connect()
-        ConnMgr->>WPA: wpa_supplicant_connect()
-        WPA->>WPA: Association + WPA key exchange
-        Net->>WiFi: NET_EVENT_IPV4_DHCP_BOUND (IP assigned)
-        Net->>WiFi: NET_EVENT_L4_CONNECTED
-        WiFi->>WIFI_CHAN: Publish WIFI_STA_CONNECTED\n(ip=dhcp_ip, ssid=connected_ssid)
-    else No credentials
-        WiFi->>WiFi: LOG_WRN "No Wi-Fi credentials stored"
-        WiFi->>WiFi: LOG_INF "Add credentials: wifi cred add <SSID> <type> <PSK>"
-        WiFi->>WiFi: Wait (retry every 30s)
-    end
+    WiFi->>WiFi: wifi_sta_start() — wait for supplicant ready
+    Note over WiFi: Idle; waiting for manual wifi connect command
+
+    WPA->>WPA: User runs: wifi connect -s SSID -p pwd -k 1
+    WPA->>WPA: Association + WPA key exchange
+    Net->>WiFi: NET_EVENT_IPV4_DHCP_BOUND (IP assigned)
+    Net->>WiFi: NET_EVENT_L4_CONNECTED
+    WiFi->>WIFI_CHAN: Publish WIFI_STA_CONNECTED (ip=dhcp_ip, ssid=connected_ssid)
 
     Note over WiFi: On disconnect:
     Net->>WiFi: NET_EVENT_L4_DISCONNECTED
     WiFi->>WIFI_CHAN: Publish WIFI_STA_DISCONNECTED
-    WiFi->>WiFi: Schedule retry (+1s delayed work)
+    WiFi->>WiFi: Return to idle (no auto-retry)
 ```
-
-### Reconnection Logic
-
-- On `NET_EVENT_L4_DISCONNECTED`: publish `WIFI_STA_DISCONNECTED`, schedule delayed work (+1 s)
-- Retry with `conn_mgr_all_if_connect()` — Connection Manager handles backoff
 
 ### Published Events
 
@@ -214,15 +200,13 @@ CONFIG_SHELL=y
 CONFIG_NET_L2_WIFI_SHELL=y
 ```
 
-### Build Command (nRF54LM20DK only)
+### Build Command
 
 ```bash
+# Both boards — add -DSNIPPET=wifi-p2p to any build
+west build -p -b nrf7002dk/nrf5340/cpuapp -DSNIPPET=wifi-p2p
 west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nrf7002eb2
 ```
-
-> P2P is NOT supported on nRF7002DK default build due to snippet requiring
-> `ISR_TABLES_LOCAL_DECLARATION` which may conflict. nRF7002DK users can
-> enable P2P via shell re-selection, but a P2P-specific build is needed.
 
 ### Connection Workflow (from WCS-106)
 
@@ -242,12 +226,9 @@ sequenceDiagram
     Shell->>WPA: wifi p2p peer [user command]
     WPA-->>Shell: Peer list with MACs
 
-    Shell->>WPA: wifi p2p connect <MAC> pin -g 0 [user command]
-    WPA-->>Shell: <8-digit PIN>
-    Shell->>Phone: User enters PIN on phone
+    Shell->>WPA: wifi p2p connect <MAC> pbc -g 0 [user command]
 
     Phone->>WPA: P2P-GO-NEG-SUCCESS (phone=GO, device=GI)
-    WPA->>WPA: WPS authentication
     WPA-->>WiFi: P2P-GROUP-STARTED wlan0 client ssid="DIRECT-xx-<PhoneName>"
     Net->>WiFi: DHCP from phone → IP assigned
     WiFi->>WIFI_CHAN: Publish WIFI_P2P_CONNECTED\n(ip=p2p_ip, ssid="DIRECT-xx-...")
@@ -274,7 +255,7 @@ sequenceDiagram
 [wifi] P2P mode active. Auto-starting peer discovery...
 [wifi] P2P find started. Use shell commands:
 [wifi]   wifi p2p peer           -- list discovered peers
-[wifi]   wifi p2p connect <MAC> pin -g 0  -- connect to peer
+[wifi]   wifi p2p connect <MAC> pbc -g 0  -- connect to peer
 [wifi] Open Wi-Fi Direct on your phone and wait for discovery.
 ```
 
@@ -285,10 +266,10 @@ sequenceDiagram
 | Error | Behaviour |
 |-------|-----------|
 | SoftAP enable failed | Log error, publish `WIFI_ERROR`, retry after 5s |
-| STA — no credentials | Log warning with instructions, wait 30s, retry |
+| STA — no active connect | Log info `"Run: wifi connect -s <SSID> -p <pwd> -k 1"`, wait in idle |
 | STA — association timeout | Connection Manager handles retry automatically |
 | STA — DHCP timeout | Retry via Connection Manager |
-| STA — L4 disconnect | Publish `WIFI_STA_DISCONNECTED`, reconnect in 1s |
+| STA — L4 disconnect | Publish `WIFI_STA_DISCONNECTED`, return to idle (no auto-retry) |
 | P2P — find stopped unexpectedly | Auto-restart `wifi_p2p_find()` |
 | P2P — group removed | Publish `WIFI_P2P_DISCONNECTED`, restart find |
 
@@ -330,7 +311,7 @@ config APP_WIFI_MODULE_LOG_LEVEL
 | Component | Flash | RAM |
 |-----------|-------|-----|
 | SoftAP (WPA supplicant AP) | ~65 KB | ~50 KB |
-| STA additions (wifi_credentials + conn_mgr) | +5 KB | +2 KB |
+| STA additions (session-based, no wifi_credentials) | +0 KB | +0 KB |
 | P2P additions (-DSNIPPET=wifi-p2p) | +5 KB | +3 KB |
 | WiFi module application code | ~3 KB | ~2 KB |
 
@@ -347,7 +328,8 @@ west build -p -b nrf7002dk/nrf5340/cpuapp
 # SoftAP / STA (nRF54LM20DK)
 west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -- -DSHIELD=nrf7002eb2
 
-# P2P (nRF54LM20DK only)
+# P2P (both boards)
+west build -p -b nrf7002dk/nrf5340/cpuapp -DSNIPPET=wifi-p2p
 west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nrf7002eb2
 ```
 
@@ -360,20 +342,20 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nr
 
 ### STA Verification
 
-1. Run `wifi cred add "TestAP" 3 "password"` via shell
-2. Reboot
-3. Confirm `[wifi] WiFi STA CONNECTED - IP: <ip>` log
+1. Boot in STA mode (`wifi_mode STA` then reboot)
+2. Run `wifi connect -s "TestAP" -p "password" -k 1` via shell
+3. Confirm `[network] STA CONNECTED - IP: <ip>` log
 4. Navigate to `http://<ip>` or `http://nrfwebdash.local`
 
 ### P2P Verification (WCS-106 procedure)
 
-1. Flash P2P build to nRF54LM20DK
-2. Select P2P mode at boot (hold BUTTON 0, type `3`)
+1. Flash P2P build to either board
+2. Run `wifi_mode P2P` then reboot
 3. Enable Wi-Fi Direct on Android phone
 4. Run `wifi p2p peer` — confirm phone appears in list
-5. Run `wifi p2p connect <phone_MAC> pin -g 0`
-6. Enter displayed PIN on phone
-7. Confirm `[wifi] P2P CONNECTED - IP: 192.168.49.x`
+5. Run `wifi p2p connect <phone_MAC> pbc -g 0`
+6. Accept connection on phone
+7. Confirm `[network] P2P CONNECTED - IP: 192.168.49.x`
 8. Navigate to `http://192.168.49.x`, verify dashboard loads
 
 ---

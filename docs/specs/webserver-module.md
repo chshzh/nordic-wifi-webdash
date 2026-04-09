@@ -1,8 +1,19 @@
-# Webserver Module Specification — v2.0
+# Webserver Module Specification
+
+> **PRD Version**: 2026-04-09-12-00
+
+## Changelog
+
+| Version | Summary |
+|---|---|
+| 2026-04-09-12-00 | Add DNS-SD `_http._tcp.local` service registration (FR-104) |
+| 2026-03-31 | v2.0 — mode-aware dashboard, `/api/system` endpoint |
+
+---
 
 ## Overview
 
-The Webserver module serves the web dashboard over HTTP and exposes a JSON REST API for device state control. In v2.0 it is extended to be **mode-aware**: it shows the active Wi-Fi mode in the UI banner and provides a new `/api/system` endpoint that returns mode, IP address, and SSID.
+The Webserver module serves the web dashboard over HTTP and exposes a JSON REST API for device state control. It is **mode-aware**: it shows the active Wi-Fi mode in the UI banner and provides a `/api/system` endpoint that returns mode, IP address, and SSID.
 
 The module subscribes to `WIFI_CHAN` to know when the network is ready and what IP/mode is active, `BUTTON_CHAN` for button state polling, and `LED_STATE_CHAN` for LED state.
 
@@ -36,6 +47,29 @@ The HTTP server starts after receiving `WIFI_SOFTAP_STARTED`, `WIFI_STA_CONNECTE
 | SoftAP | `WIFI_SOFTAP_STARTED` | `http://192.168.7.1` or `http://nrfwebdash.local` |
 | STA | `WIFI_STA_CONNECTED` | `http://<dhcp-ip>` or `http://nrfwebdash.local` |
 | P2P | `WIFI_P2P_CONNECTED` | `http://<p2p-dhcp-ip>` (mDNS may not work on all phones) |
+
+---
+
+## DNS-SD Service Registration
+
+On HTTP server start the module registers an `_http._tcp.local` DNS-SD service record so that zero-conf browsers and discovery tools (e.g. Bonjour, Avahi, iOS/Android service browsers) find the device automatically without knowing its IP.
+
+```c
+#include <zephyr/net/dns_sd.h>
+
+static const uint16_t http_dns_sd_port = sys_cpu_to_be16(CONFIG_APP_HTTP_PORT);
+
+DNS_SD_REGISTER_TCP_SERVICE(webdash_http_sd,
+                             CONFIG_NET_HOSTNAME,  /* "nrfwebdash" */
+                             "_http",
+                             "local",
+                             DNS_SD_EMPTY_TXT,
+                             &http_dns_sd_port);
+```
+
+This works in conjunction with `CONFIG_MDNS_RESPONDER=y` so the device is reachable both by:  
+- Hostname: `http://nrfwebdash.local` (mDNS A record)  
+- Service: `_http._tcp.local` (DNS-SD PTR/SRV/TXT records)
 
 ---
 
@@ -219,10 +253,11 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 
 ### TC-WEB-002: Dashboard loads in STA mode
 
-1. Boot in STA mode (with stored credentials)
-2. Note DHCP IP from logs
-3. Navigate to `http://<dhcp-ip>` or `http://nrfwebdash.local`
-4. Verify mode banner shows `Station Mode — <IP>`
+1. Run `wifi_mode STA` and reboot
+2. Run `wifi connect -s "TestAP" -p "password" -k 1` via shell
+3. Note DHCP IP from logs
+4. Navigate to `http://<dhcp-ip>` or `http://nrfwebdash.local`
+5. Verify mode banner shows `Station Mode — <IP>`
 
 ### TC-WEB-003: Dashboard loads in P2P mode
 

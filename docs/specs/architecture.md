@@ -1,10 +1,21 @@
-# System Architecture Specification — nordic-wifi-webdash v2.0
+# System Architecture Specification — nordic-wifi-webdash
+
+> **PRD Version**: 2026-04-09-12-00
+
+## Changelog
+
+| Version | Summary |
+|---|---|
+| 2026-04-09-12-00 | Mode selector: remove Button-1 long-press; STA: session-based (no wifi_credentials); P2P: both boards; pbc connect method; updated memory budget |
+| 2026-03-31 | v2.0 — multi-mode architecture, Mode Selector module, WIFI_MODE_CHAN |
+
+---
 
 ## Overview
 
 Nordic WiFi Web Dashboard uses an **SMF + Zbus modular architecture**. Each feature lives in its own module under `src/modules/`. All inter-module communication is exclusively through Zbus channels. Modules initialize through `SYS_INIT` at priority-ordered boot time.
 
-v2.0 adds a **Mode Selector** module and extends the **WiFi module** to support three runtime-selectable Wi-Fi roles: SoftAP, STA, and P2P (Wi-Fi Direct).
+v2.0 adds a **Mode Selector** module (NVS-backed, shell-command driven) and extends the **WiFi module** to support three runtime-selectable Wi-Fi roles: SoftAP, STA, and P2P (Wi-Fi Direct).
 
 ---
 
@@ -15,8 +26,8 @@ src/
 ├── main.c                        ← startup banner, SYS_INIT trigger
 └── modules/
     ├── messages.h                ← all Zbus message structs (shared)
-    ├── mode_selector/            ← NEW v2.0: boot-time mode selection
-    ├── button/                   ← GPIO long-press detection (updated v2.0)
+    ├── mode_selector/            ← wifi_mode shell command + NVS persistence
+    ├── button/                   ← GPIO button monitoring
     ├── led/                      ← LED output control
     ├── wifi/                     ← multi-mode Wi-Fi (updated v2.0)
     ├── network/                  ← network event handlers
@@ -62,7 +73,7 @@ struct button_msg {
     uint32_t duration_ms;     /* press duration */
     uint32_t press_count;     /* total presses since boot */
     uint32_t timestamp;       /* k_uptime_get_32() */
-    bool     is_boot_long_press; /* NEW v2.0: flagged during boot window */
+    bool     is_boot_long_press; /* REMOVED v2026-04-09: no longer used */
 };
 
 /* LED commands */
@@ -107,7 +118,7 @@ struct wifi_msg {
 
 | Priority | Module | Function | Notes |
 |----------|--------|----------|-------|
-| 0 | mode_selector | `mode_selector_init` | Reads NVS mode; if Button 1 held, shows shell menu; publishes WIFI_MODE_CHAN |
+| 0 | mode_selector | `mode_selector_init` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `wifi_mode` shell command |
 | 1 | wifi | `wifi_module_init` | Reads WIFI_MODE_CHAN; starts SoftAP/STA/P2P path |
 | 2 | button | `button_module_init` | GPIO IRQ setup |
 | 3 | led | `led_module_init` | LED GPIO setup |
@@ -149,9 +160,8 @@ graph TB
     end
 
     HW_BTN -->|GPIO IRQ| ButtonMod
-    HW_BTN -->|long-press at boot| ModeSel
     HW_FLASH <-->|NVS read/write| ModeSel
-    HW_UART <-->|shell menu| ModeSel
+    HW_UART <-->|wifi_mode shell cmd| ModeSel
 
     ModeSel -->|publish once| WIFI_MODE_CHAN
     WIFI_MODE_CHAN -->|subscribe| WiFiMod
@@ -190,17 +200,9 @@ sequenceDiagram
     HW->>ModeSel: SYS_INIT priority 0
     ModeSel->>NVS: Read "app/wifi_mode"
     alt First boot (no NVS entry)
-        NVS-->>ModeSel: -ENOENT → use AP default
+        NVS-->>ModeSel: -ENOENT → use SoftAP default
     else NVS entry exists
         NVS-->>ModeSel: stored mode (0/1/2)
-    end
-
-    ModeSel->>ModeSel: Check Button 1 GPIO state
-    alt Button 1 held (>3s)
-        ModeSel->>Shell: Print mode selection menu
-        Shell->>ModeSel: User inputs 1 / 2 / 3
-        ModeSel->>NVS: Save new mode
-        ModeSel->>ModeSel: Update selected_mode
     end
 
     ModeSel->>WIFI_MODE_CHAN: Publish wifi_mode_msg
@@ -210,7 +212,7 @@ sequenceDiagram
     alt AP mode
         WiFi->>WiFi: Start SoftAP path
     else STA mode
-        WiFi->>WiFi: Start STA path (wifi_credentials)
+        WiFi->>WiFi: Start STA path (wait for wifi connect command)
     else P2P mode
         WiFi->>WiFi: Start P2P path (wifi p2p find)
     end
@@ -237,16 +239,15 @@ sequenceDiagram
 
 ### STA Path (mode = 1)
 
-- Kconfig: `CONFIG_WIFI_NM_WPA_SUPPLICANT=y`, `CONFIG_WIFI_CREDENTIALS=y`
-- Credentials: stored via `wifi cred add "<SSID>" <sec_type> "<PSK>"` shell command
+- Kconfig: `CONFIG_WIFI_NM_WPA_SUPPLICANT=y`; conn_mgr auto-connect disabled
+- Connection: session-based via `wifi connect -s <SSID> -p <pwd> -k 1` shell command
 - IP: DHCP-assigned from AP
 - HTTP server: `http://<dhcp-ip>` or `http://nrfwebdash.local`
-- Connection Manager: `conn_mgr_all_if_connect()`
 
-### P2P Path (mode = 2, nRF54LM20DK only)
+### P2P Path (mode = 2, both boards)
 
 - Kconfig: `CONFIG_NRF70_P2P_MODE=y`, `CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P=y`
-- Build: `-DSNIPPET=wifi-p2p` snippet required
+- Build: `-DSNIPPET=wifi-p2p` snippet required (both boards)
 - Auto-start: `wifi p2p find` on boot
 - Role: Group Interface (GI/client); phone acts as Group Owner (GO)
 - IP: DHCP-assigned from phone's P2P group
@@ -254,8 +255,8 @@ sequenceDiagram
 - Connection workflow (WCS-106):
   1. Device auto-starts `wifi p2p find`
   2. User runs `wifi p2p peer` to list discovered peers
-  3. User runs `wifi p2p connect <MAC> pin -g 0` → pin shown on console
-  4. User enters pin on phone
+  3. User runs `wifi p2p connect <MAC> pbc -g 0`
+  4. User accepts on phone
   5. DHCP IP received from phone → `WIFI_P2P_CONNECTED` published
 
 ---
@@ -264,12 +265,11 @@ sequenceDiagram
 
 | Capability | nRF7002DK | nRF54LM20DK + nRF7002EBII |
 |------------|-----------|---------------------------|
-| Buttons at boot-select | 1 (Button 1) | 1 (BUTTON 0) |
 | Total buttons | 2 | 3 (BUTTON 3 unavailable due to shield) |
 | LEDs | 2 | 4 |
 | SoftAP mode | Yes | Yes |
 | STA mode | Yes | Yes |
-| P2P mode | Shell only (no -DSNIPPET=wifi-p2p in default build) | Yes (with -DSNIPPET=wifi-p2p) |
+| P2P mode | Yes (with -DSNIPPET=wifi-p2p) | Yes (with -DSNIPPET=wifi-p2p) |
 
 ---
 
@@ -290,14 +290,13 @@ sequenceDiagram
 | New Feature | Flash | RAM | Notes |
 |-------------|-------|-----|-------|
 | Mode Selector + NVS | +8 KB | +3 KB | Settings + NVS + Flash storage |
-| Wi-Fi STA path | +0 KB | +0 KB | Supplicant already linked; STA is subset |
-| Wi-Fi Credentials | +5 KB | +2 KB | wifi_credentials library |
+| Wi-Fi STA path | +0 KB | +0 KB | Session-based; supplicant already linked; no wifi_credentials |
 | P2P extensions | +5 KB | +3 KB | wpa_supplicant P2P (in -DSNIPPET=wifi-p2p build only) |
 | Webserver `/api/system` | +1 KB | +0 KB | Small handler addition |
-| **v2.0 Total Delta** | **+19 KB** | **+8 KB** | P2P build adds ~5 KB flash |
+| **v2.0 Total Delta** | **+13 KB** | **+6 KB** | P2P build adds ~5 KB flash |
 
-Estimated v2.0 total (SoftAP/STA build): ~134 KB Flash, ~93 KB RAM
-Estimated v2.0 total (P2P build): ~139 KB Flash, ~96 KB RAM
+Estimated v2.0 total (SoftAP/STA build): ~128 KB Flash, ~91 KB RAM
+Estimated v2.0 total (P2P build): ~133 KB Flash, ~94 KB RAM
 
 Available budget (nRF5340 app core): 1 MB Flash, 448 KB RAM — margins are comfortable.
 
@@ -307,5 +306,5 @@ Available budget (nRF5340 app core): 1 MB Flash, 448 KB RAM — margins are comf
 
 - [wifi-module.md](wifi-module.md) — SoftAP/STA/P2P paths, event flows, Kconfig
 - [mode-selector.md](mode-selector.md) — boot window logic, NVS, shell menu
-- [button-module.md](button-module.md) — long-press detection, boot flag
+- [button-module.md](button-module.md) — GPIO button monitoring, board differences
 - [webserver-module.md](webserver-module.md) — mode-aware HTTP server, `/api/system`
