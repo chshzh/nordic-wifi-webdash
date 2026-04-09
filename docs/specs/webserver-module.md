@@ -6,6 +6,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-04-09-14-00 | Code alignment: fix DNS-SD macro to `DNS_SD_REGISTER_SERVICE` (not `DNS_SD_REGISTER_TCP_SERVICE`) |
 | 2026-04-09-12-00 | Add DNS-SD `_http._tcp.local` service registration (FR-104) |
 | 2026-03-31 | v2.0 — mode-aware dashboard, `/api/system` endpoint |
 
@@ -59,12 +60,9 @@ On HTTP server start the module registers an `_http._tcp.local` DNS-SD service r
 
 static const uint16_t http_dns_sd_port = sys_cpu_to_be16(CONFIG_APP_HTTP_PORT);
 
-DNS_SD_REGISTER_TCP_SERVICE(webdash_http_sd,
-                             CONFIG_NET_HOSTNAME,  /* "nrfwebdash" */
-                             "_http",
-                             "local",
-                             DNS_SD_EMPTY_TXT,
-                             &http_dns_sd_port);
+DNS_SD_REGISTER_SERVICE(webdash_http, CONFIG_NET_HOSTNAME,
+                         "_http", "_tcp", "local",
+                         DNS_SD_EMPTY_TXT, &http_dns_sd_port);
 ```
 
 This works in conjunction with `CONFIG_MDNS_RESPONDER=y` so the device is reachable both by:  

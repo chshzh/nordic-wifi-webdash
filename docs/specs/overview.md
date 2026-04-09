@@ -18,6 +18,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-04-09-14-00 | Code alignment review: all spec gaps resolved (module paths, SYS_INIT priorities, button_msg struct, DNS-SD macro) |
 | 2026-04-09-14-00 | Initial overview — written against PRD 2026-04-09-12-00; mode selector is shell-command driven; P2P both boards; STA session-based |
 
 ---

@@ -6,6 +6,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-04-09-14-00 | Code alignment: fix module map (wifi/ → network/); SYS_INIT priorities (button/led/webserver=90, network=5); button_msg struct (remove duration_ms); boot sequence diagram |
 | 2026-04-09-12-00 | Mode selector: remove Button-1 long-press; STA: session-based (no wifi_credentials); P2P: both boards; pbc connect method; updated memory budget |
 | 2026-03-31 | v2.0 — multi-mode architecture, Mode Selector module, WIFI_MODE_CHAN |
 
@@ -29,8 +30,8 @@ src/
     ├── mode_selector/            ← wifi_mode shell command + NVS persistence
     ├── button/                   ← GPIO button monitoring
     ├── led/                      ← LED output control
-    ├── wifi/                     ← multi-mode Wi-Fi (updated v2.0)
-    ├── network/                  ← network event handlers
+    ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P) (v2.0)
+    ├── mode_selector/            ← wifi_mode shell command + NVS persistence
     ├── webserver/                ← HTTP server + REST API (updated v2.0)
     └── memory/                   ← heap monitor
 ```
@@ -70,10 +71,8 @@ enum button_msg_type {
 struct button_msg {
     enum button_msg_type type;
     uint8_t  button_number;   /* 0-based DK index */
-    uint32_t duration_ms;     /* press duration */
     uint32_t press_count;     /* total presses since boot */
     uint32_t timestamp;       /* k_uptime_get_32() */
-    bool     is_boot_long_press; /* REMOVED v2026-04-09: no longer used */
 };
 
 /* LED commands */
@@ -119,13 +118,13 @@ struct wifi_msg {
 | Priority | Module | Function | Notes |
 |----------|--------|----------|-------|
 | 0 | mode_selector | `mode_selector_init` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `wifi_mode` shell command |
-| 1 | wifi | `wifi_module_init` | Reads WIFI_MODE_CHAN; starts SoftAP/STA/P2P path |
-| 2 | button | `button_module_init` | GPIO IRQ setup |
-| 3 | led | `led_module_init` | LED GPIO setup |
-| 4 | network | `network_module_init` | Net mgmt event registration |
-| 5 | webserver | `webserver_module_init` | HTTP server start (waits for WIFI_CHAN) |
+| 5 | network | `network_module_init` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; starts Wi-Fi thread |
+| 90 | button | `button_module_init` | GPIO IRQ setup via dk_buttons_and_leds |
+| 90 | led | `led_module_init` | LED GPIO setup via dk_buttons_and_leds |
+| 90 | webserver | `webserver_module_init` | HTTP service registration (server starts on WIFI_CHAN event) |
+| default | memory | `app_heap_monitor_init` | Heap high-water logging (`CONFIG_KERNEL_INIT_PRIORITY_DEFAULT`) |
 
-Mode selector **must** run before wifi (priority 0 < 1) because WiFi module reads the published mode at init time.
+Mode selector **must** run before network (priority 0 < 5) because the network module reads the published mode at init time.
 
 ---
 
@@ -192,12 +191,11 @@ sequenceDiagram
     participant HW as Hardware Boot
     participant ModeSel as Mode Selector
     participant NVS as NVS Storage
-    participant Shell as UART Shell
-    participant WiFi as WiFi Module
+    participant Net as Network Module
     participant Web as Webserver
     participant Btn as Button Module
 
-    HW->>ModeSel: SYS_INIT priority 0
+    HW->>ModeSel: SYS_INIT APPLICATION priority 0
     ModeSel->>NVS: Read "app/wifi_mode"
     alt First boot (no NVS entry)
         NVS-->>ModeSel: -ENOENT → use SoftAP default
@@ -207,22 +205,17 @@ sequenceDiagram
 
     ModeSel->>WIFI_MODE_CHAN: Publish wifi_mode_msg
 
-    HW->>WiFi: SYS_INIT priority 1
-    WiFi->>WIFI_MODE_CHAN: Read mode
-    alt AP mode
-        WiFi->>WiFi: Start SoftAP path
-    else STA mode
-        WiFi->>WiFi: Start STA path (wait for wifi connect command)
-    else P2P mode
-        WiFi->>WiFi: Start P2P path (wifi p2p find)
-    end
+    HW->>Net: SYS_INIT APPLICATION priority 5
+    Net->>WIFI_MODE_CHAN: Read mode
+    Net->>Net: Registers net_mgmt event callbacks
+    Net->>Net: Spawns wifi_thread_fn (waits iface_up → supplicant_ready → start mode)
 
-    HW->>Btn: SYS_INIT priority 2
-    Btn->>Btn: Setup GPIO IRQs
+    HW->>Btn: SYS_INIT APPLICATION priority 90
+    Btn->>Btn: Setup GPIO IRQs (dk_buttons_init)
 
-    HW->>Web: SYS_INIT priority 5
-    Web->>Web: Register HTTP routes
-    Note over WiFi,Web: Web dashboard starts when WIFI_CHAN reports connected/started
+    HW->>Web: SYS_INIT APPLICATION priority 90
+    Web->>Web: Register HTTP routes + DNS-SD service
+    Note over Net,Web: Web server starts when WIFI_CHAN reports SOFTAP_STARTED / STA_CONNECTED / P2P_CONNECTED
 ```
 
 ---

@@ -6,6 +6,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-04-09-14-00 | Code alignment: remove duration_ms from button_msg (not implemented); fix SYS_INIT priority to 90; fix state machine notes |
 | 2026-04-09-12-00 | Remove mode-selector boot-sampling interaction; remove `is_boot_long_press` field; simplify boot sequence (no GPIO conflict to manage) |
 | 2026-03-31 | v2.0 — added `duration_ms`, `is_boot_long_press`, boot-window coordination |
 
@@ -43,7 +44,6 @@ The Button module provides runtime GPIO button monitoring using the SMF (State M
 struct button_msg {
     enum button_msg_type type;       /* BUTTON_PRESSED or BUTTON_RELEASED */
     uint8_t  button_number;          /* 0-based DK index */
-    uint32_t duration_ms;            /* press duration (0 on PRESSED event) */
     uint32_t press_count;            /* total presses since boot, per button */
     uint32_t timestamp;              /* k_uptime_get_32() */
 };
@@ -71,12 +71,11 @@ stateDiagram-v2
     note right of Pressed
         Record press_start = k_uptime_get_32()
         Increment press_count[button_number]
-        Publish BUTTON_PRESSED (duration_ms = 0)
+        Publish BUTTON_PRESSED
     end note
 
     note right of Released
-        duration_ms = now - press_start
-        Publish BUTTON_RELEASED (with duration_ms)
+        Publish BUTTON_RELEASED
         Transition back to Idle
     end note
 ```
@@ -85,7 +84,7 @@ stateDiagram-v2
 
 ## Boot Sequence
 
-The button module initializes at `SYS_INIT` priority **2**. Mode selector (priority 0) completes its NVS read and `WIFI_MODE_CHAN` publish before the button module registers any GPIO callbacks. There is no GPIO conflict.
+The button module initializes at `SYS_INIT` APPLICATION priority **90** (`CONFIG_APPLICATION_INIT_PRIORITY`).
 
 ---
 
@@ -161,7 +160,7 @@ config APP_BUTTON_MODULE_LOG_LEVEL
 
 1. Flash firmware; open serial console
 2. Press and release Button 1
-3. Verify logs: `BUTTON_PRESSED` → `BUTTON_RELEASED` with `duration_ms > 0`
+3. Verify logs: `BUTTON_PRESSED` → `BUTTON_RELEASED`
 4. Verify `press_count` increments each press
 
 ### TC-BTN-002: Multiple buttons

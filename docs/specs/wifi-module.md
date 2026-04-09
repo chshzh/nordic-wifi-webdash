@@ -6,6 +6,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-04-09-14-00 | Code alignment: fix module path to src/modules/network/ (unified wifi+network module) |
 | 2026-04-09-12-00 | STA: session-based connection (`wifi connect`) replaces stored credentials / conn_mgr auto-connect; P2P: now supported on both boards with `-DSNIPPET=wifi-p2p`; P2P connect method updated to `pbc` |
 | 2026-03-31 | v2.0 — multi-mode SoftAP/STA/P2P controller |
 
@@ -27,7 +28,9 @@ The active mode is determined at boot by reading `WIFI_MODE_CHAN` (published by 
 
 ## Location
 
-- **Path**: `src/modules/wifi/`
+- **Path**: `src/modules/network/`
+- **Files**: `network.c`, `network.h`
+- **Note**: The `network/` module is the unified Wi-Fi + network-event management module (formerly split into `wifi/` and `network/` in v1.x).
 - **Files**: `wifi.c`, `wifi.h`, `Kconfig.wifi`, `CMakeLists.txt`
 
 ---
