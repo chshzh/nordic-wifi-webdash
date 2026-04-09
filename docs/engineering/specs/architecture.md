@@ -246,7 +246,7 @@ sequenceDiagram
 ### P2P Path (mode = 2, nRF54LM20DK only)
 
 - Kconfig: `CONFIG_NRF70_P2P_MODE=y`, `CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P=y`
-- Build: `-S wifi-p2p` snippet required
+- Build: `-DSNIPPET=wifi-p2p` snippet required
 - Auto-start: `wifi p2p find` on boot
 - Role: Group Interface (GI/client); phone acts as Group Owner (GO)
 - IP: DHCP-assigned from phone's P2P group
@@ -269,7 +269,7 @@ sequenceDiagram
 | LEDs | 2 | 4 |
 | SoftAP mode | Yes | Yes |
 | STA mode | Yes | Yes |
-| P2P mode | Shell only (no -S wifi-p2p in default build) | Yes (with -S wifi-p2p) |
+| P2P mode | Shell only (no -DSNIPPET=wifi-p2p in default build) | Yes (with -DSNIPPET=wifi-p2p) |
 
 ---
 
@@ -292,7 +292,7 @@ sequenceDiagram
 | Mode Selector + NVS | +8 KB | +3 KB | Settings + NVS + Flash storage |
 | Wi-Fi STA path | +0 KB | +0 KB | Supplicant already linked; STA is subset |
 | Wi-Fi Credentials | +5 KB | +2 KB | wifi_credentials library |
-| P2P extensions | +5 KB | +3 KB | wpa_supplicant P2P (in -S wifi-p2p build only) |
+| P2P extensions | +5 KB | +3 KB | wpa_supplicant P2P (in -DSNIPPET=wifi-p2p build only) |
 | Webserver `/api/system` | +1 KB | +0 KB | Small handler addition |
 | **v2.0 Total Delta** | **+19 KB** | **+8 KB** | P2P build adds ~5 KB flash |
 

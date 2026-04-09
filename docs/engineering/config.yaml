@@ -16,7 +16,7 @@ context: |
     - SoftAP (default): Device creates own AP; HTTP server at 192.168.7.1
     - STA: Device connects to existing AP; HTTP server on DHCP-assigned IP
     - P2P (Wi-Fi Direct): Device connects to phone/peer; HTTP server on DHCP-assigned IP from GO
-      P2P available on nRF54LM20DK only (requires -S wifi-p2p snippet)
+      P2P available on nRF54LM20DK only (requires -DSNIPPET=wifi-p2p snippet)
 
   Mode selection UX:
     - Hold Button 1 (DK index 0) >3 s during boot to enter selection mode
@@ -60,7 +60,7 @@ context: |
       west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -- -DSHIELD=nrf7002eb2
 
     P2P (nRF54LM20DK only):
-      west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -S wifi-p2p -- -DSHIELD=nrf7002eb2
+      west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nrf7002eb2
 
   Code style:
     - Nordic NCS coding style (Linux kernel style)

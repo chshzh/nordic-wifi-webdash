@@ -202,7 +202,7 @@ sequenceDiagram
 ### Kconfig Requirements
 
 ```kconfig
-# Added via -S wifi-p2p snippet (nrf/snippets/wifi-p2p/wifi-p2p.conf):
+# Added via -DSNIPPET=wifi-p2p snippet (nrf/snippets/wifi-p2p/wifi-p2p.conf):
 CONFIG_NRF70_P2P_MODE=y
 CONFIG_NRF70_AP_MODE=y
 CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P=y
@@ -217,7 +217,7 @@ CONFIG_NET_L2_WIFI_SHELL=y
 ### Build Command (nRF54LM20DK only)
 
 ```bash
-west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -S wifi-p2p -- -DSHIELD=nrf7002eb2
+west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nrf7002eb2
 ```
 
 > P2P is NOT supported on nRF7002DK default build due to snippet requiring
@@ -331,7 +331,7 @@ config APP_WIFI_MODULE_LOG_LEVEL
 |-----------|-------|-----|
 | SoftAP (WPA supplicant AP) | ~65 KB | ~50 KB |
 | STA additions (wifi_credentials + conn_mgr) | +5 KB | +2 KB |
-| P2P additions (-S wifi-p2p) | +5 KB | +3 KB |
+| P2P additions (-DSNIPPET=wifi-p2p) | +5 KB | +3 KB |
 | WiFi module application code | ~3 KB | ~2 KB |
 
 ---
@@ -348,7 +348,7 @@ west build -p -b nrf7002dk/nrf5340/cpuapp
 west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -- -DSHIELD=nrf7002eb2
 
 # P2P (nRF54LM20DK only)
-west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -S wifi-p2p -- -DSHIELD=nrf7002eb2
+west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nrf7002eb2
 ```
 
 ### SoftAP Verification
