@@ -115,28 +115,28 @@ v1.0 locked the device into SoftAP mode, which requires users to disconnect from
 
 | ID | User Story | Acceptance Criteria | Spec Reference |
 |----|-----------|---------------------|----------------|
-| FR-001 | As a user, I want to connect my device in SoftAP mode and access the dashboard | - SSID `WebDash_AP` visible<br>- Dashboard accessible at `http://192.168.7.1`<br>- Max 2 clients enforced | [wifi-module.md](openspec/specs/wifi-module.md) — SoftAP path |
-| FR-002 | As a user, I want to connect my device in STA mode to my existing network | - Device connects with stored `wifi_cred` credentials<br>- Dashboard accessible at DHCP IP or `http://nrfwebdash.local`<br>- `[wifi] STA CONNECTED IP: <x>` logged | [wifi-module.md](openspec/specs/wifi-module.md) — STA path |
-| FR-003 | As a user, I want to connect my phone directly to the device using Wi-Fi Direct (P2P) | - Device auto-starts P2P find at boot in P2P mode<br>- `wifi p2p peer` shows phone in list<br>- `wifi p2p connect <MAC> pin -g 0` connects<br>- Dashboard accessible at P2P IP<br>- nRF54LM20DK only | [wifi-module.md](openspec/specs/wifi-module.md) — P2P path |
-| FR-004 | As a user, I want to select which Wi-Fi mode the device uses by holding Button 1 at boot | - Hold Button 1 >3 s during boot → shell menu appears<br>- Menu shows: `1. SoftAP  2. STA  3. P2P`<br>- User inputs 1/2/3 + Enter → mode changes<br>- Mode saved to NVS and survives reboot | [mode-selector.md](openspec/specs/mode-selector.md) |
-| FR-005 | As a user, I want the last selected Wi-Fi mode to be remembered after power cycle | - NVS key `app/wifi_mode` persists selection<br>- Factory default is SoftAP on first boot<br>- No button press required on subsequent boots | [mode-selector.md](openspec/specs/mode-selector.md) |
-| FR-006 | As a user, I want to view button states and control LEDs via web interface | - Button panel shows correct count per board (2/3)<br>- LED panel shows correct count per board (2/4)<br>- ON/OFF/Toggle commands work < 100 ms | [webserver-module.md](openspec/specs/webserver-module.md) |
-| FR-007 | As a user, I want the dashboard to show the active Wi-Fi mode and device IP | - Mode banner shows SoftAP / STA / P2P<br>- Current IP displayed<br>- `/api/system` returns `{mode, ip, ssid, uptime_s}` | [webserver-module.md](openspec/specs/webserver-module.md) |
+| FR-001 | As a user, I want to connect my device in SoftAP mode and access the dashboard | - SSID `WebDash_AP` visible<br>- Dashboard accessible at `http://192.168.7.1`<br>- Max 2 clients enforced | [wifi-module.md](../engineering/specs/wifi-module.md) — SoftAP path |
+| FR-002 | As a user, I want to connect my device in STA mode to my existing network | - Device connects with stored `wifi_cred` credentials<br>- Dashboard accessible at DHCP IP or `http://nrfwebdash.local`<br>- `[wifi] STA CONNECTED IP: <x>` logged | [wifi-module.md](../engineering/specs/wifi-module.md) — STA path |
+| FR-003 | As a user, I want to connect my phone directly to the device using Wi-Fi Direct (P2P) | - Device auto-starts P2P find at boot in P2P mode<br>- `wifi p2p peer` shows phone in list<br>- `wifi p2p connect <MAC> pin -g 0` connects<br>- Dashboard accessible at P2P IP<br>- nRF54LM20DK only | [wifi-module.md](../engineering/specs/wifi-module.md) — P2P path |
+| FR-004 | As a user, I want to select which Wi-Fi mode the device uses by holding Button 1 at boot | - Hold Button 1 >3 s during boot → shell menu appears<br>- Menu shows: `1. SoftAP  2. STA  3. P2P`<br>- User inputs 1/2/3 + Enter → mode changes<br>- Mode saved to NVS and survives reboot | [mode-selector.md](../engineering/specs/mode-selector.md) |
+| FR-005 | As a user, I want the last selected Wi-Fi mode to be remembered after power cycle | - NVS key `app/wifi_mode` persists selection<br>- Factory default is SoftAP on first boot<br>- No button press required on subsequent boots | [mode-selector.md](../engineering/specs/mode-selector.md) |
+| FR-006 | As a user, I want to view button states and control LEDs via web interface | - Button panel shows correct count per board (2/3)<br>- LED panel shows correct count per board (2/4)<br>- ON/OFF/Toggle commands work < 100 ms | [webserver-module.md](../engineering/specs/webserver-module.md) |
+| FR-007 | As a user, I want the dashboard to show the active Wi-Fi mode and device IP | - Mode banner shows SoftAP / STA / P2P<br>- Current IP displayed<br>- `/api/system` returns `{mode, ip, ssid, uptime_s}` | [webserver-module.md](../engineering/specs/webserver-module.md) |
 
 #### P1 — Should Have
 
 | ID | User Story | Acceptance Criteria | Spec Reference |
 |----|-----------|---------------------|----------------|
-| FR-101 | As a developer, I want a REST API to integrate device state into custom apps | - `GET /api/buttons` → JSON<br>- `GET /api/leds` → JSON<br>- `POST /api/led` → LED control<br>- `GET /api/system` → mode+IP | [webserver-module.md](openspec/specs/webserver-module.md) |
-| FR-102 | As a developer, I want Wi-Fi shell commands available for debugging | - `wifi scan` works<br>- `wifi status` works<br>- `wifi p2p find/peer/connect` works (P2P build) | [wifi-module.md](openspec/specs/wifi-module.md) |
-| FR-103 | As a developer, I want comprehensive startup log with board/mode/IP info | - Board name (human-readable), MAC, build date<br>- Active Wi-Fi mode shown at boot<br>- IP address logged when connected | [architecture.md](openspec/specs/architecture.md) |
+| FR-101 | As a developer, I want a REST API to integrate device state into custom apps | - `GET /api/buttons` → JSON<br>- `GET /api/leds` → JSON<br>- `POST /api/led` → LED control<br>- `GET /api/system` → mode+IP | [webserver-module.md](../engineering/specs/webserver-module.md) |
+| FR-102 | As a developer, I want Wi-Fi shell commands available for debugging | - `wifi scan` works<br>- `wifi status` works<br>- `wifi p2p find/peer/connect` works (P2P build) | [wifi-module.md](../engineering/specs/wifi-module.md) |
+| FR-103 | As a developer, I want comprehensive startup log with board/mode/IP info | - Board name (human-readable), MAC, build date<br>- Active Wi-Fi mode shown at boot<br>- IP address logged when connected | [architecture.md](../engineering/specs/architecture.md) |
 
 #### P2 — Nice to Have
 
 | ID | User Story | Acceptance Criteria | Spec Reference |
 |----|-----------|---------------------|----------------|
-| FR-201 | As a user, I want to customize SoftAP credentials without rebuilding | - `overlay-wifi-credentials.conf` overlay supported<br>- Template file tracked in git | [wifi-module.md](openspec/specs/wifi-module.md) |
-| FR-202 | As a developer, I want heap usage monitored and logged | - Heap high-water mark logged periodically<br>- Warning at configurable threshold | [architecture.md](openspec/specs/architecture.md) |
+| FR-201 | As a user, I want to customize SoftAP credentials without rebuilding | - `overlay-wifi-credentials.conf` overlay supported<br>- Template file tracked in git | [wifi-module.md](../engineering/specs/wifi-module.md) |
+| FR-202 | As a developer, I want heap usage monitored and logged | - Heap high-water mark logged periodically<br>- Warning at configurable threshold | [architecture.md](../engineering/specs/architecture.md) |
 
 ---
 
@@ -227,7 +227,7 @@ v1.0 locked the device into SoftAP mode, which requires users to disconnect from
 
 ## 3. Technical Specification
 
-> Detailed implementation specs are in `openspec/specs/`. This section provides architecture overview only.
+> Detailed implementation specs are in `engineering/specs/`. This section provides architecture overview only.
 
 ### 3.1 Architecture Pattern: SMF + Zbus Modular
 
@@ -288,12 +288,12 @@ graph TB
 
 | Module | Purpose | SYS_INIT Priority | Spec |
 |--------|---------|-------------------|------|
-| Mode Selector | Boot-time mode selection, NVS persist | 0 | [mode-selector.md](openspec/specs/mode-selector.md) |
-| WiFi | Multi-mode: SoftAP / STA / P2P | 1 | [wifi-module.md](openspec/specs/wifi-module.md) |
-| Button | GPIO monitoring, press/release events | 2 | [button-module.md](openspec/specs/button-module.md) |
+| Mode Selector | Boot-time mode selection, NVS persist | 0 | [mode-selector.md](../engineering/specs/mode-selector.md) |
+| WiFi | Multi-mode: SoftAP / STA / P2P | 1 | [wifi-module.md](../engineering/specs/wifi-module.md) |
+| Button | GPIO monitoring, press/release events | 2 | [button-module.md](../engineering/specs/button-module.md) |
 | LED | LED state control | 3 | — |
 | Network | Net event handler | 4 | — |
-| Webserver | HTTP server, REST API, web UI | 5 | [webserver-module.md](openspec/specs/webserver-module.md) |
+| Webserver | HTTP server, REST API, web UI | 5 | [webserver-module.md](../engineering/specs/webserver-module.md) |
 | Memory | Heap monitor | background | — |
 
 ---
@@ -333,7 +333,7 @@ uart:~$ wifi cred auto_connect
 | `/api/leds` | GET | All LED states |
 | `/api/led` | POST | Control single LED (`on`/`off`/`toggle`) |
 
-Full API specification: [webserver-module.md](openspec/specs/webserver-module.md)
+Full API specification: [webserver-module.md](../engineering/specs/webserver-module.md)
 
 ---
 
@@ -470,11 +470,11 @@ curl http://192.168.7.1/api/system
 
 ### Internal OpenSpec Docs
 
-- [openspec/specs/architecture.md](openspec/specs/architecture.md) — System architecture, Zbus channels, SYS_INIT priorities
-- [openspec/specs/wifi-module.md](openspec/specs/wifi-module.md) — SoftAP / STA / P2P paths, Kconfig, event flows
-- [openspec/specs/mode-selector.md](openspec/specs/mode-selector.md) — Boot window, NVS, shell menu
-- [openspec/specs/button-module.md](openspec/specs/button-module.md) — Long-press detection, board differences
-- [openspec/specs/webserver-module.md](openspec/specs/webserver-module.md) — REST API, mode banner, startup flow
+- [engineering/specs/architecture.md](../engineering/specs/architecture.md) — System architecture, Zbus channels, SYS_INIT priorities
+- [engineering/specs/wifi-module.md](../engineering/specs/wifi-module.md) — SoftAP / STA / P2P paths, Kconfig, event flows
+- [engineering/specs/mode-selector.md](../engineering/specs/mode-selector.md) — Boot window, NVS, shell menu
+- [engineering/specs/button-module.md](../engineering/specs/button-module.md) — Long-press detection, board differences
+- [engineering/specs/webserver-module.md](../engineering/specs/webserver-module.md) — REST API, mode banner, startup flow
 
 ### External
 
