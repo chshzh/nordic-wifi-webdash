@@ -282,5 +282,5 @@ curl http://192.168.7.1/api/system
 ## Related Specs
 
 - [architecture.md](architecture.md) — Zbus channels overview
-- [wifi-module.md](wifi-module.md) — WIFI_CHAN events that trigger server start
+- [network-module.md](network-module.md) — WIFI_CHAN events that trigger server start
 - [button-module.md](button-module.md) — BUTTON_CHAN events cached by webserver

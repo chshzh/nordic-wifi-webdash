@@ -32,7 +32,7 @@ src/
     ├── led/                      ← LED output control
     ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P) (v2.0)
     ├── mode_selector/            ← wifi_mode shell command + NVS persistence
-    ├── webserver/                ← HTTP server + REST API (updated v2.0)
+    └── webserver/                ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
     └── memory/                   ← heap monitor
 ```
 
@@ -297,7 +297,8 @@ Available budget (nRF5340 app core): 1 MB Flash, 448 KB RAM — margins are comf
 
 ## Related Specs
 
-- [wifi-module.md](wifi-module.md) — SoftAP/STA/P2P paths, event flows, Kconfig
+- [network-module.md](network-module.md) — SoftAP/STA/P2P paths, event flows, Kconfig
+- [led-module.md](led-module.md) — LED control, SMF 2-state, LED_CMD_CHAN / LED_STATE_CHAN
 - [mode-selector.md](mode-selector.md) — boot window logic, NVS, shell menu
 - [button-module.md](button-module.md) — GPIO button monitoring, board differences
 - [webserver-module.md](webserver-module.md) — mode-aware HTTP server, `/api/system`

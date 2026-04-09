@@ -18,7 +18,7 @@
 
 | Version | Summary of changes |
 |---|---|
-| 2026-04-09-14-00 | Code alignment review: all spec gaps resolved (module paths, SYS_INIT priorities, button_msg struct, DNS-SD macro) |
+| 2026-04-09-14-00 | Code alignment review: all spec gaps resolved (module paths, SYS_INIT priorities, button_msg struct, DNS-SD macro); rename wifi-module.md → network-module.md; add led-module.md |
 | 2026-04-09-14-00 | Initial overview — written against PRD 2026-04-09-12-00; mode selector is shell-command driven; P2P both boards; STA session-based |
 
 ---
@@ -37,11 +37,11 @@ For the product requirements that drive this design, see [`docs/PRD.md`](../PRD.
 | Spec file | Covers | PRD sections |
 |-----------|--------|--------------|
 | [architecture.md](architecture.md) | System overview, module map, Zbus channels, SYS_INIT boot sequence, memory budget | All |
-| [wifi-module.md](wifi-module.md) | SoftAP / STA / P2P paths, net event handling, WPA supplicant integration | FR-001, FR-002, FR-003, FR-101, FR-102, FR-201 |
+| [network-module.md](network-module.md) | SoftAP / STA / P2P paths, net event handling, WPA supplicant integration | FR-001, FR-002, FR-003, FR-101, FR-102, FR-201 |
 | [mode-selector.md](mode-selector.md) | `wifi_mode` shell command, NVS persistence, factory default | FR-004, FR-005 |
 | [webserver-module.md](webserver-module.md) | HTTP server, REST API endpoints, DNS-SD `_http._tcp.local`, mode banner, web UI | FR-006, FR-007, FR-101, FR-104 |
 | [button-module.md](button-module.md) | GPIO button monitoring, SMF press/release events, board differences | FR-006 |
-| [led-module.md](led-module.md) | LED control, SMF 2-state per LED, REST-commanded | FR-006 |
+| [led-module.md](led-module.md) | LED control, SMF 2-state per LED, REST-commanded via LED_CMD_CHAN | FR-006 |
 
 ---
 
@@ -69,22 +69,22 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 
 | PRD requirement | Spec file | Status |
 |----------------|-----------|--------|
-| FR-001 SoftAP mode | [wifi-module.md](wifi-module.md) | Specified |
-| FR-002 STA mode (session-based) | [wifi-module.md](wifi-module.md) | Specified |
-| FR-003 P2P / Wi-Fi Direct (both boards) | [wifi-module.md](wifi-module.md) | Specified |
+| FR-001 SoftAP mode | [network-module.md](network-module.md) | Specified |
+| FR-002 STA mode (session-based) | [network-module.md](network-module.md) | Specified |
+| FR-003 P2P / Wi-Fi Direct (both boards) | [network-module.md](network-module.md) | Specified |
 | FR-004 `wifi_mode` shell command | [mode-selector.md](mode-selector.md) | Specified |
 | FR-005 Mode persisted in NVS | [mode-selector.md](mode-selector.md) | Specified |
-| FR-006 Buttons & LEDs in browser | [webserver-module.md](webserver-module.md), [button-module.md](button-module.md) | Specified |
+| FR-006 Buttons & LEDs in browser | [webserver-module.md](webserver-module.md), [button-module.md](button-module.md), [led-module.md](led-module.md) | Specified |
 | FR-007 Mode banner + IP in dashboard | [webserver-module.md](webserver-module.md) | Specified |
 | FR-101 REST API | [webserver-module.md](webserver-module.md) | Specified |
-| FR-102 Shell commands for diagnostics | [wifi-module.md](wifi-module.md), [mode-selector.md](mode-selector.md) | Specified |
+| FR-102 Shell commands for diagnostics | [network-module.md](network-module.md), [mode-selector.md](mode-selector.md) | Specified |
 | FR-103 Startup log | [architecture.md](architecture.md) | Specified |
 | FR-104 DNS-SD `_http._tcp.local` | [webserver-module.md](webserver-module.md) | Specified |
-| FR-201 Customisable SoftAP credentials | [wifi-module.md](wifi-module.md) | Specified |
+| FR-201 Customisable SoftAP credentials | [network-module.md](network-module.md) | Specified |
 | FR-202 Heap usage logging | [architecture.md](architecture.md) | Specified |
 | NFR — Performance targets | [architecture.md](architecture.md) | Specified |
 | NFR — 24-hour soak | [architecture.md](architecture.md) | Specified |
-| NFR — Credentials security | [wifi-module.md](wifi-module.md), [mode-selector.md](mode-selector.md) | Specified |
+| NFR — Credentials security | [network-module.md](network-module.md), [mode-selector.md](mode-selector.md) | Specified |
 
 ---
 
@@ -127,6 +127,5 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 |---|-------------|-------|--------|
 | 1 | Should the web UI display RSSI in STA mode? (PRD Q1) | PM | TBD |
 | 2 | Should Button 2 have a dedicated function (e.g. trigger STA reconnect)? (PRD Q2) | PM | TBD |
-| 3 | `led-module.md` spec not yet authored — currently implied by architecture.md and webserver descriptions | Engineering | Next spec cycle |
 
 *(Changelog is maintained at the top of this document.)*

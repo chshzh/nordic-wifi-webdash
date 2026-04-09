@@ -112,9 +112,9 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 
 | ID | As a… | I want to… | So that… | Acceptance Criteria | Engineering Spec |
 |---|---|---|---|---|---|
-| FR-001 | user | power on in SoftAP mode and open the dashboard | I can demo the device with no network infrastructure | - `WebDash_AP` SSID visible<br>- Dashboard loads at `http://192.168.7.1`<br>- Max 2 client stations enforced | [wifi-module.md](specs/wifi-module.md) |
-| FR-002 | user | connect the device to an existing Wi-Fi network (STA) and access the dashboard | I can demo while staying on my office network | - Run `wifi connect -s <SSID> -p <password> -k 1` in shell<br>- Dashboard at DHCP IP or `http://nrfwebdash.local`<br>- `[network] STA CONNECTED IP: <x>` logged | [wifi-module.md](specs/wifi-module.md) |
-| FR-003 | user | connect my phone directly to the device via Wi-Fi Direct (P2P) and access the dashboard | I can demo where no Wi-Fi router is available | - Auto P2P find starts at boot in P2P mode<br>- `wifi p2p connect <MAC> pbc -g 0` connects<br>- Dashboard at P2P IP (e.g. `http://192.168.49.x`)<br>- Supported on both boards | [wifi-module.md](specs/wifi-module.md) |
+| FR-001 | user | power on in SoftAP mode and open the dashboard | I can demo the device with no network infrastructure | - `WebDash_AP` SSID visible<br>- Dashboard loads at `http://192.168.7.1`<br>- Max 2 client stations enforced | [network-module.md](specs/network-module.md) |
+| FR-002 | user | connect the device to an existing Wi-Fi network (STA) and access the dashboard | I can demo while staying on my office network | - Run `wifi connect -s <SSID> -p <password> -k 1` in shell<br>- Dashboard at DHCP IP or `http://nrfwebdash.local`<br>- `[network] STA CONNECTED IP: <x>` logged | [network-module.md](specs/network-module.md) |
+| FR-003 | user | connect my phone directly to the device via Wi-Fi Direct (P2P) and access the dashboard | I can demo where no Wi-Fi router is available | - Auto P2P find starts at boot in P2P mode<br>- `wifi p2p connect <MAC> pbc -g 0` connects<br>- Dashboard at P2P IP (e.g. `http://192.168.49.x`)<br>- Supported on both boards | [network-module.md](specs/network-module.md) |
 | FR-004 | user | switch the Wi-Fi mode with a shell command and have it persist | I can change modes on the fly without reflashing | - `uart:~$ wifi_mode [SoftAP\|STA\|P2P]` saves mode to NVS<br>- Mode takes effect after reboot<br>- Factory default: SoftAP | [mode-selector.md](specs/mode-selector.md) |
 | FR-005 | user | have the selected Wi-Fi mode remembered after power-off | I don't have to reconfigure after every power cycle | - Mode stored in NVS<br>- Factory default: SoftAP<br>- No button press needed on subsequent boots | [mode-selector.md](specs/mode-selector.md) |
 | FR-006 | user | see button states and control LEDs in the browser | I can verify GPIO is working during demos | - Buttons show correct count per board (2 or 3)<br>- LEDs show correct count per board (2 or 4)<br>- ON / OFF / Toggle responds in < 100 ms | [webserver-module.md](specs/webserver-module.md) |
@@ -125,7 +125,7 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 | ID | As a… | I want to… | So that… | Acceptance Criteria | Engineering Spec |
 |---|---|---|---|---|---|
 | FR-101 | developer | call a REST API to read device state | I can integrate the device into custom tooling | - `GET /api/buttons` → JSON<br>- `GET /api/leds` → JSON<br>- `POST /api/led` → LED control<br>- `GET /api/system` → mode + IP | [webserver-module.md](specs/webserver-module.md) |
-| FR-102 | developer | use shell commands over UART for Wi-Fi diagnostics and mode changes | I can inspect and test connectivity without a browser | - `wifi_mode [SoftAP\|STA\|P2P]` switches and persists mode<br>- `wifi connect -s <SSID> -p <pwd> -k 1` joins a network (STA)<br>- `wifi scan`, `wifi status` work<br>- P2P: `wifi p2p find / peer / connect` work | [wifi-module.md](specs/wifi-module.md) |
+| FR-102 | developer | use shell commands over UART for Wi-Fi diagnostics and mode changes | I can inspect and test connectivity without a browser | - `wifi_mode [SoftAP\|STA\|P2P]` switches and persists mode<br>- `wifi connect -s <SSID> -p <pwd> -k 1` joins a network (STA)<br>- `wifi scan`, `wifi status` work<br>- P2P: `wifi p2p find / peer / connect` work | [network-module.md](specs/network-module.md) |
 | FR-103 | developer | see board name, MAC, mode, and IP in the startup log | I can confirm firmware state without opening a browser | - Board ID, MAC, build date logged at boot<br>- Active mode logged<br>- IP logged when connected | [architecture.md](specs/architecture.md) |
 | FR-104 | user | discover the device automatically without knowing its IP | I can open the dashboard just by name | - Device registers `_http._tcp.local` via DNS-SD<br>- Device reachable at `http://nrfwebdash.local` via mDNS | [webserver-module.md](specs/webserver-module.md) |
 
@@ -133,7 +133,7 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 
 | ID | As a… | I want to… | So that… | Acceptance Criteria | Engineering Spec |
 |---|---|---|---|---|---|
-| FR-201 | user | customise SoftAP credentials without rebuilding | I can use my own SSID/password on the hotspot | - `overlay-wifi-credentials.conf` supported<br>- Template file tracked in git, actual overlay gitignored | [wifi-module.md](specs/wifi-module.md) |
+| FR-201 | user | customise SoftAP credentials without rebuilding | I can use my own SSID/password on the hotspot | - `overlay-wifi-credentials.conf` supported<br>- Template file tracked in git, actual overlay gitignored | [network-module.md](specs/network-module.md) |
 | FR-202 | developer | see heap usage logged periodically | I can detect memory growth during long-running tests | - Heap high-water mark logged every N minutes<br>- Warning at configurable threshold | [architecture.md](specs/architecture.md) |
 
 ---
@@ -284,7 +284,7 @@ All P0 requirements (FR-001 to FR-007) must pass on all supported boards before 
 | Spec file | Covers |
 |---|---|
 | [architecture.md](specs/architecture.md) | System design, Zbus channels, module map, boot sequence, SYS_INIT priorities |
-| [wifi-module.md](specs/wifi-module.md) | Unified network module: SoftAP / STA / P2P paths, net event handling |
+| [network-module.md](specs/network-module.md) | Unified network module: SoftAP / STA / P2P paths, net event handling |
 | [mode-selector.md](specs/mode-selector.md) | Boot window, NVS persistence, shell menu |
 | [button-module.md](specs/button-module.md) | GPIO button monitoring, press/release events, board differences |
 | [webserver-module.md](specs/webserver-module.md) | REST API, DNS-SD `_http._tcp.local`, mode banner, web UI |

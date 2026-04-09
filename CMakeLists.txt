@@ -30,7 +30,7 @@ foreach(web_resource
     )
   generate_inc_file_for_target(
     app
-    src/modules/www/${web_resource}
+    src/modules/webserver/${web_resource}
     ${gen_dir}/${web_resource}.gz.inc
     --gzip
   )

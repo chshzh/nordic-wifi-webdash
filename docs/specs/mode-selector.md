@@ -272,4 +272,4 @@ uart:~$ wifi_mode STA
 
 - [architecture.md](architecture.md) — SYS_INIT priority ordering
 - [button-module.md](button-module.md) — runtime button monitoring (separate from boot GPIO poll)
-- [wifi-module.md](wifi-module.md) — reads WIFI_MODE_CHAN to select path
+- [network-module.md](network-module.md) — reads WIFI_MODE_CHAN to select path
