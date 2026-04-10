@@ -595,7 +595,13 @@ int network_module_init(void)
 
 	/* Wait for iface-up and WPA supplicant ready, then start selected mode */
 
-	network_wait_for_wpa_supp_ready(K_FOREVER);
+	int ret_sem = network_wait_for_wpa_supp_ready(K_SECONDS(30));
+
+	if (ret_sem) {
+		LOG_ERR("WPA supplicant not ready after 30s (%d) — aborting network init",
+			ret_sem);
+		return -ETIMEDOUT;
+	}
 
 	switch (mode_selector_get_active_mode()) {
 	case WIFI_MODE_SOFTAP:
