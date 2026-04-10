@@ -30,7 +30,7 @@ LOG_MODULE_REGISTER(webserver_module, CONFIG_WEBSERVER_MODULE_LOG_LEVEL);
  * connections (HTML, JS, CSS, API), so we keep a slightly higher limit
  * here to avoid blocking page load.
  */
-#define MAX_WEB_CLIENTS 6
+#define MAX_WEB_CLIENTS 4
 
 BUILD_ASSERT(NUM_BUTTONS > 0, "At least one button expected");
 BUILD_ASSERT(NUM_LEDS > 0, "At least one LED expected");
@@ -44,6 +44,7 @@ BUILD_ASSERT(MAX_WEB_CLIENTS > 0, "At least one web client must be allowed");
 static char cached_mode_str[8] = "SoftAP"; /* "SoftAP", "STA", "P2P" */
 static char cached_ip[16] = "0.0.0.0";
 static char cached_ssid[33] = "";
+static char cached_client_mac[18] = ""; /* last SoftAP client MAC */
 static bool server_started;
 
 /* ============================================================================
@@ -91,10 +92,15 @@ static void wifi_event_listener(const struct zbus_channel *chan)
 
 	switch (msg->type) {
 	case WIFI_SOFTAP_STARTED:
-		snprintf(cached_mode_str, sizeof(cached_mode_str), "SoftAP");
 		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
 		snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
-		LOG_INF("WIFI_SOFTAP_STARTED -> mode=%s ip=%s", cached_mode_str, cached_ip);
+		LOG_INF("WIFI_SOFTAP_STARTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
+		break;
+
+	case WIFI_SOFTAP_STA_CONNECTED:
+		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
+		snprintf(cached_client_mac, sizeof(cached_client_mac), "%s", msg->ssid);
+		LOG_INF("WIFI_SOFTAP_STA_CONNECTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
 		break;
 
 	case WIFI_STA_CONNECTED:
@@ -111,6 +117,7 @@ static void wifi_event_listener(const struct zbus_channel *chan)
 		LOG_INF("WIFI_P2P_CONNECTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
 		break;
 
+	case WIFI_SOFTAP_STA_DISCONNECTED:
 	case WIFI_STA_DISCONNECTED:
 	case WIFI_P2P_DISCONNECTED:
 		LOG_INF("Wi-Fi disconnected (server continues)");
