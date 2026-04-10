@@ -19,7 +19,7 @@
 #include "../messages.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(mode_selector, CONFIG_MODE_SELECTOR_LOG_LEVEL);
+LOG_MODULE_REGISTER(mode_selector_module, CONFIG_MODE_SELECTOR_LOG_LEVEL);
 
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
@@ -180,7 +180,7 @@ static int mode_selector_init(void)
 	} else {
 		selected_mode = WIFI_MODE_SOFTAP; /* default if key absent */
 		settings_load_subtree("app");
-		LOG_INF("Stored mode: %s", mode_to_str(selected_mode));
+		LOG_INF("Stored wifi mode: %s", mode_to_str(selected_mode));
 	}
 
 	publish_mode(selected_mode);

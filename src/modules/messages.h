@@ -159,12 +159,14 @@ struct led_state_msg {
  * @brief WiFi message types
  */
 enum wifi_msg_type {
-	WIFI_SOFTAP_STARTED,   /**< SoftAP started, clients may connect */
-	WIFI_STA_CONNECTED,    /**< STA associated and IP assigned */
-	WIFI_STA_DISCONNECTED, /**< STA lost connection */
-	WIFI_P2P_CONNECTED,    /**< P2P group established, IP assigned */
-	WIFI_P2P_DISCONNECTED, /**< P2P group removed */
-	WIFI_ERROR,            /**< WiFi subsystem error */
+	WIFI_SOFTAP_STARTED,          /**< SoftAP started, clients may connect */
+	WIFI_SOFTAP_STA_CONNECTED,    /**< A client station joined the SoftAP */
+	WIFI_SOFTAP_STA_DISCONNECTED, /**< A client station left the SoftAP */
+	WIFI_STA_CONNECTED,           /**< STA associated and IP assigned */
+	WIFI_STA_DISCONNECTED,        /**< STA lost connection */
+	WIFI_P2P_CONNECTED,           /**< P2P group established, IP assigned */
+	WIFI_P2P_DISCONNECTED,        /**< P2P group removed */
+	WIFI_ERROR,                   /**< WiFi subsystem error */
 };
 
 /**

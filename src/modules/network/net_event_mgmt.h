@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef NETWORK_H
-#define NETWORK_H
+#ifndef NET_EVENT_MGMT_H
+#define NET_EVENT_MGMT_H
 
 #include <zephyr/kernel.h>
 #include "../messages.h"
@@ -23,6 +23,17 @@
 int network_module_init(void);
 
 /**
+ * @brief Wait for the Wi-Fi interface to be up and the WPA supplicant to be ready.
+ *
+ * Blocks until both NET_EVENT_IF_UP and NET_EVENT_SUPPLICANT_READY have fired.
+ * Call this from main() before starting any Wi-Fi mode operation.
+ *
+ * @param timeout Maximum time to wait (pass K_FOREVER to wait indefinitely)
+ * @return 0 on success, negative error code on timeout
+ */
+int network_wait_for_wpa_supp_ready(k_timeout_t timeout);
+
+/**
  * @brief Wait for a SoftAP client station to connect.
  *
  * @param timeout Maximum time to wait
@@ -30,4 +41,4 @@ int network_module_init(void);
  */
 int network_wait_for_station_connected(k_timeout_t timeout);
 
-#endif /* NETWORK_H */
+#endif /* NET_EVENT_MGMT_H */
