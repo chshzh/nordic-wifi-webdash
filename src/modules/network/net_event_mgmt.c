@@ -319,18 +319,21 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 		net_if_ipv4_addr_add(ap_iface, &addr, NET_ADDR_MANUAL, 0);
 		net_if_ipv4_set_netmask_by_addr(ap_iface, &addr, &netmask);
 
-		// /* Rejoin mDNS multicast 224.0.0.251.  WPA disconnect sends IGMP
-		//  * leave; Zephyr mDNS responder cannot restore it when PROBE=n. */
-		// struct in_addr mdns_mcast;
+		/* Rejoin mDNS multicast 224.0.0.251.  The WPA supplicant sends an
+		 * IGMP Leave during the STA→AP transition; the Zephyr mDNS responder
+		 * only rejoins on NET_EVENT_IF_UP, which does not fire here because
+		 * the interface stays up throughout.  Re-joining manually after the
+		 * IP is re-added restores mDNS/DNS-SD visibility in SoftAP mode. */
+		struct in_addr mdns_mcast;
 
-		// inet_pton(AF_INET, "224.0.0.251", &mdns_mcast);
-		// int igmp_ret = net_ipv4_igmp_join(ap_iface, &mdns_mcast, NULL);
+		inet_pton(AF_INET, "224.0.0.251", &mdns_mcast);
+		int igmp_ret = net_ipv4_igmp_join(ap_iface, &mdns_mcast, NULL);
 
-		// if (igmp_ret < 0 && igmp_ret != -EALREADY) {
-		// 	LOG_WRN("mDNS IGMP rejoin failed: %d", igmp_ret);
-		// } else {
-		// 	LOG_INF("mDNS 224.0.0.251 (re)joined on SoftAP iface");
-		// }
+		if (igmp_ret < 0 && igmp_ret != -EALREADY) {
+			LOG_WRN("mDNS IGMP rejoin failed: %d", igmp_ret);
+		} else {
+			LOG_INF("mDNS 224.0.0.251 (re)joined on SoftAP iface");
+		}
 
 		LOG_INF("SoftAP enabled: SSID='%s' IP=192.168.7.1", CONFIG_APP_WIFI_SSID);
 
