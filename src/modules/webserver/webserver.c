@@ -86,6 +86,23 @@ ZBUS_LISTENER_DEFINE(button_listener_def, button_listener);
 
 extern const struct zbus_channel WIFI_CHAN;
 
+/* Deferred work: start the HTTP server from the system work queue after a
+ * short delay that lets DHCP/IP settle.  Using k_work_delayable here instead
+ * of k_sleep() inside the zbus listener is mandatory: listeners execute
+ * synchronously in the publisher's thread context (VDED), so sleeping there
+ * would block the net_mgmt event thread for an entire second.
+ */
+static void webserver_start_work_fn(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	int ret = webserver_start();
+
+	if (ret < 0) {
+		LOG_ERR("Failed to start webserver: %d", ret);
+	}
+}
+static K_WORK_DELAYABLE_DEFINE(webserver_start_work, webserver_start_work_fn);
+
 static void wifi_event_listener(const struct zbus_channel *chan)
 {
 	const struct wifi_msg *msg = zbus_chan_const_msg(chan);
@@ -131,14 +148,12 @@ static void wifi_event_listener(const struct zbus_channel *chan)
 		return;
 	}
 
-	/* Start HTTP server the first time a connected event arrives */
+	/* Schedule HTTP server start the first time a connected event arrives.
+	 * The 1-second delay lets IP/DHCP settle.  k_work_schedule() is safe
+	 * to call from a listener (VDED context); k_sleep() is not.
+	 */
 	if (!server_started) {
-		k_sleep(K_SECONDS(1));
-		int ret = webserver_start();
-
-		if (ret < 0) {
-			LOG_ERR("Failed to start webserver: %d", ret);
-		}
+		k_work_schedule(&webserver_start_work, K_SECONDS(1));
 	}
 }
 
