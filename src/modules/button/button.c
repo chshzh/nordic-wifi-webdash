@@ -162,28 +162,6 @@ static void button_handler(uint32_t button_state, uint32_t has_changed)
 }
 
 /* ============================================================================
- * BUTTON THREAD
- * ============================================================================
- */
-
-static void button_thread_fn(void *arg1, void *arg2, void *arg3)
-{
-	ARG_UNUSED(arg1);
-	ARG_UNUSED(arg2);
-	ARG_UNUSED(arg3);
-
-	LOG_DBG("Button module thread started!");
-
-	while (1) {
-		/* State machines are run from button_handler callback */
-		k_sleep(K_MSEC(100));
-	}
-}
-
-K_THREAD_DEFINE(button_thread_id, 1024, button_thread_fn, NULL, NULL, NULL, 7,
-		0, 0);
-
-/* ============================================================================
  * MODULE INITIALIZATION
  * ============================================================================
  */
