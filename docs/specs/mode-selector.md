@@ -69,7 +69,7 @@ Settings key path: `"app/wifi_mode"` (written/read via `settings_save_one()` / `
 ### Read/Write API
 
 ```c
-/* Read stored mode (returns AP on first boot / ENOENT) */
+/* Read Stored wifi mode (returns AP on first boot / ENOENT) */
 static int mode_selector_nvs_read(enum wifi_mode *mode);
 
 /* Write selected mode */
@@ -202,14 +202,14 @@ config APP_MODE_SELECTOR_LOG_LEVEL
 ### Normal boot (SoftAP)
 
 ```
-[00:00:00.100] <inf> mode_selector: Stored mode: SoftAP
+[00:00:00.100] <inf> mode_selector: Stored wifi mode: SoftAP
 [00:00:00.102] <inf> mode_selector: Booting in SoftAP mode.
 ```
 
 ### First boot (no NVS entry)
 
 ```
-[00:00:00.100] <inf> mode_selector: No stored mode found. Using default: SoftAP
+[00:00:00.100] <inf> mode_selector: No Stored wifi mode found. Using default: SoftAP
 [00:00:00.102] <inf> mode_selector: Booting in SoftAP mode.
 ```
 
@@ -219,7 +219,7 @@ config APP_MODE_SELECTOR_LOG_LEVEL
 uart:~$ wifi_mode STA
 [mode_selector] Mode saved: STA. Rebooting...
 *** Booting nRF Connect SDK ... ***
-[00:00:00.100] <inf> mode_selector: Stored mode: STA
+[00:00:00.100] <inf> mode_selector: Stored wifi mode: STA
 [00:00:00.102] <inf> mode_selector: Booting in STA mode.
 ```
 
@@ -239,20 +239,20 @@ uart:~$ wifi_mode STA
 
 1. Flash fresh firmware (no NVS data)
 2. Boot the device
-3. Expected log: `No stored mode found. Using default: SoftAP` → `Booting in SoftAP mode`
+3. Expected log: `No Stored wifi mode found. Using default: SoftAP` → `Booting in SoftAP mode`
 4. Verify SoftAP SSID `WebDash_AP` visible
 
 ### TC-MS-002: Mode change to STA via shell
 
 1. In serial console: `uart:~$ wifi_mode STA`
 2. Expected log: `Mode saved: STA. Rebooting...`
-3. After reboot: `Stored mode: STA`, `Booting in STA mode`
+3. After reboot: `Stored wifi mode: STA`, `Booting in STA mode`
 
 ### TC-MS-003: Mode change to P2P via shell
 
 1. In serial console: `uart:~$ wifi_mode P2P`
 2. Expected log: `Mode saved: P2P. Rebooting...`
-3. After reboot: `Stored mode: P2P`, `Booting in P2P mode`
+3. After reboot: `Stored wifi mode: P2P`, `Booting in P2P mode`
 4. Verify `wifi p2p find` starts automatically
 
 ### TC-MS-004: Invalid argument rejected
@@ -264,7 +264,7 @@ uart:~$ wifi_mode STA
 
 1. Run `wifi_mode STA` and wait for reboot
 2. Power cycle device (no shell command)
-3. Expected log on re-boot: `Stored mode: STA`; boots in STA mode
+3. Expected log on re-boot: `Stored wifi mode: STA`; boots in STA mode
 
 ---
 

@@ -200,7 +200,7 @@ sequenceDiagram
     alt First boot (no NVS entry)
         NVS-->>ModeSel: -ENOENT → use SoftAP default
     else NVS entry exists
-        NVS-->>ModeSel: stored mode (0/1/2)
+        NVS-->>ModeSel: Stored wifi mode (0/1/2)
     end
 
     ModeSel->>WIFI_MODE_CHAN: Publish wifi_mode_msg
