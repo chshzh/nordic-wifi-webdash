@@ -22,8 +22,8 @@ LOG_MODULE_REGISTER(button_module, CONFIG_BUTTON_MODULE_LOG_LEVEL);
  * ============================================================================
  */
 
-ZBUS_CHAN_DEFINE(BUTTON_CHAN, struct button_msg, NULL, NULL,
-		 ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+ZBUS_CHAN_DEFINE(BUTTON_CHAN, struct button_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
+		 ZBUS_MSG_INIT(0));
 
 /* ============================================================================
  * STATE MACHINE CONTEXT
@@ -39,8 +39,7 @@ static void button_released_entry(void *obj);
 /* State table */
 static const struct smf_state button_states[] = {
 	[0] = SMF_CREATE_STATE(NULL, button_idle_run, NULL, NULL, NULL),
-	[1] = SMF_CREATE_STATE(button_pressed_entry, button_pressed_run, NULL,
-			       NULL, NULL),
+	[1] = SMF_CREATE_STATE(button_pressed_entry, button_pressed_run, NULL, NULL, NULL),
 	[2] = SMF_CREATE_STATE(button_released_entry, NULL, NULL, NULL, NULL),
 };
 
@@ -138,19 +137,15 @@ static void button_released_entry(void *obj)
 
 static void button_handler(uint32_t button_state, uint32_t has_changed)
 {
-	LOG_DBG("Button handler: state=0x%08x changed=0x%08x", button_state,
-		has_changed);
+	LOG_DBG("Button handler: state=0x%08x changed=0x%08x", button_state, has_changed);
 
 	for (int i = 0; i < NUM_BUTTONS; i++) {
 		uint32_t button_mask = BIT(i);
 
 		if (has_changed & button_mask) {
-			button_sm[i].current_state =
-				(button_state & button_mask) ? true : false;
-			LOG_DBG("Button index %d (mask 0x%x) changed: %s", i,
-				button_mask,
-				button_sm[i].current_state ? "pressed"
-							   : "released");
+			button_sm[i].current_state = (button_state & button_mask) ? true : false;
+			LOG_DBG("Button index %d (mask 0x%x) changed: %s", i, button_mask,
+				button_sm[i].current_state ? "pressed" : "released");
 
 			/* Run state machine */
 			int ret = smf_run_state(SMF_CTX(&button_sm[i]));
