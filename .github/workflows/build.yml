@@ -174,9 +174,6 @@ jobs:
           [ -f CMakeLists.txt ] || (echo "Missing CMakeLists.txt" && exit 1)
           [ -f Kconfig ] || (echo "Missing Kconfig" && exit 1)
 
-          # Credential template
-          [ -f overlay-wifi-credentials.conf.template ] || (echo "Missing credential template" && exit 1)
-
           echo "Configuration files validation passed ✓"
 
   static-analysis:

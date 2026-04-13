@@ -133,8 +133,6 @@ CONFIG_APP_HTTP_PORT=80
 CONFIG_NET_HOSTNAME="nrfwebdash"
 ```
 
-For production credentials, generate `overlay-wifi-credentials.conf` from [overlay-wifi-credentials.conf.template](overlay-wifi-credentials.conf.template) and keep the real file out of version control.
-
 ### Developer Notes
 
 - nRF54LM20DK + nRF7002EBII loses one button because of shield pin conflicts; BUTTON0-BUTTON2 remain available
