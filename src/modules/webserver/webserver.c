@@ -256,7 +256,8 @@ HTTP_RESOURCE_DEFINE(styles_css_resource, webserver_service, "/styles.css",
 
 static uint8_t system_api_buf[320];
 
-static int system_api_handler(struct http_client_ctx *client, enum http_data_status status,
+static int system_api_handler(struct http_client_ctx *client,
+			      enum http_transaction_status status,
 			      const struct http_request_ctx *request_ctx,
 			      struct http_response_ctx *response_ctx, void *user_data)
 {
@@ -264,7 +265,7 @@ static int system_api_handler(struct http_client_ctx *client, enum http_data_sta
 	ARG_UNUSED(request_ctx);
 	ARG_UNUSED(user_data);
 
-	if (status != HTTP_SERVER_DATA_FINAL) {
+	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
 		return 0;
 	}
 
@@ -312,7 +313,8 @@ HTTP_RESOURCE_DEFINE(system_api_resource, webserver_service, "/api/system", &sys
 
 static uint8_t button_api_buf[512];
 
-static int button_api_handler(struct http_client_ctx *client, enum http_data_status status,
+static int button_api_handler(struct http_client_ctx *client,
+			      enum http_transaction_status status,
 			      const struct http_request_ctx *request_ctx,
 			      struct http_response_ctx *response_ctx, void *user_data)
 {
@@ -320,7 +322,7 @@ static int button_api_handler(struct http_client_ctx *client, enum http_data_sta
 	ARG_UNUSED(request_ctx);
 	ARG_UNUSED(user_data);
 
-	if (status != HTTP_SERVER_DATA_FINAL) {
+	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
 		return 0;
 	}
 
@@ -389,7 +391,8 @@ HTTP_RESOURCE_DEFINE(button_api_resource, webserver_service, "/api/buttons", &bu
 
 static uint8_t led_get_api_buf[512];
 
-static int led_get_api_handler(struct http_client_ctx *client, enum http_data_status status,
+static int led_get_api_handler(struct http_client_ctx *client,
+			       enum http_transaction_status status,
 			       const struct http_request_ctx *request_ctx,
 			       struct http_response_ctx *response_ctx, void *user_data)
 {
@@ -397,7 +400,7 @@ static int led_get_api_handler(struct http_client_ctx *client, enum http_data_st
 	ARG_UNUSED(request_ctx);
 	ARG_UNUSED(user_data);
 
-	if (status != HTTP_SERVER_DATA_FINAL) {
+	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
 		return 0;
 	}
 
@@ -443,14 +446,15 @@ static const struct json_obj_descr led_control_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct led_control_cmd, action, JSON_TOK_STRING_BUF),
 };
 
-static int led_post_api_handler(struct http_client_ctx *client, enum http_data_status status,
+static int led_post_api_handler(struct http_client_ctx *client,
+				enum http_transaction_status status,
 				const struct http_request_ctx *request_ctx,
 				struct http_response_ctx *response_ctx, void *user_data)
 {
 	ARG_UNUSED(client);
 	ARG_UNUSED(user_data);
 
-	if (status != HTTP_SERVER_DATA_FINAL) {
+	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
 		return 0;
 	}
 
