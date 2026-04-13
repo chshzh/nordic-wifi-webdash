@@ -28,13 +28,11 @@ static void heap_report(const char *trigger)
 {
 	struct sys_memory_stats stats;
 
-	if (sys_heap_runtime_stats_get((struct sys_heap *)&_system_heap.heap,
-				       &stats) != 0) {
+	if (sys_heap_runtime_stats_get((struct sys_heap *)&_system_heap.heap, &stats) != 0) {
 		return;
 	}
 
-	const uint32_t total =
-		(uint32_t)(stats.allocated_bytes + stats.free_bytes);
+	const uint32_t total = (uint32_t)(stats.allocated_bytes + stats.free_bytes);
 	if (total == 0U) {
 		return;
 	}
@@ -47,13 +45,12 @@ static void heap_report(const char *trigger)
 	bool progressed = false;
 
 	if (current_high > last_reported_high) {
-		progressed = (current_high - last_reported_high) >=
-			     CONFIG_APP_HEAP_MONITOR_STEP_BYTES;
+		progressed =
+			(current_high - last_reported_high) >= CONFIG_APP_HEAP_MONITOR_STEP_BYTES;
 	}
 
 	const bool new_warn = warn && (pct > last_warn_pct);
-	const bool should_report =
-		progressed || new_warn || boot_report_pending;
+	const bool should_report = progressed || new_warn || boot_report_pending;
 	if (!should_report) {
 		return;
 	}
@@ -63,11 +60,11 @@ static void heap_report(const char *trigger)
 
 	if (warn) {
 		last_warn_pct = pct;
-		LOG_WRN("Heap %s: peak=%u bytes (%u%% of %u), used=%u, free=%u",
-			trigger, current_high, pct, total, used, free_bytes);
+		LOG_WRN("Heap %s: peak=%u bytes (%u%% of %u), used=%u, free=%u", trigger,
+			current_high, pct, total, used, free_bytes);
 	} else {
-		LOG_INF("Heap %s: peak=%u bytes (%u%% of %u), used=%u, free=%u",
-			trigger, current_high, pct, total, used, free_bytes);
+		LOG_INF("Heap %s: peak=%u bytes (%u%% of %u), used=%u, free=%u", trigger,
+			current_high, pct, total, used, free_bytes);
 	}
 }
 
@@ -83,8 +80,7 @@ static void heap_listener_alloc(uintptr_t heap_id, void *mem, size_t bytes)
 	heap_report("alloc");
 }
 
-HEAP_LISTENER_ALLOC_DEFINE(app_heap_listener_alloc,
-			   HEAP_ID_FROM_POINTER(&_system_heap),
+HEAP_LISTENER_ALLOC_DEFINE(app_heap_listener_alloc, HEAP_ID_FROM_POINTER(&_system_heap),
 			   heap_listener_alloc);
 
 static int app_heap_monitor_init(void)
@@ -93,5 +89,4 @@ static int app_heap_monitor_init(void)
 	return 0;
 }
 
-SYS_INIT(app_heap_monitor_init, APPLICATION,
-	 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
+SYS_INIT(app_heap_monitor_init, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);

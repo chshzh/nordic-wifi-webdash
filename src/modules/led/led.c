@@ -25,12 +25,11 @@ LOG_MODULE_REGISTER(led_module, CONFIG_LED_MODULE_LOG_LEVEL);
  */
 
 /* LED command channel (subscribe to this) */
-ZBUS_CHAN_DEFINE(LED_CMD_CHAN, struct led_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
-		 ZBUS_MSG_INIT(0));
+ZBUS_CHAN_DEFINE(LED_CMD_CHAN, struct led_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
 
 /* LED state channel (publish to this) */
-ZBUS_CHAN_DEFINE(LED_STATE_CHAN, struct led_state_msg, NULL, NULL,
-		 ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+ZBUS_CHAN_DEFINE(LED_STATE_CHAN, struct led_state_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
+		 ZBUS_MSG_INIT(0));
 
 /* ============================================================================
  * STATE MACHINE CONTEXT
@@ -143,8 +142,7 @@ static void led_cmd_listener(const struct zbus_channel *chan)
 	const struct led_msg *msg = zbus_chan_const_msg(chan);
 
 	if (msg->led_number >= NUM_LEDS) {
-		LOG_WRN("Invalid LED number: %d (max: %d)", msg->led_number,
-			NUM_LEDS - 1);
+		LOG_WRN("Invalid LED number: %d (max: %d)", msg->led_number, NUM_LEDS - 1);
 		return;
 	}
 
@@ -196,11 +194,10 @@ int led_get_all_states_json(char *buf, size_t buf_len)
 	for (int i = 0; i < NUM_LEDS; i++) {
 		bool is_last = (i == NUM_LEDS - 1);
 		const char *led_name = app_led_label(i);
-		written = snprintf(
-			buf + offset, remaining,
-			"{\"number\":%d,\"name\":\"%s\",\"is_on\":%s}%s", i,
-			led_name ? led_name : "",
-			led_sm[i].is_on ? "true" : "false", is_last ? "" : ",");
+		written = snprintf(buf + offset, remaining,
+				   "{\"number\":%d,\"name\":\"%s\",\"is_on\":%s}%s", i,
+				   led_name ? led_name : "", led_sm[i].is_on ? "true" : "false",
+				   is_last ? "" : ",");
 		if (written < 0 || written >= remaining) {
 			return -ENOMEM;
 		}

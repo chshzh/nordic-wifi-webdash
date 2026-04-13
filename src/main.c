@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include <zephyr/logging/log.h>
-#include <zephyr/kernel.h>
-#include <zephyr/net/net_if.h>
 #include <string.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/net/net_if.h>
 
 #include "modules/messages.h"
 #include "modules/mode_selector/mode_selector.h"
@@ -63,6 +63,7 @@ int main(void)
 	}
 
 	LOG_INF("Current active Wi-Fi mode: %s", mode_str);
+
 	LOG_INF("Type 'wifi_mode [SoftAP|STA|P2P]' to change mode after reboot.");
 	LOG_INF("==============================================");
 	LOG_INF("=============Connect Web Dashboard============");
@@ -73,7 +74,7 @@ int main(void)
 		LOG_INF("Connect and open http://192.168.7.1:%d", CONFIG_APP_HTTP_PORT);
 		break;
 
-		case WIFI_MODE_STA:
+	case WIFI_MODE_STA:
 		LOG_INF("STA mode: connect via shell:");
 		LOG_INF("  wifi connect -s <SSID> -p <password> -k 1 -- WPA2");
 		LOG_INF("  wifi connect --help                       -- help for more options");
@@ -87,7 +88,8 @@ int main(void)
 			"MAC");
 		LOG_INF("4.DK: wifi p2p connect <phone MAC> pbc -g 0   -- connect to target "
 			"phone");
-		LOG_INF("5.Phone: Press ACCEPT button on your phone for Invitation to connect.");
+		LOG_INF("5.Phone: Press ACCEPT button on your phone for Invitation to "
+			"connect.");
 		break;
 	}
 
