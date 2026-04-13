@@ -548,4 +548,5 @@ int webserver_start(void)
 	}
 
 	server_started = true;
-	LOG_INF("HTTP server started -> http://%s:%d", cached_ip, CONFIG_APP_HTTP_PORT);
+	LOG_INF("HTTP server started -> http://%s:%d or http://%s.local:%d", cached_ip,
+		 CONFIG_APP_HTTP_PORT, CONFIG_NET_HOSTNAME, CONFIG_APP_HTTP_PORT);
