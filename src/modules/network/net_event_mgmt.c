@@ -230,6 +230,13 @@ static void l2_wifi_conn_event_handler(struct net_mgmt_event_callback *cb, uint6
 
 		if (status->status == 0) {
 			LOG_INF("NET_EVENT_WIFI_CONNECT_RESULT: success");
+			if (active_mode == WIFI_MODE_P2P) {
+				int ret = wifi_setup_dhcp_server();
+
+				if (ret < 0) {
+					LOG_WRN("P2P: DHCP server start failed (%d)", ret);
+				}
+			}
 		} else {
 			LOG_ERR("NET_EVENT_WIFI_CONNECT_RESULT: failed: status=%d", status->status);
 			switch (status->status) {

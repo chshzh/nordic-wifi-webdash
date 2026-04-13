@@ -18,6 +18,17 @@
 int wifi_run_softap_mode(void);
 
 /**
+ * @brief Start the DHCPv4 server on the Wi-Fi interface.
+ *
+ * Assigns the static gateway IP (192.168.7.1/24) to the Wi-Fi interface and
+ * starts the DHCP server with a pool beginning at 192.168.7.2.  Safe to call
+ * from both SoftAP and P2P GO mode.  Calling it a second time is a no-op.
+ *
+ * @return 0 on success, negative error code on failure
+ */
+int wifi_setup_dhcp_server(void);
+
+/**
  * @brief Print detailed Wi-Fi status information
  *
  * @return 0 on success, negative error code on failure

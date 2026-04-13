@@ -255,7 +255,7 @@ static int wifi_set_softap(const char *ssid, const char *psk)
 }
 
 static bool dhcp_server_started;
-static int setup_dhcp_server(void)
+int wifi_setup_dhcp_server(void)
 {
 	struct net_if *iface;
 	struct in_addr pool_start;
@@ -325,7 +325,7 @@ int wifi_run_softap_mode(void)
 	}
 
 	/* Setup DHCP server */
-	ret = setup_dhcp_server();
+	ret = wifi_setup_dhcp_server();
 	if (ret) {
 		LOG_WRN("DHCP server setup failed (%d), continuing to enable AP", ret);
 	}
