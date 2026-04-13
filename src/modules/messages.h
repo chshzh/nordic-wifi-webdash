@@ -177,6 +177,7 @@ struct wifi_msg {
 	enum wifi_mode active_mode; /**< Mode that produced this event */
 	char ip_addr[16];           /**< Dotted-decimal IP, filled on connect */
 	char ssid[33];              /**< SSID, filled on connect */
+	char client_mac[18];        /**< STA MAC "XX:XX:XX:XX:XX:XX", SoftAP only */
 	int error_code;
 };
 

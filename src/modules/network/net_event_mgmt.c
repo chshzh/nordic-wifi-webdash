@@ -361,7 +361,7 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 				.error_code = sta_count,
 			};
 			snprintf(msg.ip_addr, sizeof(msg.ip_addr), "%s", "192.168.7.1");
-			snprintf(msg.ssid, sizeof(msg.ssid), "%s", mac_str);
+			snprintf(msg.client_mac, sizeof(msg.client_mac), "%s", mac_str);
 			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
 		}
 		break;
@@ -394,7 +394,7 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 				.active_mode = WIFI_MODE_SOFTAP,
 				.error_code = rem_count,
 			};
-			snprintf(msg.ssid, sizeof(msg.ssid), "%s", mac_str);
+			snprintf(msg.client_mac, sizeof(msg.client_mac), "%s", mac_str);
 			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
 		}
 		break;

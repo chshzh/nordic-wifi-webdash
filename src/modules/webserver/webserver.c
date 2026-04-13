@@ -116,8 +116,8 @@ static void wifi_event_listener(const struct zbus_channel *chan)
 
 	case WIFI_SOFTAP_STA_CONNECTED:
 		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
-		snprintf(cached_client_mac, sizeof(cached_client_mac), "%s", msg->ssid);
-		LOG_INF("WIFI_SOFTAP_STA_CONNECTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
+		snprintf(cached_client_mac, sizeof(cached_client_mac), "%s", msg->client_mac);
+		LOG_INF("WIFI_SOFTAP_STA_CONNECTED -> ip=%s mac=%s", cached_ip, cached_client_mac);
 		break;
 
 	case WIFI_STA_CONNECTED:
