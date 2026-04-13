@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       NCS_VERSION: ${{ steps.extract-version.outputs.NCS_VERSION }}
+      TOOLCHAIN_VERSION: ${{ steps.extract-version.outputs.TOOLCHAIN_VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,11 +29,20 @@ jobs:
         run: |
           NCS_VERSION=$(grep 'revision:' west.yml | awk '{print $2}')
           echo "NCS_VERSION=${NCS_VERSION}" >> $GITHUB_OUTPUT
+          # Docker toolchain images use release tags (e.g. v3.2.4, v3.3.0-rc1).
+          # Branch names like v3.3-branch have no matching image, so read the
+          # pinned toolchain tag from .toolchain-version when needed.
+          if [[ "${NCS_VERSION}" == *-branch ]]; then
+            TOOLCHAIN_VERSION=$(cat .toolchain-version 2>/dev/null || echo "${NCS_VERSION}")
+          else
+            TOOLCHAIN_VERSION="${NCS_VERSION}"
+          fi
+          echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}" >> $GITHUB_OUTPUT
 
   build-and-test:
     needs: set-version
     runs-on: ubuntu-24.04
-    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.NCS_VERSION }}
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.TOOLCHAIN_VERSION }}
     defaults:
       run:
         shell: bash
@@ -172,7 +182,7 @@ jobs:
   static-analysis:
     needs: set-version
     runs-on: ubuntu-24.04
-    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.NCS_VERSION }}
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.TOOLCHAIN_VERSION }}
     defaults:
       run:
         shell: bash
