@@ -82,7 +82,7 @@ Open a serial terminal at `115200` baud and follow the instructions printed by t
 
 - SoftAP: connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
 - STA: run `wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
-- P2P: run `wifi_mode P2P` and follow the Wi-Fi Direct instructions printed in the terminal
+- P2P: run `wifi_mode P2P`, reboot, then run `wifi p2p group_add` to start the group and `wifi wps_pin` to get the PIN; on the phone choose Wi-Fi Direct → PIN method and enter the displayed PIN
 
 At any time, you can switch modes with `uart:~$ wifi_mode [SoftAP|STA|P2P]`. The choice is saved to NVS and survives reboot.
 
@@ -92,7 +92,7 @@ This section keeps only the setup information needed for development. Detailed p
 
 ### Environment Setup
 
-- nRF Connect SDK `v3.2.4`
+- nRF Connect SDK `v3.3-branch`
 - West workspace driven by [west.yml](west.yml)
 - nRF Connect for VS Code or a shell initialized with the NCS toolchain
 
@@ -146,7 +146,7 @@ For production credentials, generate `overlay-wifi-credentials.conf` from [overl
 - SoftAP not reachable: verify the terminal shows the expected IP and SoftAP instructions
 - STA not reachable: confirm the device received a DHCP IP and use that address first
 - mDNS not resolving: test the printed IP before investigating hostname resolution on the host OS
-- Build issues: confirm the workspace is using NCS `v3.2.4` and the correct board/shield combination
+- Build issues: confirm the workspace is using NCS `v3.3-branch` and the correct board/shield combination
 
 ## Web Interface
 

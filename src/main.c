@@ -81,15 +81,12 @@ int main(void)
 		break;
 
 	case WIFI_MODE_P2P:
-		LOG_INF("P2P mode: connect phone peer via shell:");
-		LOG_INF("1.DK: wifi p2p find                   -- search for peers");
-		LOG_INF("2.Phone: Enable Wi-Fi Direct, then wait device MAC appears.");
-		LOG_INF("3.DK: wifi p2p peer                   -- list peers and find phone "
-			"MAC");
-		LOG_INF("4.DK: wifi p2p connect <phone MAC> pbc -g 0   -- connect to target "
-			"phone");
-		LOG_INF("5.Phone: Press ACCEPT button on your phone for Invitation to "
-			"connect.");
+		LOG_INF("P2P mode: DK acts as Group Owner (GO):");
+		LOG_INF("1.DK: wifi p2p group_add       -- start P2P group");
+		LOG_INF("2.DK: wifi wps_pin             -- display WPS PIN");
+		LOG_INF("3.Phone: Turn on Wi-Fi but disconnect with other APs");
+		LOG_INF("4.Phone: Wi - Fi Direct-> wait DK MAC address to appear, select to enter "
+			"PIN.");
 		break;
 	}
 
