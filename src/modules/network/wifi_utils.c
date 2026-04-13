@@ -277,8 +277,8 @@ static int setup_dhcp_server(void)
 	 * net_config_init (prio 95) may assign it to a different iface if the
 	 * WiFi interface is not yet up at that time.  net_dhcpv4_server_start
 	 * requires the server address to already be present on the iface. */
-	inet_pton(AF_INET, "192.168.7.1", &gw_addr);
-	inet_pton(AF_INET, "255.255.255.0", &netmask);
+	zsock_inet_pton(AF_INET, "192.168.7.1", &gw_addr);
+	zsock_inet_pton(AF_INET, "255.255.255.0", &netmask);
 	net_if_ipv4_addr_rm(iface, &gw_addr);
 	struct net_if_addr *ifaddr = net_if_ipv4_addr_add(iface, &gw_addr, NET_ADDR_MANUAL, 0);
 
@@ -290,7 +290,7 @@ static int setup_dhcp_server(void)
 	LOG_INF("Static IP 192.168.7.1/24 assigned to Wi-Fi interface");
 
 	/* Set DHCP pool start address */
-	ret = inet_pton(AF_INET, "192.168.7.2", &pool_start);
+	ret = zsock_inet_pton(AF_INET, "192.168.7.2", &pool_start);
 	if (ret != 1) {
 		LOG_ERR("Invalid DHCP pool start address");
 		return -1;

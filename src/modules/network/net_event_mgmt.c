@@ -312,8 +312,8 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 
 		/* Re-assert the static IP.  The WPA-level disconnect before
 		 * AP_ENABLE can remove the manually-assigned address. */
-		inet_pton(AF_INET, "192.168.7.1", &addr);
-		inet_pton(AF_INET, "255.255.255.0", &netmask);
+		zsock_inet_pton(AF_INET, "192.168.7.1", &addr);
+		zsock_inet_pton(AF_INET, "255.255.255.0", &netmask);
 		net_if_ipv4_addr_rm(ap_iface, &addr);
 		net_if_ipv4_addr_add(ap_iface, &addr, NET_ADDR_MANUAL, 0);
 		net_if_ipv4_set_netmask_by_addr(ap_iface, &addr, &netmask);
