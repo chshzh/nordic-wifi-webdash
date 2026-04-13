@@ -256,8 +256,7 @@ HTTP_RESOURCE_DEFINE(styles_css_resource, webserver_service, "/styles.css",
 
 static uint8_t system_api_buf[320];
 
-static int system_api_handler(struct http_client_ctx *client,
-			      enum http_transaction_status status,
+static int system_api_handler(struct http_client_ctx *client, enum http_transaction_status status,
 			      const struct http_request_ctx *request_ctx,
 			      struct http_response_ctx *response_ctx, void *user_data)
 {
@@ -313,8 +312,7 @@ HTTP_RESOURCE_DEFINE(system_api_resource, webserver_service, "/api/system", &sys
 
 static uint8_t button_api_buf[512];
 
-static int button_api_handler(struct http_client_ctx *client,
-			      enum http_transaction_status status,
+static int button_api_handler(struct http_client_ctx *client, enum http_transaction_status status,
 			      const struct http_request_ctx *request_ctx,
 			      struct http_response_ctx *response_ctx, void *user_data)
 {
@@ -391,8 +389,7 @@ HTTP_RESOURCE_DEFINE(button_api_resource, webserver_service, "/api/buttons", &bu
 
 static uint8_t led_get_api_buf[512];
 
-static int led_get_api_handler(struct http_client_ctx *client,
-			       enum http_transaction_status status,
+static int led_get_api_handler(struct http_client_ctx *client, enum http_transaction_status status,
 			       const struct http_request_ctx *request_ctx,
 			       struct http_response_ctx *response_ctx, void *user_data)
 {
@@ -446,8 +443,7 @@ static const struct json_obj_descr led_control_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct led_control_cmd, action, JSON_TOK_STRING_BUF),
 };
 
-static int led_post_api_handler(struct http_client_ctx *client,
-				enum http_transaction_status status,
+static int led_post_api_handler(struct http_client_ctx *client, enum http_transaction_status status,
 				const struct http_request_ctx *request_ctx,
 				struct http_response_ctx *response_ctx, void *user_data)
 {
@@ -553,29 +549,3 @@ int webserver_start(void)
 
 	server_started = true;
 	LOG_INF("HTTP server started -> http://%s:%d", cached_ip, CONFIG_APP_HTTP_PORT);
-
-	return 0;
-}
-
-/* ============================================================================
- * MODULE INITIALIZATION
- * ============================================================================
- */
-
-int webserver_module_init(void)
-{
-	LOG_INF("Initializing webserver module");
-
-	server_started = false;
-
-	for (int i = 0; i < NUM_BUTTONS; i++) {
-		button_states[i].button_number = i;
-		button_states[i].is_pressed = false;
-		button_states[i].press_count = 0;
-	}
-
-	LOG_INF("Webserver module initialized");
-	return 0;
-}
-
-SYS_INIT(webserver_module_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
