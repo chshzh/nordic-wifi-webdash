@@ -12,4 +12,4 @@ manifest:
       import: true
       remote: ncs
   self:
-    path: nordic_wifi_softap_webserver
+    path: wifi_webdash
