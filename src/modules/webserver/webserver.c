@@ -26,7 +26,7 @@ LOG_MODULE_REGISTER(webserver_module, CONFIG_WEBSERVER_MODULE_LOG_LEVEL);
 
 #define NUM_BUTTONS     APP_NUM_BUTTONS
 #define NUM_LEDS        APP_NUM_LEDS
-/* Only one HTTP client connects at a time — one WiFi station per mode.
+/* Only one HTTP client connects at a time — one Wi-Fi station per mode.
  * Note: a browser still opens several short-lived TCP connections to load
  * the page (HTML + JS + CSS), which is fine with a limit of 1 because
  * those are sequential, not simultaneous.
@@ -117,7 +117,7 @@ static void button_listener(const struct zbus_channel *chan)
 ZBUS_LISTENER_DEFINE(button_listener_def, button_listener);
 
 /* ============================================================================
- * HTTP CLIENT EVENT LISTENER -> starts HTTP server when a WiFi client connects
+ * HTTP CLIENT EVENT LISTENER -> starts HTTP server when a Wi-Fi client connects
  * ============================================================================
  */
 

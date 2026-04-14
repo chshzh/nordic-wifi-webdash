@@ -156,7 +156,7 @@ jobs:
         run: |
           echo "Validating README.md structure..."
 
-          # Required sections for WiFi SoftAP Webserver
+          # Required sections for Wi-Fi SoftAP Webserver
           grep -q "Project Overview" README.md || (echo "Missing Project Overview section" && exit 1)
           grep -q "Quick Start" README.md || (echo "Missing Quick Start section" && exit 1)
           grep -q "Developer Info" README.md || (echo "Missing Developer Info section" && exit 1)

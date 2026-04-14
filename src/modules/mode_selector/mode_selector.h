@@ -10,7 +10,7 @@
  *
  * SYS_INIT flow (APPLICATION priority 0):
  *   1. Load persisted mode from NVS (default: SoftAP).
- *   2. Publish the mode on WIFI_MODE_CHAN so the WiFi module starts
+ *   2. Publish the mode on WIFI_MODE_CHAN so the Wi-Fi module starts
  *      in the correct mode.
  *
  * To change mode at any time, run the `wifi_mode [SoftAP|STA|P2P]` shell command.

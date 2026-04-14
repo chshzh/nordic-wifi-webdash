@@ -8,7 +8,7 @@
  * Wi-Fi mode selector.
  *
  * Loads the persisted Wi-Fi mode from NVS at SYS_INIT time and publishes
- * it on WIFI_MODE_CHAN so the WiFi module can start in the correct mode.
+ * it on WIFI_MODE_CHAN so the Wi-Fi module can start in the correct mode.
  *
  * The `wifi_mode [SoftAP|STA|P2P]` shell command can be run at any time to change
  * the mode.  It saves the new mode to NVS and performs a cold reboot so
