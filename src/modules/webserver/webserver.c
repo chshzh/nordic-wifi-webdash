@@ -250,7 +250,7 @@ HTTP_RESOURCE_DEFINE(styles_css_resource, webserver_service, "/styles.css",
 		     &styles_css_resource_detail);
 
 /* ============================================================================
- * GET /api/system  -> NEW in v2.0
+ * GET /api/system
  * ============================================================================
  */
 

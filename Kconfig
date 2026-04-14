@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-menu "Nordic WiFi Web Dashboard"
+menu "Nordic WiFi WebDash"
 
 config APP_WIFI_SSID
 	string "WiFi SoftAP SSID"

@@ -52,7 +52,7 @@ int main(void)
 	}
 
 	LOG_INF("==============================================");
-	LOG_INF("Nordic WiFi Web Dashboard v2.0");
+	LOG_INF("Nordic WiFi WebDash");
 	LOG_INF("==============================================");
 	LOG_INF("Build: %s %s", __DATE__, __TIME__);
 	LOG_INF("Board: %s", board_name);
@@ -66,7 +66,7 @@ int main(void)
 
 	LOG_INF("Type 'wifi_mode [SoftAP|STA|P2P]' to change mode after reboot.");
 	LOG_INF("==============================================");
-	LOG_INF("=============Connect Web Dashboard============");
+	LOG_INF("=============Connect WebDash============");
 
 	switch (mode_selector_get_active_mode()) {
 	case WIFI_MODE_SOFTAP:

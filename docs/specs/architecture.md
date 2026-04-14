@@ -14,7 +14,7 @@
 
 ## Overview
 
-Nordic WiFi Web Dashboard uses an **SMF + Zbus modular architecture**. Each feature lives in its own module under `src/modules/`. All inter-module communication is exclusively through Zbus channels. Modules initialize through `SYS_INIT` at priority-ordered boot time.
+Nordic WiFi WebDash uses an **SMF + Zbus modular architecture**. Each feature lives in its own module under `src/modules/`. All inter-module communication is exclusively through Zbus channels. Modules initialize through `SYS_INIT` at priority-ordered boot time.
 
 v2.0 adds a **Mode Selector** module (NVS-backed, shell-command driven) and extends the **WiFi module** to support three runtime-selectable Wi-Fi roles: SoftAP, STA, and P2P (Wi-Fi Direct).
 
@@ -30,7 +30,7 @@ src/
     ├── mode_selector/            ← wifi_mode shell command + NVS persistence
     ├── button/                   ← GPIO button monitoring
     ├── led/                      ← LED output control
-    ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P) (v2.0)
+    ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P) 
     ├── mode_selector/            ← wifi_mode shell command + NVS persistence
     └── webserver/                ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
     └── memory/                   ← heap monitor

@@ -14,7 +14,7 @@
 
 ## Overview
 
-The Webserver module serves the web dashboard over HTTP and exposes a JSON REST API for device state control. It is **mode-aware**: it shows the active Wi-Fi mode in the UI banner and provides a `/api/system` endpoint that returns mode, IP address, and SSID.
+The Webserver module serves the WebDash over HTTP and exposes a JSON REST API for device state control. It is **mode-aware**: it shows the active Wi-Fi mode in the UI banner and provides a `/api/system` endpoint that returns mode, IP address, and SSID.
 
 The module subscribes to `WIFI_CHAN` to know when the network is ready and what IP/mode is active, `BUTTON_CHAN` for button state polling, and `LED_STATE_CHAN` for LED state.
 
@@ -73,7 +73,7 @@ This works in conjunction with `CONFIG_MDNS_RESPONDER=y` so the device is reacha
 
 ## REST API Endpoints
 
-### GET /api/system (NEW in v2.0)
+### GET /api/system 
 
 Returns current Wi-Fi mode, IP address, and SSID.
 
@@ -142,7 +142,7 @@ Controls a specific LED.
 
 ---
 
-## Web UI Updates (v2.0)
+## Web UI Updates 
 
 ### Mode Banner
 

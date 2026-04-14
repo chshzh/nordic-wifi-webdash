@@ -1,5 +1,5 @@
 /*
- * Nordic WiFi Web Dashboard — Main JavaScript (v2.0)
+ * Nordic WiFi WebDash — Main JavaScript 
  */
 
 // Configuration
@@ -43,7 +43,7 @@ let availableLedNumbers  = [];
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Nordic WiFi Web Dashboard v2.0 initialized');
+    console.log('Nordic WiFi WebDash initialized');
 
     buttonGrid        = document.getElementById('button-grid');
     buttonTemplate    = document.getElementById('button-template');
