@@ -399,3 +399,108 @@ void wifi_print_dhcp_ip(struct net_mgmt_event_callback *cb)
 	ARG_UNUSED(cb);
 }
 #endif
+
+/* ============================================================================
+ * P2P_GO AUTO-START: group_add + WPS PIN + 5-minute wait timer
+ * ============================================================================
+ */
+
+#if defined(CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P) && defined(CONFIG_WIFI_NM_WPA_SUPPLICANT_WPS)
+
+#define P2P_GO_WPS_PIN          "12345678"
+#define P2P_GO_CLIENT_TIMEOUT_S 300 /* 5 minutes */
+
+static struct k_work_delayable p2p_go_wps_retry_work;
+
+static void p2p_go_set_wps_pin(void)
+{
+	struct net_if *iface = net_if_get_first_wifi();
+
+	if (!iface) {
+		LOG_ERR("P2P_GO: no Wi-Fi iface for WPS PIN");
+		return;
+	}
+
+	struct wifi_wps_config_params wps = {
+		.oper = WIFI_WPS_PIN_SET,
+	};
+
+	snprintf(wps.pin, sizeof(wps.pin), "%s", P2P_GO_WPS_PIN);
+
+	int ret = net_mgmt(NET_REQUEST_WIFI_WPS_CONFIG, iface, &wps, sizeof(wps));
+
+	if (ret) {
+		LOG_ERR("P2P_GO: WPS PIN set failed (%d)", ret);
+	} else {
+		LOG_INF("P2P_GO: WPS PIN active: %s", P2P_GO_WPS_PIN);
+		LOG_INF("P2P_GO: On your phone: Wi-Fi Direct -> connect -> PIN %s",
+			P2P_GO_WPS_PIN);
+	}
+}
+
+static void p2p_go_wps_retry_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	LOG_WRN("P2P_GO: no client connected in %d s — re-opening WPS window",
+		P2P_GO_CLIENT_TIMEOUT_S);
+	p2p_go_set_wps_pin();
+	k_work_schedule(&p2p_go_wps_retry_work, K_SECONDS(P2P_GO_CLIENT_TIMEOUT_S));
+}
+
+void wifi_p2p_go_cancel_wps_timer(void)
+{
+	k_work_cancel_delayable(&p2p_go_wps_retry_work);
+}
+
+int wifi_run_p2p_go_mode(void)
+{
+	struct net_if *iface = net_if_get_first_wifi();
+
+	if (!iface) {
+		LOG_ERR("P2P_GO: no Wi-Fi interface");
+		return -ENODEV;
+	}
+
+	LOG_INF("P2P_GO mode: creating group...");
+
+	/* Step 1: group_add */
+	struct wifi_p2p_params p2p = {
+		.oper = WIFI_P2P_GROUP_ADD,
+		.timeout = 0,
+	};
+
+	int ret = net_mgmt(NET_REQUEST_WIFI_P2P_OPER, iface, &p2p, sizeof(p2p));
+
+	if (ret) {
+		LOG_ERR("P2P_GO: group_add failed (%d)", ret);
+		return ret;
+	}
+
+	LOG_INF("P2P_GO: group created. GO IP: %s", CONFIG_NET_CONFIG_MY_IPV4_ADDR);
+
+	/* Step 2: activate WPS PIN */
+	p2p_go_set_wps_pin();
+
+	/* Step 3: start 5-minute wait timer */
+	k_work_init_delayable(&p2p_go_wps_retry_work, p2p_go_wps_retry_handler);
+	k_work_schedule(&p2p_go_wps_retry_work, K_SECONDS(P2P_GO_CLIENT_TIMEOUT_S));
+	LOG_INF("P2P_GO: waiting for client (timeout: %d s)...", P2P_GO_CLIENT_TIMEOUT_S);
+
+	return 0;
+}
+
+#else /* fallback stubs when P2P or WPS not enabled */
+
+int wifi_run_p2p_go_mode(void)
+{
+	LOG_WRN("P2P_GO auto-start requires CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P "
+		"and CONFIG_WIFI_NM_WPA_SUPPLICANT_WPS");
+	return -ENOTSUP;
+}
+
+void wifi_p2p_go_cancel_wps_timer(void)
+{
+}
+
+#endif /* CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P && CONFIG_WIFI_NM_WPA_SUPPLICANT_WPS */
+
