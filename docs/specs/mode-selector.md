@@ -1,11 +1,12 @@
 # Mode Selector Module Specification
 
-> **PRD Version**: 2026-04-09-12-00
+> **PRD Version**: 2026-04-14-15-00
 
 ## Changelog
 
 | Version | Summary |
 |---|---|
+| 2026-04-14-15-00 | Fix log examples and test cases to use P2P_GO as default (not SoftAP); bump PRD Version to current |
 | 2026-04-14-10-00 | Code sync: P2P split into P2P_GO/P2P_CLIENT; default mode on fresh flash changed to P2P_GO; app_wifi_mode command args updated; NVS backward-compat for old value 2 (→ P2P_GO) documented |
 | 2026-04-09-12-00 | Replace boot Button-1 long-press / shell menu with `app_wifi_mode` shell command; remove GPIO dependency; simplify boot flow to NVS read + publish only |
 | 2026-03-31 | v2.0 — initial multi-mode NVS-backed mode selector |
@@ -18,7 +19,7 @@ The Mode Selector module runs at the earliest `SYS_INIT` priority (0) and is res
 
 1. Reading the persisted Wi-Fi mode from NVS on every boot
 2. Publishing the resolved mode on `WIFI_MODE_CHAN` so the Wi-Fi module (priority 1) can initialise the correct path
-3. Registering a `app_wifi_mode [SoftAP|STA|P2P]` shell command that saves a new mode to NVS and triggers a reboot
+3. Registering an `app_wifi_mode [softap|sta|p2p_go|p2p_client]` shell command that saves a new mode to NVS and triggers a reboot
 
 This module guarantees that `WIFI_MODE_CHAN` is populated **before** the Wi-Fi module's `SYS_INIT` runs. Mode changes take effect after the device reboots.
 
@@ -185,18 +186,18 @@ config APP_MODE_SELECTOR_LOG_LEVEL
 
 ## Log Output Examples
 
-### Normal boot (SoftAP)
+### Normal boot (P2P_GO — factory default)
 
 ```
-[00:00:00.100] <inf> mode_selector: Stored wifi mode: SoftAP
-[00:00:00.102] <inf> mode_selector: Booting in SoftAP mode.
+[00:00:00.100] <inf> mode_selector: Stored wifi mode: P2P_GO
+[00:00:00.102] <inf> mode_selector: Booting in P2P_GO mode.
 ```
 
-### First boot (no NVS entry)
+### First boot (no NVS entry — defaults to P2P_GO)
 
 ```
-[00:00:00.100] <inf> mode_selector: No Stored wifi mode found. Using default: SoftAP
-[00:00:00.102] <inf> mode_selector: Booting in SoftAP mode.
+[00:00:00.100] <inf> mode_selector: No Stored wifi mode found. Using default: P2P_GO
+[00:00:00.102] <inf> mode_selector: Booting in P2P_GO mode.
 ```
 
 ### Mode change via shell
@@ -221,12 +222,12 @@ uart:~$ app_wifi_mode STA
 
 ## Testing
 
-### TC-MS-001: Normal boot, SoftAP default
+### TC-MS-001: Normal boot, P2P_GO default (factory default)
 
 1. Flash fresh firmware (no NVS data)
 2. Boot the device
-3. Expected log: `No Stored wifi mode found. Using default: SoftAP` → `Booting in SoftAP mode`
-4. Verify SoftAP SSID `WebDash_AP` visible
+3. Expected log: `No Stored wifi mode found. Using default: P2P_GO` → `Booting in P2P_GO mode`
+4. Verify P2P_GO group is auto-started and WPS PIN `12345678` is logged
 
 ### TC-MS-002: Mode change to STA via shell
 
@@ -234,12 +235,12 @@ uart:~$ app_wifi_mode STA
 2. Expected log: `Mode saved: STA. Rebooting...`
 3. After reboot: `Stored wifi mode: STA`, `Booting in STA mode`
 
-### TC-MS-003: Mode change to P2P via shell
+### TC-MS-003: Mode change to P2P_GO via shell
 
-1. In serial console: `uart:~$ app_wifi_mode P2P`
-2. Expected log: `Mode saved: P2P. Rebooting...`
-3. After reboot: `Stored wifi mode: P2P`, `Booting in P2P mode`
-4. Verify `wifi p2p find` starts automatically
+1. In serial console: `uart:~$ app_wifi_mode P2P_GO`
+2. Expected log: `Mode saved: P2P_GO. Rebooting...`
+3. After reboot: `Stored wifi mode: P2P_GO`, `Booting in P2P_GO mode`
+4. Verify P2P group is auto-started and WPS PIN `12345678` is logged
 
 ### TC-MS-004: Invalid argument rejected
 

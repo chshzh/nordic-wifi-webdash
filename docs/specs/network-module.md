@@ -1,11 +1,12 @@
 # Network Module Specification
 
-> **PRD Version**: 2026-04-14-11-00
+> **PRD Version**: 2026-04-14-15-00
 
 ## Changelog
 
 | Version | Summary |
 |---|---|
+| 2026-04-14-15-00 | SoftAP periodic reminder timer: logs SSID/password/IP every 300 s on sysworkq until first client connects; cancelled on NET_EVENT_WIFI_AP_STA_CONNECTED; state machine updated with SoftAP_Waiting state and reminder loop |
 | 2026-04-14-11-00 | P2P_GO auto-start: group_add + wps_pin called automatically at boot; 5-min wait timer for first client; state machine updated with P2P_GO_Waiting state; WPS PIN logged to console |
 | 2026-04-14-10-00 | Code sync: P2P split into P2P_GO (device is GO) and P2P_CLIENT (device joins phone group); WIFI_CHAN+wifi_msg → CLIENT_CONNECTED_CHAN+dk_wifi_info_msg; WPS PIN Kconfig added; SoftAP/P2P_GO publish on AP_STA_CONNECTED; STA/P2P_CLIENT publish on DHCP_BOUND; DK MAC filled from net_if_get_link_addr |
 | 2026-04-09-14-00 | Renamed from wifi-module.md to network-module.md to match src/modules/network/ directory |
@@ -78,10 +79,11 @@ stateDiagram-v2
     ModeInit --> P2P_GO_Starting: mode == P2P_GO
     ModeInit --> P2P_CLIENT_Finding: mode == P2P_CLIENT
 
-    SoftAP_Starting --> SoftAP_Active: AP_ENABLE_SUCCESS
+    SoftAP_Starting --> SoftAP_Waiting: AP_ENABLE_SUCCESS + DHCP server started + 300s timer armed
     SoftAP_Starting --> Error: AP_ENABLE_FAILED
-    SoftAP_Active --> SoftAP_Active: client connect (publish CLIENT_CONNECTED_CHAN)
-    SoftAP_Active --> SoftAP_Active: client disconnect
+    SoftAP_Waiting --> SoftAP_Active: AP_STA_CONNECTED (first client joins; timer cancelled; publish CLIENT_CONNECTED_CHAN)
+    SoftAP_Waiting --> SoftAP_Waiting: 300s timer fires with no client — log SSID/password/IP, re-arm timer
+    SoftAP_Active --> SoftAP_Active: additional client connect/disconnect
 
     STA_Idle --> STA_Connected: NET_EVENT_IPV4_DHCP_BOUND (publish CLIENT_CONNECTED_CHAN)
     STA_Connected --> STA_Idle: NET_EVENT_L4_DISCONNECTED
@@ -137,6 +139,20 @@ sequenceDiagram
     Wi-Fi->>DHCP: dhcpv4_server_start()
     Wi-Fi->>WIFI_CHAN: Publish WIFI_SOFTAP_STARTED\n(ip="192.168.7.1", ssid=CONFIG_APP_WIFI_SSID)
 ```
+
+### Periodic Reminder Timer
+
+After the AP is started and the DHCP server is running, a 300-second `k_work_delayable` is armed on `sysworkq`. The handler re-logs the SSID, password, and device IP each time it fires and re-arms itself. The timer is cancelled by `wifi_softap_cancel_remind_timer()` when `NET_EVENT_WIFI_AP_STA_CONNECTED` fires for the first time.
+
+```
+[00:05:00.000] <wrn> wifi_utils: SoftAP: no client in 300 s SSID='WebDash_AP' Password='12345678' IP=192.168.7.1
+[00:10:00.000] <wrn> wifi_utils: SoftAP: no client in 300 s SSID='WebDash_AP' Password='12345678' IP=192.168.7.1
+```
+
+Implementation:
+- `wifi_utils.c` — `softap_remind_handler()`, `wifi_softap_cancel_remind_timer()`
+- `net_event_mgmt.c` — calls `wifi_softap_cancel_remind_timer()` in the SoftAP branch of `l2_softap_event_handler()`
+- Timer runs on `sysworkq` (pure logging, no `net_mgmt` calls — no stack overflow risk)
 
 ### Published Event
 
