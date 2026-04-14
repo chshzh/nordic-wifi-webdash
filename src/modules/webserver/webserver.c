@@ -18,6 +18,7 @@ LOG_MODULE_REGISTER(webserver_module, CONFIG_WEBSERVER_MODULE_LOG_LEVEL);
 #include <zephyr/kernel.h>
 #include <zephyr/net/dns_sd.h>
 #include <zephyr/net/http/service.h>
+#include <zephyr/net/socket.h>
 #include <zephyr/smf.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/util.h>
@@ -25,10 +26,10 @@ LOG_MODULE_REGISTER(webserver_module, CONFIG_WEBSERVER_MODULE_LOG_LEVEL);
 
 #define NUM_BUTTONS     APP_NUM_BUTTONS
 #define NUM_LEDS        APP_NUM_LEDS
-/* Allow multiple simultaneous HTTP requests per device while DHCP limits
- * the network to two stations total. Each browser typically opens 3-4
- * connections (HTML, JS, CSS, API), so we keep a slightly higher limit
- * here to avoid blocking page load.
+/* Only one HTTP client connects at a time — one WiFi station per mode.
+ * Note: a browser still opens several short-lived TCP connections to load
+ * the page (HTML + JS + CSS), which is fine with a limit of 1 because
+ * those are sequential, not simultaneous.
  */
 #define MAX_WEB_CLIENTS 4
 
@@ -37,15 +38,53 @@ BUILD_ASSERT(NUM_LEDS > 0, "At least one LED expected");
 BUILD_ASSERT(MAX_WEB_CLIENTS > 0, "At least one web client must be allowed");
 
 /* ============================================================================
- * SYSTEM STATE CACHE (updated from WIFI_CHAN events)
+ * SYSTEM STATE CACHE (updated from CLIENT_CONNECTED_CHAN events)
  * ============================================================================
  */
 
-static char cached_mode_str[8] = "SoftAP"; /* "SoftAP", "STA", "P2P" */
-static char cached_ip[16] = "0.0.0.0";
+static char cached_mode_str[12] = "SoftAP";
+static char cached_dk_ip[16] = "0.0.0.0";
+static char cached_dk_mac[18] = "00:00:00:00:00:00";
 static char cached_ssid[33] = "";
-static char cached_client_mac[18] = ""; /* last SoftAP client MAC */
+static char cached_client_ip[16] = "0.0.0.0";
 static bool server_started;
+
+static void update_cached_client_ip_from_http(const struct http_client_ctx *client)
+{
+	if (client == NULL || client->fd < 0) {
+		return;
+	}
+
+	struct sockaddr_storage peer_addr = {0};
+	socklen_t peer_len = sizeof(peer_addr);
+
+	if (zsock_getpeername(client->fd, (struct sockaddr *)&peer_addr, &peer_len) < 0) {
+		return;
+	}
+
+	char peer_ip[INET6_ADDRSTRLEN] = {0};
+
+	if (peer_addr.ss_family == AF_INET) {
+		struct sockaddr_in *sin = (struct sockaddr_in *)&peer_addr;
+
+		zsock_inet_ntop(AF_INET, &sin->sin_addr, peer_ip, sizeof(peer_ip));
+	} else if (peer_addr.ss_family == AF_INET6) {
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&peer_addr;
+
+		zsock_inet_ntop(AF_INET6, &sin6->sin6_addr, peer_ip, sizeof(peer_ip));
+	}
+
+	if (peer_ip[0] != '\0') {
+		snprintf(cached_client_ip, sizeof(cached_client_ip), "%s", peer_ip);
+	}
+}
+
+/* ============================================================================
+ * WIFI READY EVENT LISTENER -> starts HTTP server when connection is ready
+ * ============================================================================
+ */
+
+extern const struct zbus_channel CLIENT_CONNECTED_CHAN;
 
 /* ============================================================================
  * BUTTON STATE TRACKING (via Zbus)
@@ -78,11 +117,9 @@ static void button_listener(const struct zbus_channel *chan)
 ZBUS_LISTENER_DEFINE(button_listener_def, button_listener);
 
 /* ============================================================================
- * WIFI EVENT LISTENER -> starts HTTP server when Wi-Fi is ready
+ * HTTP CLIENT EVENT LISTENER -> starts HTTP server when a WiFi client connects
  * ============================================================================
  */
-
-extern const struct zbus_channel WIFI_CHAN;
 
 /* Deferred work: start the HTTP server from the system work queue after a
  * short delay that lets DHCP/IP settle.  Using k_work_delayable here instead
@@ -101,62 +138,43 @@ static void webserver_start_work_fn(struct k_work *work)
 }
 static K_WORK_DELAYABLE_DEFINE(webserver_start_work, webserver_start_work_fn);
 
-static void wifi_event_listener(const struct zbus_channel *chan)
+static void http_client_event_listener(const struct zbus_channel *chan)
 {
-	const struct wifi_msg *msg = zbus_chan_const_msg(chan);
+	const struct dk_wifi_info_msg *msg = zbus_chan_const_msg(chan);
 
-	switch (msg->type) {
-	case WIFI_SOFTAP_STARTED:
-		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
-		snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
-		LOG_INF("WIFI_SOFTAP_STARTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
+	/* Determine server IP and mode string from the active mode */
+	switch (msg->active_mode) {
+	case APP_WIFI_MODE_SOFTAP:
+		snprintf(cached_mode_str, sizeof(cached_mode_str), "SoftAP");
 		break;
-
-	case WIFI_SOFTAP_STA_CONNECTED:
-		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
-		snprintf(cached_client_mac, sizeof(cached_client_mac), "%s", msg->client_mac);
-		LOG_INF("WIFI_SOFTAP_STA_CONNECTED -> ip=%s mac=%s", cached_ip, cached_client_mac);
-		break;
-
-	case WIFI_STA_CONNECTED:
+	case APP_WIFI_MODE_STA:
 		snprintf(cached_mode_str, sizeof(cached_mode_str), "STA");
-		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
-		snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
-		LOG_INF("WIFI_STA_CONNECTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
 		break;
-
-	case WIFI_P2P_CONNECTED:
-		snprintf(cached_mode_str, sizeof(cached_mode_str), "P2P");
-		snprintf(cached_ip, sizeof(cached_ip), "%s", msg->ip_addr);
-		snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
-		LOG_INF("WIFI_P2P_CONNECTED -> ip=%s ssid=%s", cached_ip, cached_ssid);
+	case APP_WIFI_MODE_P2P_GO:
+		snprintf(cached_mode_str, sizeof(cached_mode_str), "P2P_GO");
 		break;
-
-	case WIFI_SOFTAP_STA_DISCONNECTED:
-	case WIFI_STA_DISCONNECTED:
-	case WIFI_P2P_DISCONNECTED:
-		LOG_INF("Wi-Fi disconnected (server continues)");
-		return; /* keep server running */
-
-	case WIFI_ERROR:
-		LOG_ERR("WiFi error %d -> not starting HTTP server", msg->error_code);
-		return;
-
+	case APP_WIFI_MODE_P2P_CLIENT:
+		snprintf(cached_mode_str, sizeof(cached_mode_str), "P2P_CLIENT");
+		break;
 	default:
 		return;
 	}
 
-	/* Schedule HTTP server start the first time a connected event arrives.
-	 * The 1-second delay lets IP/DHCP settle.  k_work_schedule() is safe
-	 * to call from a listener (VDED context); k_sleep() is not.
-	 */
+	snprintf(cached_dk_ip, sizeof(cached_dk_ip), "%s", msg->dk_ip_addr);
+	snprintf(cached_dk_mac, sizeof(cached_dk_mac), "%s", msg->dk_mac_addr);
+	snprintf(cached_ssid, sizeof(cached_ssid), "%s", msg->ssid);
+
+	LOG_INF("CLIENT_CONNECTED_CHAN -> mode=%s server_ip=%s client_ip=%s ssid=%s",
+		cached_mode_str, cached_dk_ip, cached_client_ip, cached_ssid);
+
+	/* Schedule HTTP server start the first time a connected event arrives. */
 	if (!server_started) {
-		k_work_schedule(&webserver_start_work, K_SECONDS(1));
+		k_work_schedule(&webserver_start_work, K_NO_WAIT);
 	}
 }
 
-ZBUS_LISTENER_DEFINE(wifi_event_listener_def, wifi_event_listener);
-ZBUS_CHAN_ADD_OBS(WIFI_CHAN, wifi_event_listener_def, 0);
+ZBUS_LISTENER_DEFINE(http_client_listener_def, http_client_event_listener);
+ZBUS_CHAN_ADD_OBS(CLIENT_CONNECTED_CHAN, http_client_listener_def, 0);
 
 /* ============================================================================
  * HTTP SERVICE DEFINITION
@@ -252,7 +270,7 @@ HTTP_RESOURCE_DEFINE(styles_css_resource, webserver_service, "/styles.css",
  * ============================================================================
  */
 
-static uint8_t system_api_buf[320];
+static uint8_t system_api_buf[512];
 
 static int system_api_handler(struct http_client_ctx *client, enum http_transaction_status status,
 			      const struct http_request_ctx *request_ctx,
@@ -266,19 +284,27 @@ static int system_api_handler(struct http_client_ctx *client, enum http_transact
 		return 0;
 	}
 
+	update_cached_client_ip_from_http(client);
+
 	uint32_t uptime_s = (uint32_t)(k_uptime_get() / 1000);
 
 	int len = snprintf((char *)system_api_buf, sizeof(system_api_buf),
-			   "{\"mode\":\"%s\",\"ip\":\"%s\","
-			   "\"ssid\":\"%s\",\"uptime_s\":%u,"
+			   "{\"mode\":\"%s\","
+			   "\"device_ip\":\"%s\","
+			   "\"device_mac\":\"%s\","
+			   "\"client_ip\":\"%s\","
+			   "\"ssid\":\"%s\","
+			   "\"uptime_s\":%u,"
 			   "\"board\":\"%s\"}",
-			   cached_mode_str, cached_ip, cached_ssid, uptime_s, CONFIG_BOARD);
+			   cached_mode_str, cached_dk_ip, cached_dk_mac, cached_client_ip,
+			   cached_ssid, uptime_s, CONFIG_BOARD);
 
 	if (len <= 0 || len >= (int)sizeof(system_api_buf)) {
 		return -ENOMEM;
 	}
 
-	LOG_INF("GET /api/system -> mode=%s ip=%s", cached_mode_str, cached_ip);
+	LOG_INF("GET /api/system -> mode=%s device_ip=%s client_ip=%s", cached_mode_str,
+		cached_dk_ip, cached_client_ip);
 
 	response_ctx->body = system_api_buf;
 	response_ctx->body_len = len;
@@ -321,6 +347,8 @@ static int button_api_handler(struct http_client_ctx *client, enum http_transact
 	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
 		return 0;
 	}
+
+	update_cached_client_ip_from_http(client);
 
 	int offset = 0;
 	int remaining = sizeof(button_api_buf);
@@ -399,6 +427,8 @@ static int led_get_api_handler(struct http_client_ctx *client, enum http_transac
 		return 0;
 	}
 
+	update_cached_client_ip_from_http(client);
+
 	int written = led_get_all_states_json((char *)led_get_api_buf, sizeof(led_get_api_buf));
 
 	if (written > 0) {
@@ -451,6 +481,8 @@ static int led_post_api_handler(struct http_client_ctx *client, enum http_transa
 	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
 		return 0;
 	}
+
+	update_cached_client_ip_from_http(client);
 
 	if (request_ctx->data == NULL || request_ctx->data_len == 0) {
 		response_ctx->status = HTTP_400_BAD_REQUEST;
@@ -535,8 +567,8 @@ int webserver_start(void)
 		return 0;
 	}
 
-	LOG_INF("Starting HTTP server on port %d (mode=%s ip=%s)", CONFIG_APP_HTTP_PORT,
-		cached_mode_str, cached_ip);
+	LOG_INF("Starting HTTP server on port %d (mode=%s device_ip=%s)", CONFIG_APP_HTTP_PORT,
+		cached_mode_str, cached_dk_ip);
 
 	int ret = http_server_start();
 
@@ -546,7 +578,7 @@ int webserver_start(void)
 	}
 
 	server_started = true;
-	LOG_INF("HTTP server started -> http://%s:%d or http://%s.local:%d", cached_ip,
+	LOG_INF("HTTP server started -> http://%s:%d or http://%s.local:%d", cached_dk_ip,
 		CONFIG_APP_HTTP_PORT, CONFIG_NET_HOSTNAME, CONFIG_APP_HTTP_PORT);
 
 	return 0;
