@@ -6,6 +6,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-04-14-10-00 | Code sync: P2P split into P2P_GO/P2P_CLIENT; default mode on fresh flash changed to P2P_GO; wifi_mode command args updated; NVS backward-compat for old value 2 (→ P2P_GO) documented |
 | 2026-04-09-12-00 | Replace boot Button-1 long-press / shell menu with `wifi_mode` shell command; remove GPIO dependency; simplify boot flow to NVS read + publish only |
 | 2026-03-31 | v2.0 — initial multi-mode NVS-backed mode selector |
 
@@ -16,10 +17,10 @@
 The Mode Selector module runs at the earliest `SYS_INIT` priority (0) and is responsible for:
 
 1. Reading the persisted Wi-Fi mode from NVS on every boot
-2. Publishing the resolved mode on `WIFI_MODE_CHAN` so the WiFi module (priority 1) can initialise the correct path
+2. Publishing the resolved mode on `WIFI_MODE_CHAN` so the Wi-Fi module (priority 1) can initialise the correct path
 3. Registering a `wifi_mode [SoftAP|STA|P2P]` shell command that saves a new mode to NVS and triggers a reboot
 
-This module guarantees that `WIFI_MODE_CHAN` is populated **before** the WiFi module's `SYS_INIT` runs. Mode changes take effect after the device reboots.
+This module guarantees that `WIFI_MODE_CHAN` is populated **before** the Wi-Fi module's `SYS_INIT` runs. Mode changes take effect after the device reboots.
 
 ---
 
@@ -39,9 +40,10 @@ struct wifi_mode_msg { enum wifi_mode mode; };
 ```
 
 Published values:
-- `WIFI_MODE_SOFTAP = 0` (factory default, first boot)
-- `WIFI_MODE_STA    = 1`
-- `WIFI_MODE_P2P    = 2` (only meaningful on P2P build)
+- `APP_WIFI_MODE_SOFTAP     = 0`
+- `APP_WIFI_MODE_STA        = 1`
+- `APP_WIFI_MODE_P2P_GO     = 2` — **factory default on fresh flash**
+- `APP_WIFI_MODE_P2P_CLIENT = 3` (only meaningful on P2P build)
 
 ---
 
@@ -49,7 +51,7 @@ Published values:
 
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
-| `app/wifi_mode` | `uint8_t` | `0` (AP) | Written only on user selection |
+| `app/wifi_mode` | `uint8_t` | `2` (P2P_GO) | Written only on user selection; old NVS value 2 from pre-split firmware is treated as P2P_GO for backward compatibility |
 
 ### NVS Partition
 
@@ -85,12 +87,12 @@ flowchart TD
     A[SYS_INIT priority 0] --> B[Initialize Settings/NVS]
     B --> C[Read app/wifi_mode from NVS]
     C --> D{NVS entry exists?}
-    D -- No --> E[Use default: SoftAP]
+    D -- No --> E[Use default: P2P_GO]
     D -- Yes --> F[stored_mode = NVS value]
-    E --> G[Publish WIFI_MODE_CHAN with SoftAP]
-    F --> H[Publish WIFI_MODE_CHAN with stored_mode]
+    E --> G[Publish WIFI_MODE_CHAN with P2P_GO]
+    F --> G2[Publish WIFI_MODE_CHAN with stored_mode]
     G --> I[Return from SYS_INIT]
-    H --> I
+    G2 --> I
 ```
 
 ---
@@ -102,35 +104,19 @@ The module registers a shell command that changes and persists the mode:
 ```
 uart:~$ wifi_mode SoftAP
 uart:~$ wifi_mode STA
-uart:~$ wifi_mode P2P
+uart:~$ wifi_mode P2P_GO
+uart:~$ wifi_mode P2P_CLIENT
 ```
 
 **Behaviour**:
-1. Validate argument (`SoftAP`, `STA`, `P2P` — case-insensitive).
+1. Validate argument (`SoftAP`, `STA`, `P2P_GO`, `P2P_CLIENT` — case-insensitive).
 2. Save new mode to NVS (`settings_save_one("app/wifi_mode", ...)`).
-3. Log `[mode_selector] Mode saved: <mode>. Rebooting...`
-4. Call `sys_reboot(SYS_REBOOT_COLD)` after a 200 ms delay (allows shell output to flush).
-
-The new mode takes effect on the next boot.
+3. Log `[mode_selector] Switching to <mode> -- rebooting...`
+4. Call `sys_reboot(SYS_REBOOT_COLD)` after a 200 ms delay.
 
 **Invalid argument response**:
 ```
-[mode_selector] Error: unknown mode 'foo'. Use: wifi_mode [SoftAP|STA|P2P]
-```
-
-After input `1`, `2`, or `3`:
-
-```
- Mode set to: STA
- Saved to NVS. Booting in STA mode...
-=============================================
-```
-
-On timeout (30 s with no valid input):
-
-```
- Timeout. Keeping current mode: SoftAP
-=============================================
+Error: Invalid mode '<input>'. Use SoftAP, STA, P2P_GO, or P2P_CLIENT.
 ```
 
 ---
@@ -147,15 +133,15 @@ sequenceDiagram
 
     HW->>ModeSel: SYS_INIT (priority 0)
     ModeSel->>NVS: settings_load_subtree("app")
-    NVS-->>ModeSel: wifi_mode = 1 (or ENOENT → 0)
+    NVS-->>ModeSel: wifi_mode = 2 (or ENOENT → P2P_GO)
     ModeSel->>WIFI_MODE_CHAN: Publish selected_mode
     Note over ModeSel: SYS_INIT returns
-    Note over WIFI_MODE_CHAN: WiFi module (priority 1) reads mode and starts
+    Note over WIFI_MODE_CHAN: Wi-Fi module (priority 1) reads mode and starts
 
     Note over Shell: Later — user switches mode at runtime
-    Shell->>ModeSel: wifi_mode STA
-    ModeSel->>NVS: settings_save_one("app/wifi_mode", STA)
-    ModeSel->>Shell: Mode saved: STA. Rebooting...
+    Shell->>ModeSel: wifi_mode P2P_GO
+    ModeSel->>NVS: settings_save_one("app/wifi_mode", P2P_GO)
+    ModeSel->>Shell: Switching to P2P_GO mode -- rebooting...
     ModeSel->>ModeSel: sys_reboot(SYS_REBOOT_COLD)
 ```
 

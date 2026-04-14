@@ -8,7 +8,7 @@
 
 Nordic Wi-Fi WebDash is a browser-based demo and reference application for Nordic nRF70 Wi-Fi development kits. The device hosts the dashboard itself, so users can monitor buttons, control LEDs, and inspect system state directly from a browser without relying on cloud services.
 
-The firmware supports three Wi-Fi operating modes: SoftAP, STA, and P2P. The selected mode is stored in NVS and can be changed at runtime with the `wifi_mode` shell command.
+The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `wifi_mode` shell command. **Default on fresh flash is P2P_GO.**
 
 ## Project Overview
 
@@ -26,8 +26,8 @@ Supported hardware:
 
 ### Features
 
-- Three Wi-Fi modes: SoftAP, STA, and P2P (Wi-Fi Direct)
-- Runtime mode switching with `wifi_mode [SoftAP|STA|P2P]`
+- Four Wi-Fi modes: SoftAP, STA, P2P_GO (device is Group Owner), and P2P_CLIENT (device joins phone's group)
+- Runtime mode switching with `wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`
 - Browser dashboard for button status, LED control, and system information
 - REST API for `/api/system`, `/api/buttons`, `/api/leds`, and `/api/led`
 - Gzip-compressed static web assets served from flash
@@ -42,10 +42,9 @@ nordic-wifi-webdash/
 ├── Kconfig
 ├── prj.conf
 ├── west.yml
-├── boards/
-├── pm/
+├── docs/
 │   ├── PRD.md
-│   └── openspec/
+│   └── specs/
 ├── src/
 │   ├── main.c
 │   └── modules/
@@ -55,12 +54,7 @@ nordic-wifi-webdash/
 │       ├── mode_selector/
 │       ├── network/
 │       ├── webserver/
-│       ├── wifi/
 │       └── messages.h
-└── www/
-    ├── index.html
-    ├── main.js
-    └── styles.css
 ```
 
 ## Quick Start
@@ -80,11 +74,12 @@ Download the pre-built `.hex` for your board from the [Releases](https://github.
 
 Open a serial terminal at `115200` baud and follow the instructions printed by the firmware.
 
-- SoftAP: connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
-- STA: run `wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
-- P2P: run `wifi_mode P2P`, reboot, then run `wifi p2p group_add` to start the group and `wifi wps_pin` to get the PIN; on the phone choose Wi-Fi Direct → PIN method and enter the displayed PIN
+- **P2P_GO** (default on fresh flash): the P2P group and WPS PIN (`12345678`) are auto-started at boot — no shell commands needed; on the phone open Wi-Fi Direct, wait for the DK to appear, select it, enter PIN `12345678`, then open `http://192.168.7.1` or `http://nrfwebdash.local`
+- **P2P_CLIENT**: run `wifi_mode P2P_CLIENT`, reboot, the device auto-starts peer discovery; on the phone enable Wi-Fi Direct, then run `wifi p2p connect <MAC> pbc` on the device and accept on the phone; open the IP shown in the terminal
+- **SoftAP**: run `wifi_mode SoftAP`, reboot, connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
+- **STA**: run `wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
 
-At any time, you can switch modes with `uart:~$ wifi_mode [SoftAP|STA|P2P]`. The choice is saved to NVS and survives reboot.
+At any time, you can switch modes with `uart:~$ wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`. The choice is saved to NVS and survives reboot.
 
 ## Developer Info
 
@@ -120,7 +115,7 @@ This repository is a workspace application. The normal flow is:
 2. Run `west update`.
 3. Build and flash for the target board.
 
-For broader product context and implementation details, refer to [pm/PRD.md](pm/PRD.md) and `pm/openspec/`.
+For broader product context and implementation details, refer to [docs/PRD.md](docs/PRD.md) and `docs/specs/`.
 
 ### Configuration
 
@@ -135,9 +130,10 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 
 ### Developer Notes
 
-- nRF54LM20DK + nRF7002EBII loses one button because of shield pin conflicts; BUTTON0-BUTTON2 remain available
-- STA connections are intentionally session-based to avoid unwanted reconnects when returning to SoftAP or P2P
-- mDNS behavior, mode handling, and module responsibilities are documented in [pm/PRD.md](pm/PRD.md)
+- nRF54LM20DK + nRF7002EBII loses one button because of shield pin conflicts; BUTTON0–BUTTON2 remain available
+- STA connections are intentionally session-based to avoid unwanted reconnects when returning to other modes
+- Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `wifi_mode` if preferred
+- mDNS behavior, mode handling, and module responsibilities are documented in [docs/PRD.md](docs/PRD.md)
 
 ### Troubleshooting
 
@@ -145,6 +141,8 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 - STA not reachable: confirm the device received a DHCP IP and use that address first
 - mDNS not resolving: test the printed IP before investigating hostname resolution on the host OS
 - Build issues: confirm the workspace is using NCS `v3.3-branch` and the correct board/shield combination
+- P2P_GO not working: ensure build uses `-DSNIPPET=wifi-p2p`; group is auto-started at boot — check the terminal for errors if it fails
+- P2P_CLIENT not finding peers: verify `-DSNIPPET=wifi-p2p` is used; phone's Wi-Fi Direct must be active
 
 ## Web Interface
 
@@ -182,7 +180,20 @@ All API endpoints use JSON.
 
 ### GET /api/system
 
-Returns active mode, IP, SSID, and uptime.
+Returns active mode, device IP, device MAC, connected HTTP client IP, SSID, uptime, and board name.
+
+Example response:
+```json
+{
+  "mode": "P2P_GO",
+  "device_ip": "192.168.49.1",
+  "device_mac": "AA:BB:CC:DD:EE:FF",
+  "client_ip": "192.168.49.100",
+  "ssid": "DIRECT-xx-WebDash",
+  "uptime_s": 120,
+  "board": "nrf54lm20dk"
+}
+```
 
 ### GET /api/buttons
 
@@ -234,7 +245,7 @@ Supported actions: `on`, `off`, `toggle`
 - [nRF Connect SDK Documentation](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/index.html)
 - [Zephyr State Machine Framework](https://docs.zephyrproject.org/latest/services/smf/index.html)
 - [Zephyr Zbus](https://docs.zephyrproject.org/latest/services/zbus/index.html)
-- [nRF70 Series WiFi](https://www.nordicsemi.com/Products/nRF7002)
+- [nRF70 Series Wi-Fi](https://www.nordicsemi.com/Products/nRF7002)
 - [PRD](pm/PRD.md)
 
 ## Contributing

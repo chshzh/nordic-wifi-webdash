@@ -6,6 +6,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-04-14-10-00 | Code sync: enum app_wifi_mode (4 values, P2P_GO/P2P_CLIENT); WIFI_CHAN → CLIENT_CONNECTED_CHAN; wifi_msg → dk_wifi_info_msg; default mode → P2P_GO; duplicate mode_selector row in module map fixed |
 | 2026-04-09-14-00 | Code alignment: fix module map (wifi/ → network/); SYS_INIT priorities (button/led/webserver=90, network=5); button_msg struct (remove duration_ms); boot sequence diagram |
 | 2026-04-09-12-00 | Mode selector: remove Button-1 long-press; STA: session-based (no wifi_credentials); P2P: both boards; pbc connect method; updated memory budget |
 | 2026-03-31 | v2.0 — multi-mode architecture, Mode Selector module, WIFI_MODE_CHAN |
@@ -16,7 +17,7 @@
 
 Nordic Wi-Fi WebDash uses an **SMF + Zbus modular architecture**. Each feature lives in its own module under `src/modules/`. All inter-module communication is exclusively through Zbus channels. Modules initialize through `SYS_INIT` at priority-ordered boot time.
 
-v2.0 adds a **Mode Selector** module (NVS-backed, shell-command driven) and extends the **WiFi module** to support three runtime-selectable Wi-Fi roles: SoftAP, STA, and P2P (Wi-Fi Direct).
+v2.0 adds a **Mode Selector** module (NVS-backed, shell-command driven) and extends the **Wi-Fi module** to support three runtime-selectable Wi-Fi roles: SoftAP, STA, and P2P (Wi-Fi Direct).
 
 ---
 
@@ -30,9 +31,8 @@ src/
     ├── mode_selector/            ← wifi_mode shell command + NVS persistence
     ├── button/                   ← GPIO button monitoring
     ├── led/                      ← LED output control
-    ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P) 
-    ├── mode_selector/            ← wifi_mode shell command + NVS persistence
-    └── webserver/                ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
+    ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P_GO/P2P_CLIENT)
+    ├── webserver/                ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
     └── memory/                   ← heap monitor
 ```
 
@@ -42,24 +42,25 @@ src/
 
 | Channel | Message Type | Publisher | Subscribers | Direction |
 |---------|-------------|-----------|-------------|-----------|
-| `WIFI_MODE_CHAN` | `struct wifi_mode_msg` | mode_selector | wifi | boot-time, once |
+| `WIFI_MODE_CHAN` | `struct wifi_mode_msg` | mode_selector | network | boot-time, once |
 | `BUTTON_CHAN` | `struct button_msg` | button | webserver | runtime |
 | `LED_CMD_CHAN` | `struct led_msg` | webserver | led | runtime |
 | `LED_STATE_CHAN` | `struct led_state_msg` | led | webserver | runtime |
-| `WIFI_CHAN` | `struct wifi_msg` | wifi | webserver, network | runtime |
+| `CLIENT_CONNECTED_CHAN` | `struct dk_wifi_info_msg` | network | webserver | runtime, on connectivity ready |
 
 ### Message Definitions (`src/modules/messages.h`)
 
 ```c
-/* Wi-Fi mode (new in v2.0) */
-enum wifi_mode {
-    WIFI_MODE_SOFTAP = 0,
-    WIFI_MODE_STA    = 1,
-    WIFI_MODE_P2P    = 2,
+/* Wi-Fi operating mode */
+enum app_wifi_mode {
+    APP_WIFI_MODE_SOFTAP     = 0, /* Device creates own SoftAP */
+    APP_WIFI_MODE_STA        = 1, /* Device connects to existing AP */
+    APP_WIFI_MODE_P2P_GO     = 2, /* Wi-Fi Direct — device is Group Owner */
+    APP_WIFI_MODE_P2P_CLIENT = 3, /* Wi-Fi Direct — device joins phone's group */
 };
 
 struct wifi_mode_msg {
-    enum wifi_mode mode;
+    enum app_wifi_mode mode;
 };
 
 /* Button events */
@@ -78,6 +79,29 @@ struct button_msg {
 /* LED commands */
 enum led_msg_type {
     LED_COMMAND_ON,
+    LED_COMMAND_OFF,
+    LED_COMMAND_TOGGLE,
+};
+
+struct led_msg {
+    enum led_msg_type type;
+    uint8_t led_number;  /* 0-based DK index */
+};
+
+struct led_state_msg {
+    uint8_t led_number;
+    bool    is_on;
+};
+
+/* DK Wi-Fi connectivity info — published by network module when connection is ready */
+struct dk_wifi_info_msg {
+    enum app_wifi_mode active_mode; /* Mode that produced this event */
+    char dk_ip_addr[16];            /* Device IP (dotted-decimal) */
+    char dk_mac_addr[18];           /* Device MAC as XX:XX:XX:XX:XX:XX */
+    char ssid[33];                  /* SoftAP/P2P_GO SSID, or connected AP/GO SSID */
+    int  error_code;
+};
+```
     LED_COMMAND_OFF,
     LED_COMMAND_TOGGLE,
 };
@@ -121,7 +145,7 @@ struct wifi_msg {
 | 5 | network | `network_module_init` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; starts Wi-Fi thread |
 | 90 | button | `button_module_init` | GPIO IRQ setup via dk_buttons_and_leds |
 | 90 | led | `led_module_init` | LED GPIO setup via dk_buttons_and_leds |
-| 90 | webserver | `webserver_module_init` | HTTP service registration (server starts on WIFI_CHAN event) |
+| 90 | webserver | `webserver_module_init` | HTTP service registration (server starts on CLIENT_CONNECTED_CHAN event) |
 | default | memory | `app_heap_monitor_init` | Heap high-water logging (`CONFIG_KERNEL_INIT_PRIORITY_DEFAULT`) |
 
 Mode selector **must** run before network (priority 0 < 5) because the network module reads the published mode at init time.
@@ -137,7 +161,7 @@ graph TB
         BUTTON_CHAN[BUTTON_CHAN]
         LED_CMD_CHAN[LED_CMD_CHAN]
         LED_STATE_CHAN[LED_STATE_CHAN]
-        WIFI_CHAN[WIFI_CHAN]
+        CLIENT_CONNECTED_CHAN[CLIENT_CONNECTED_CHAN]
     end
 
     subgraph hw [Hardware Layer]
@@ -152,8 +176,7 @@ graph TB
         ModeSel[Mode Selector\nboot-time NVS + shell menu]
         ButtonMod[Button Module\nSMF 3-state]
         LEDMod[LED Module\nSMF 2-state per LED]
-        WiFiMod[WiFi Module\nSMF multi-path]
-        NetMod[Network Module\nevent-driven]
+        NetMod[Network Module\nevent-driven, 4 modes]
         WebMod[Webserver Module\nHTTP handlers]
         MemMon[Memory Monitor\nheap stats]
     end
@@ -163,7 +186,7 @@ graph TB
     HW_UART <-->|wifi_mode shell cmd| ModeSel
 
     ModeSel -->|publish once| WIFI_MODE_CHAN
-    WIFI_MODE_CHAN -->|subscribe| WiFiMod
+    WIFI_MODE_CHAN -->|subscribe| NetMod
 
     ButtonMod -->|publish| BUTTON_CHAN
     BUTTON_CHAN -->|subscribe| WebMod
@@ -174,10 +197,9 @@ graph TB
     LED_STATE_CHAN -->|subscribe| WebMod
     LEDMod -->|GPIO| HW_LED
 
-    WiFiMod -->|publish| WIFI_CHAN
-    WIFI_CHAN -->|subscribe| WebMod
-    WIFI_CHAN -->|subscribe| NetMod
-    WiFiMod <-->|Wi-Fi driver| HW_WIFI
+    NetMod -->|publish| CLIENT_CONNECTED_CHAN
+    CLIENT_CONNECTED_CHAN -->|subscribe| WebMod
+    NetMod <-->|Wi-Fi driver| HW_WIFI
 
     WebMod -->|HTTP server| Client[Web Browser]
 ```
@@ -198,7 +220,7 @@ sequenceDiagram
     HW->>ModeSel: SYS_INIT APPLICATION priority 0
     ModeSel->>NVS: Read "app/wifi_mode"
     alt First boot (no NVS entry)
-        NVS-->>ModeSel: -ENOENT → use SoftAP default
+        NVS-->>ModeSel: -ENOENT → use P2P_GO default
     else NVS entry exists
         NVS-->>ModeSel: Stored wifi mode (0/1/2)
     end
@@ -228,7 +250,7 @@ sequenceDiagram
 - Static IP: `192.168.7.1/24`
 - DHCP server: leases `192.168.7.2–192.168.7.3` (max 2 clients)
 - HTTP server: `http://192.168.7.1` or `http://nrfwebdash.local`
-- WiFi SSID: `CONFIG_APP_WIFI_SSID` (default `WebDash_AP`)
+- Wi-Fi SSID: `CONFIG_APP_WIFI_SSID` (default `WebDash_AP`)
 
 ### STA Path (mode = 1)
 
