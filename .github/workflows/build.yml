@@ -134,18 +134,23 @@ jobs:
 
           echo "Generated size report: $SIZE_REPORT"
 
+      - name: Stage artifacts for ${{ matrix.config.name }}
+        if: always()
+        working-directory: app-workspace/nordic-wifi-webdash
+        run: |
+          STAGE="artifact-staging-${{ matrix.config.build_dir }}"
+          mkdir -p "$STAGE"
+          for f in merged.hex build.log usage-summary.txt size-report.txt build_info.yml; do
+            cp "${{ matrix.config.build_dir }}/$f" "$STAGE/" 2>/dev/null || true
+          done
+
       - name: Upload artifacts for ${{ matrix.config.name }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: build-${{ matrix.config.build_dir }}
-          path: |
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/merged.hex
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/build.log
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/usage-summary.txt
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/size-report.txt
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/build_info.yml
+          path: app-workspace/nordic-wifi-webdash/artifact-staging-${{ matrix.config.build_dir }}/
 
   validate-documentation:
     runs-on: ubuntu-24.04
