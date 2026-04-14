@@ -410,6 +410,14 @@ void wifi_print_dhcp_ip(struct net_mgmt_event_callback *cb)
 #define P2P_GO_WPS_PIN          "12345678"
 #define P2P_GO_CLIENT_TIMEOUT_S 300 /* 5 minutes */
 
+/* Dedicated work queue for WPS operations.
+ * net_mgmt(NET_REQUEST_WIFI_WPS_CONFIG) calls deep into wpa_supplicant and
+ * overflows the 2 KB sysworkq stack.  A private 4 KB stack is sufficient.
+ */
+#define P2P_WPS_WORKQ_STACK_SIZE 4096
+K_THREAD_STACK_DEFINE(p2p_wps_workq_stack, P2P_WPS_WORKQ_STACK_SIZE);
+static struct k_work_q p2p_wps_workq;
+static bool p2p_wps_workq_started;
 static struct k_work_delayable p2p_go_wps_retry_work;
 
 static void p2p_go_set_wps_pin(void)
@@ -440,10 +448,11 @@ static void p2p_go_set_wps_pin(void)
 static void p2p_go_wps_retry_handler(struct k_work *work)
 {
 	ARG_UNUSED(work);
-	LOG_WRN("P2P_GO: no client connected in %d s — re-opening WPS window",
+	LOG_WRN("P2P_GO: no client connected in %d s, re-opening WPS window",
 		P2P_GO_CLIENT_TIMEOUT_S);
 	p2p_go_set_wps_pin();
-	k_work_schedule(&p2p_go_wps_retry_work, K_SECONDS(P2P_GO_CLIENT_TIMEOUT_S));
+	k_work_schedule_for_queue(&p2p_wps_workq, &p2p_go_wps_retry_work,
+				  K_SECONDS(P2P_GO_CLIENT_TIMEOUT_S));
 }
 
 void wifi_p2p_go_cancel_wps_timer(void)
@@ -468,9 +477,10 @@ int wifi_run_p2p_go_mode(void)
 	 */
 	struct wifi_p2p_params p2p = {
 		.oper = WIFI_P2P_GROUP_ADD,
-		.group_add = {
-			.persistent = -1,
-		},
+		.group_add =
+			{
+				.persistent = -1,
+			},
 	};
 
 	int ret = net_mgmt(NET_REQUEST_WIFI_P2P_OPER, iface, &p2p, sizeof(p2p));
@@ -485,9 +495,18 @@ int wifi_run_p2p_go_mode(void)
 	/* Step 2: activate WPS PIN */
 	p2p_go_set_wps_pin();
 
-	/* Step 3: start 5-minute wait timer */
+	/* Step 3: start dedicated WPS work queue (needs more stack than sysworkq) */
+	if (!p2p_wps_workq_started) {
+		k_work_queue_init(&p2p_wps_workq);
+		k_work_queue_start(&p2p_wps_workq, p2p_wps_workq_stack,
+				   K_THREAD_STACK_SIZEOF(p2p_wps_workq_stack), K_PRIO_COOP(7),
+				   NULL);
+		p2p_wps_workq_started = true;
+	}
+	/* Step 4: arm 5-minute wait timer on dedicated queue */
 	k_work_init_delayable(&p2p_go_wps_retry_work, p2p_go_wps_retry_handler);
-	k_work_schedule(&p2p_go_wps_retry_work, K_SECONDS(P2P_GO_CLIENT_TIMEOUT_S));
+	k_work_schedule_for_queue(&p2p_wps_workq, &p2p_go_wps_retry_work,
+				  K_SECONDS(P2P_GO_CLIENT_TIMEOUT_S));
 	LOG_INF("P2P_GO: waiting for client (timeout: %d s)...", P2P_GO_CLIENT_TIMEOUT_S);
 
 	return 0;
