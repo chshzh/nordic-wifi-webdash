@@ -27,7 +27,7 @@ Supported hardware:
 ### Features
 
 - Four Wi-Fi modes: SoftAP, STA, P2P_GO (device is Group Owner), and P2P_CLIENT (device joins phone's group)
-- Runtime mode switching with `app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`
+- Runtime mode switching with `app_wifi_mode [softap|sta|p2p_go|p2p_client]`
 - Browser dashboard for button status, LED control, and system information
 - REST API for `/api/system`, `/api/buttons`, `/api/leds`, and `/api/led`
 - Gzip-compressed static web assets served from flash
@@ -79,7 +79,7 @@ Open a serial terminal at `115200` baud and follow the instructions printed by t
 - **SoftAP**: run `app_wifi_mode SoftAP`, reboot, connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
 - **STA**: run `app_wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
 
-At any time, you can switch modes with `uart:~$ app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`. The choice is saved to NVS and survives reboot.
+At any time, you can switch modes with `uart:~$ app_wifi_mode [softap|sta|p2p_go|p2p_client]`. The choice is saved to NVS and survives reboot.
 
 ## Developer Info
 

@@ -119,7 +119,7 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 	if (argc < 2) {
 		shell_print(sh,
 			    "Current mode: %s\r\n"
-			    "Usage: app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]\r\n"
+			    "Usage: app_wifi_mode [softap|sta|p2p_go|p2p_client]\r\n"
 			    "  SoftAP     (creates own SoftAP, IP 192.168.7.1)\r\n"
 			    "  STA        (connects to existing Wi-Fi)\r\n"
 			    "  P2P_GO     (Wi-Fi Direct, device is Group Owner)\r\n"
@@ -167,7 +167,7 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 }
 
 SHELL_CMD_ARG_REGISTER(app_wifi_mode, NULL,
-		       "Set Wi-Fi mode and reboot: app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]",
+		       "Set Wi-Fi mode and reboot: app_wifi_mode [softap|sta|p2p_go|p2p_client]",
 		       cmd_wifi_mode, 1, 1);
 
 /* ============================================================================

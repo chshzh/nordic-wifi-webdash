@@ -20,7 +20,7 @@
 | Version | Summary of changes |
 |---|---|
 | 2026-04-14-11-00 | P2P_GO auto-start: firmware automatically runs group_add and sets WPS PIN at boot; waits up to 5 min for first client (same pattern as SoftAP); no manual shell commands needed to start a P2P_GO session |
-| 2026-04-14-10-00 | Code sync: P2P split into P2P_GO (device is GO) and P2P_CLIENT (device joins phone group); default mode on fresh flash changed to P2P_GO; app_wifi_mode command updated to [SoftAP|STA|P2P_GO|P2P_CLIENT]; WPS PIN connection method added; /api/system fields updated to device_ip, device_mac, client_ip, board |
+| 2026-04-14-10-00 | Code sync: P2P split into P2P_GO (device is GO) and P2P_CLIENT (device joins phone group); default mode on fresh flash changed to P2P_GO; app_wifi_mode command updated to [softap|sta|p2p_go|p2p_client]; WPS PIN connection method added; /api/system fields updated to device_ip, device_mac, client_ip, board |
 | 2026-04-09-12-00 | Replace Button-1 long-press mode selection with `app_wifi_mode` shell command; remove Wi-Fi credential storage (STA is session-based); remove Cloud & Monitoring placeholder section; P2P now supported on both boards; update target users to Evaluator + Application Developer |
 | 2026-04-09-09-00 | Regenerated to PRD template; updated architecture (wifi merged into network module, SYS_INIT priority 5); added DNS-SD `_http._tcp.local` service discovery (FR-104); corrected P2P connection method to `pbc`; removed Kconfig / Flash / RAM / architecture diagrams (→ engineering specs) |
 | 2026-03-31 | v2.0.0 — STA + P2P modes, boot-time mode selector, `/api/system` endpoint, NVS persistence |
@@ -75,7 +75,7 @@ Developers evaluating nRF7x Wi-Fi need connectivity flexibility:
   - **P2P_CLIENT**: device discovers peers and joins the phone's group (`wifi p2p connect <MAC> pbc`); phone assigns IPs
   - Supported on both boards with `-DSNIPPET=wifi-p2p`
 
-The active mode is changed at runtime with `uart:~$ app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`. The choice is saved to NVS and takes effect after reboot. **Default on fresh flash is P2P_GO.**
+The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2p_go|p2p_client]`. The choice is saved to NVS and takes effect after reboot. **Default on fresh flash is P2P_GO.**
 
 ### 2.2 Communication & Protocols
 
@@ -106,7 +106,7 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [SoftAP|STA|P2
 
 ### 2.5 Developer & Debug Features
 
-- [x] **Serial shell** — developer can run `app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]` to switch mode, `wifi connect` to join a network, `wifi p2p find/peer/connect` for P2P_CLIENT, `wifi scan` and `wifi status` for diagnostics; in P2P_GO mode the auto-start sequence runs at boot so no manual `wifi p2p group_add` or `wifi wps_pin` is needed
+- [x] **Serial shell** — developer can run `app_wifi_mode [softap|sta|p2p_go|p2p_client]` to switch mode, `wifi connect` to join a network, `wifi p2p find/peer/connect` for P2P_CLIENT, `wifi scan` and `wifi status` for diagnostics; in P2P_GO mode the auto-start sequence runs at boot so no manual `wifi p2p group_add` or `wifi wps_pin` is needed
 - [x] **Startup log** — board name, MAC address, active Wi-Fi mode, build date, and IP address logged at boot
 
 ---
