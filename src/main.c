@@ -57,6 +57,7 @@ int main(void)
 	LOG_INF("==============================================");
 	LOG_INF("Nordic Wi-Fi WebDash");
 	LOG_INF("==============================================");
+	LOG_INF("Version: %s", APP_VERSION_STRING);
 	LOG_INF("Build: %s %s", __DATE__, __TIME__);
 	LOG_INF("Board: %s", board_name);
 
@@ -67,7 +68,7 @@ int main(void)
 
 	LOG_INF("Current active Wi-Fi mode: %s", mode_str);
 
-	LOG_INF("Type 'wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]' to change mode after reboot.");
+	LOG_INF("Type 'app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]' to change mode after reboot.");
 	LOG_INF("==============================================");
 	LOG_INF("WebDash connection instructions:");
 
@@ -85,17 +86,16 @@ int main(void)
 
 	case APP_WIFI_MODE_P2P_GO:
 		LOG_INF("P2P_GO mode: P2P group + WPS PIN auto-started at boot.");
-		LOG_INF("1. Phone: Turn on Wi-Fi, disconnect from other APs");
-		LOG_INF("2. Phone: Wi-Fi Direct -> wait for DK, select it, enter PIN 12345678");
-			CONFIG_NET_CONFIG_MY_IPV4_ADDR);
-			break;
+		LOG_INF("1. P2P Peer: Turn on Wi-Fi, disconnect from other APs");
+		LOG_INF("2. P2P Peer: Wi-Fi Direct -> wait for DK, select it, enter PIN 12345678");
+		break;
 
 	case APP_WIFI_MODE_P2P_CLIENT:
-		LOG_INF("P2P_CLIENT mode: DK joins phone's P2P group:");
+		LOG_INF("P2P_CLIENT mode: DK joins P2P Peer's P2P group:");
 		LOG_INF("1. DK:    wifi p2p find              -- search for peers");
 		LOG_INF("2. Phone: Enable Wi-Fi Direct, wait for DK MAC to appear");
-		LOG_INF("3. DK:    wifi p2p peer              -- list peers, find phone MAC");
-		LOG_INF("4. DK:    wifi p2p connect <phone MAC> pbc -g 0  -- connect");
+		LOG_INF("3. DK:    wifi p2p peer              -- list peers, find P2P Peer MAC");
+		LOG_INF("4. DK:    wifi p2p connect <P2P Peer MAC> pbc -g 0  -- connect");
 		LOG_INF("5. Phone: Press ACCEPT on the Wi-Fi Direct invitation");
 		break;
 	}
