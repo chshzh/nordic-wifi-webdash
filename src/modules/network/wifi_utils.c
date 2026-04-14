@@ -463,16 +463,31 @@ int wifi_run_p2p_go_mode(void)
 
 	LOG_INF("P2P_GO mode: creating group...");
 
-	/* Step 1: group_add */
+	/* Step 1: group_add — retry up to 3 times with 1 s delay.
+	 * The P2P sub-module inside wpa_supplicant may not be ready immediately
+	 * after NET_EVENT_SUPPLICANT_READY fires, causing a transient -EIO.
+	 */
 	struct wifi_p2p_params p2p = {
 		.oper = WIFI_P2P_GROUP_ADD,
 		.timeout = 0,
 	};
 
-	int ret = net_mgmt(NET_REQUEST_WIFI_P2P_OPER, iface, &p2p, sizeof(p2p));
+	int ret = -EIO;
+
+	for (int attempt = 1; attempt <= 3; attempt++) {
+		ret = net_mgmt(NET_REQUEST_WIFI_P2P_OPER, iface, &p2p, sizeof(p2p));
+		if (ret == 0) {
+			break;
+		}
+		LOG_WRN("P2P_GO: group_add attempt %d/3 failed (%d)%s", attempt, ret,
+			attempt < 3 ? " — retrying in 1 s" : "");
+		if (attempt < 3) {
+			k_sleep(K_SECONDS(1));
+		}
+	}
 
 	if (ret) {
-		LOG_ERR("P2P_GO: group_add failed (%d)", ret);
+		LOG_ERR("P2P_GO: group_add failed after 3 attempts (%d)", ret);
 		return ret;
 	}
 
