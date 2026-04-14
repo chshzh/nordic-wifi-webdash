@@ -10,7 +10,7 @@
  * Loads the persisted Wi-Fi mode from NVS at SYS_INIT time and publishes
  * it on WIFI_MODE_CHAN so the Wi-Fi module can start in the correct mode.
  *
- * The `wifi_mode [SoftAP|STA|P2P]` shell command can be run at any time to change
+ * The `app_wifi_mode [SoftAP|STA|P2P]` shell command can be run at any time to change
  * the mode.  It saves the new mode to NVS and performs a cold reboot so
  * the system comes up cleanly in the selected mode.
  */
@@ -51,7 +51,7 @@ static enum app_wifi_mode selected_mode = APP_WIFI_MODE_P2P_GO;
 
 static int settings_set_cb(const char *key, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
-	if (strcmp(key, "wifi_mode") == 0 && len == sizeof(uint8_t)) {
+	if (strcmp(key, "app_wifi_mode") == 0 && len == sizeof(uint8_t)) {
 		uint8_t val;
 		ssize_t rc = read_cb(cb_arg, &val, sizeof(val));
 
@@ -67,7 +67,7 @@ SETTINGS_STATIC_HANDLER_DEFINE(mode_selector_settings, "app", NULL, settings_set
 static int nvs_save_mode(enum app_wifi_mode mode)
 {
 	uint8_t val = (uint8_t)mode;
-	int ret = settings_save_one("app/wifi_mode", &val, sizeof(val));
+	int ret = settings_save_one("app/app_wifi_mode", &val, sizeof(val));
 
 	if (ret) {
 		LOG_ERR("Failed to save mode to NVS: %d", ret);
@@ -107,7 +107,7 @@ static void publish_mode(enum app_wifi_mode mode)
 }
 
 /* ============================================================================
- * SHELL COMMAND: wifi_mode [SoftAP|STA|P2P]
+ * SHELL COMMAND: app_wifi_mode [SoftAP|STA|P2P]
  *
  * Can be run at any time — not just at boot.  Saves the new mode to NVS
  * and performs a cold reboot so the system starts cleanly in that mode.
@@ -119,7 +119,7 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 	if (argc < 2) {
 		shell_print(sh,
 			    "Current mode: %s\r\n"
-			    "Usage: wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]\r\n"
+			    "Usage: app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]\r\n"
 			    "  SoftAP     (creates own SoftAP, IP 192.168.7.1)\r\n"
 			    "  STA        (connects to existing Wi-Fi)\r\n"
 			    "  P2P_GO     (Wi-Fi Direct, device is Group Owner)\r\n"
@@ -166,8 +166,8 @@ static int cmd_wifi_mode(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-SHELL_CMD_ARG_REGISTER(wifi_mode, NULL,
-		       "Set Wi-Fi mode and reboot: wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]",
+SHELL_CMD_ARG_REGISTER(app_wifi_mode, NULL,
+		       "Set Wi-Fi mode and reboot: app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]",
 		       cmd_wifi_mode, 1, 1);
 
 /* ============================================================================
