@@ -6,8 +6,8 @@
 
 | Version | Summary |
 |---|---|
-| 2026-04-14-10-00 | Code sync: P2P split into P2P_GO/P2P_CLIENT; default mode on fresh flash changed to P2P_GO; wifi_mode command args updated; NVS backward-compat for old value 2 (→ P2P_GO) documented |
-| 2026-04-09-12-00 | Replace boot Button-1 long-press / shell menu with `wifi_mode` shell command; remove GPIO dependency; simplify boot flow to NVS read + publish only |
+| 2026-04-14-10-00 | Code sync: P2P split into P2P_GO/P2P_CLIENT; default mode on fresh flash changed to P2P_GO; app_wifi_mode command args updated; NVS backward-compat for old value 2 (→ P2P_GO) documented |
+| 2026-04-09-12-00 | Replace boot Button-1 long-press / shell menu with `app_wifi_mode` shell command; remove GPIO dependency; simplify boot flow to NVS read + publish only |
 | 2026-03-31 | v2.0 — initial multi-mode NVS-backed mode selector |
 
 ---
@@ -18,7 +18,7 @@ The Mode Selector module runs at the earliest `SYS_INIT` priority (0) and is res
 
 1. Reading the persisted Wi-Fi mode from NVS on every boot
 2. Publishing the resolved mode on `WIFI_MODE_CHAN` so the Wi-Fi module (priority 1) can initialise the correct path
-3. Registering a `wifi_mode [SoftAP|STA|P2P]` shell command that saves a new mode to NVS and triggers a reboot
+3. Registering a `app_wifi_mode [SoftAP|STA|P2P]` shell command that saves a new mode to NVS and triggers a reboot
 
 This module guarantees that `WIFI_MODE_CHAN` is populated **before** the Wi-Fi module's `SYS_INIT` runs. Mode changes take effect after the device reboots.
 
@@ -36,7 +36,7 @@ This module guarantees that `WIFI_MODE_CHAN` is populated **before** the Wi-Fi m
 **Publishes**: `WIFI_MODE_CHAN` once at boot
 
 ```c
-struct wifi_mode_msg { enum wifi_mode mode; };
+struct wifi_mode_msg { enum app_wifi_mode mode; };
 ```
 
 Published values:
@@ -51,7 +51,7 @@ Published values:
 
 | Key | Type | Default | Notes |
 |-----|------|---------|-------|
-| `app/wifi_mode` | `uint8_t` | `2` (P2P_GO) | Written only on user selection; old NVS value 2 from pre-split firmware is treated as P2P_GO for backward compatibility |
+| `app/app_wifi_mode` | `uint8_t` | `2` (P2P_GO) | Written only on user selection; old NVS value 2 from pre-split firmware is treated as P2P_GO for backward compatibility |
 
 ### NVS Partition
 
@@ -66,16 +66,16 @@ CONFIG_FLASH_MAP=y
 CONFIG_FLASH_PAGE_LAYOUT=y
 ```
 
-Settings key path: `"app/wifi_mode"` (written/read via `settings_save_one()` / `settings_load_subtree()`).
+Settings key path: `"app/app_wifi_mode"` (written/read via `settings_save_one()` / `settings_load_subtree()`).
 
 ### Read/Write API
 
 ```c
 /* Read Stored wifi mode (returns AP on first boot / ENOENT) */
-static int mode_selector_nvs_read(enum wifi_mode *mode);
+static int mode_selector_nvs_read(enum app_wifi_mode *mode);
 
 /* Write selected mode */
-static int mode_selector_nvs_write(enum wifi_mode mode);
+static int mode_selector_nvs_write(enum app_wifi_mode mode);
 ```
 
 ---
@@ -85,7 +85,7 @@ static int mode_selector_nvs_write(enum wifi_mode mode);
 ```mermaid
 flowchart TD
     A[SYS_INIT priority 0] --> B[Initialize Settings/NVS]
-    B --> C[Read app/wifi_mode from NVS]
+    B --> C[Read app/app_wifi_mode from NVS]
     C --> D{NVS entry exists?}
     D -- No --> E[Use default: P2P_GO]
     D -- Yes --> F[stored_mode = NVS value]
@@ -97,20 +97,20 @@ flowchart TD
 
 ---
 
-## wifi_mode Shell Command
+## app_wifi_mode Shell Command
 
 The module registers a shell command that changes and persists the mode:
 
 ```
-uart:~$ wifi_mode SoftAP
-uart:~$ wifi_mode STA
-uart:~$ wifi_mode P2P_GO
-uart:~$ wifi_mode P2P_CLIENT
+uart:~$ app_wifi_mode SoftAP
+uart:~$ app_wifi_mode STA
+uart:~$ app_wifi_mode P2P_GO
+uart:~$ app_wifi_mode P2P_CLIENT
 ```
 
 **Behaviour**:
 1. Validate argument (`SoftAP`, `STA`, `P2P_GO`, `P2P_CLIENT` — case-insensitive).
-2. Save new mode to NVS (`settings_save_one("app/wifi_mode", ...)`).
+2. Save new mode to NVS (`settings_save_one("app/app_wifi_mode", ...)`).
 3. Log `[mode_selector] Switching to <mode> -- rebooting...`
 4. Call `sys_reboot(SYS_REBOOT_COLD)` after a 200 ms delay.
 
@@ -133,14 +133,14 @@ sequenceDiagram
 
     HW->>ModeSel: SYS_INIT (priority 0)
     ModeSel->>NVS: settings_load_subtree("app")
-    NVS-->>ModeSel: wifi_mode = 2 (or ENOENT → P2P_GO)
+    NVS-->>ModeSel: app_wifi_mode = 2 (or ENOENT → P2P_GO)
     ModeSel->>WIFI_MODE_CHAN: Publish selected_mode
     Note over ModeSel: SYS_INIT returns
     Note over WIFI_MODE_CHAN: Wi-Fi module (priority 1) reads mode and starts
 
     Note over Shell: Later — user switches mode at runtime
-    Shell->>ModeSel: wifi_mode P2P_GO
-    ModeSel->>NVS: settings_save_one("app/wifi_mode", P2P_GO)
+    Shell->>ModeSel: app_wifi_mode P2P_GO
+    ModeSel->>NVS: settings_save_one("app/app_wifi_mode", P2P_GO)
     ModeSel->>Shell: Switching to P2P_GO mode -- rebooting...
     ModeSel->>ModeSel: sys_reboot(SYS_REBOOT_COLD)
 ```
@@ -161,7 +161,7 @@ config APP_MODE_SELECTOR
     select SHELL
     help
       Reads persisted Wi-Fi mode from NVS at boot and publishes it on
-      WIFI_MODE_CHAN. Registers the wifi_mode shell command to change
+      WIFI_MODE_CHAN. Registers the app_wifi_mode shell command to change
       and persist the mode at runtime.
 
 config APP_MODE_SELECTOR_LOG_LEVEL
@@ -202,7 +202,7 @@ config APP_MODE_SELECTOR_LOG_LEVEL
 ### Mode change via shell
 
 ```
-uart:~$ wifi_mode STA
+uart:~$ app_wifi_mode STA
 [mode_selector] Mode saved: STA. Rebooting...
 *** Booting nRF Connect SDK ... ***
 [00:00:00.100] <inf> mode_selector: Stored wifi mode: STA
@@ -215,7 +215,7 @@ uart:~$ wifi_mode STA
 
 - `CONFIG_SETTINGS=y` + `CONFIG_NVS=y` — NVS persistence
 - `CONFIG_ZBUS=y` — publishing `WIFI_MODE_CHAN`
-- `CONFIG_SHELL=y` — `wifi_mode` shell command registration
+- `CONFIG_SHELL=y` — `app_wifi_mode` shell command registration
 
 ---
 
@@ -230,25 +230,25 @@ uart:~$ wifi_mode STA
 
 ### TC-MS-002: Mode change to STA via shell
 
-1. In serial console: `uart:~$ wifi_mode STA`
+1. In serial console: `uart:~$ app_wifi_mode STA`
 2. Expected log: `Mode saved: STA. Rebooting...`
 3. After reboot: `Stored wifi mode: STA`, `Booting in STA mode`
 
 ### TC-MS-003: Mode change to P2P via shell
 
-1. In serial console: `uart:~$ wifi_mode P2P`
+1. In serial console: `uart:~$ app_wifi_mode P2P`
 2. Expected log: `Mode saved: P2P. Rebooting...`
 3. After reboot: `Stored wifi mode: P2P`, `Booting in P2P mode`
 4. Verify `wifi p2p find` starts automatically
 
 ### TC-MS-004: Invalid argument rejected
 
-1. In serial console: `uart:~$ wifi_mode foo`
+1. In serial console: `uart:~$ app_wifi_mode foo`
 2. Expected: error message listing valid options; no reboot
 
 ### TC-MS-005: NVS persistence across power cycle
 
-1. Run `wifi_mode STA` and wait for reboot
+1. Run `app_wifi_mode STA` and wait for reboot
 2. Power cycle device (no shell command)
 3. Expected log on re-boot: `Stored wifi mode: STA`; boots in STA mode
 

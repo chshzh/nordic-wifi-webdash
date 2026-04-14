@@ -46,7 +46,7 @@ struct wifi_msg {
     enum wifi_msg_type type;     /* WIFI_SOFTAP_STARTED, WIFI_STA_CONNECTED,
                                     WIFI_STA_DISCONNECTED, WIFI_P2P_CONNECTED,
                                     WIFI_P2P_DISCONNECTED, WIFI_ERROR */
-    enum wifi_mode     active_mode;
+    enum app_wifi_mode     active_mode;
     char               ip_addr[16];  /* dotted-decimal, filled on connect */
     char               ssid[33];     /* filled on connect */
     int                error_code;
@@ -345,7 +345,7 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nr
 
 ### STA Verification
 
-1. Boot in STA mode (`wifi_mode STA` then reboot)
+1. Boot in STA mode (`app_wifi_mode STA` then reboot)
 2. Run `wifi connect -s "TestAP" -p "password" -k 1` via shell
 3. Confirm `[network] STA CONNECTED - IP: <ip>` log
 4. Navigate to `http://<ip>` or `http://nrfwebdash.local`
@@ -353,7 +353,7 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nr
 ### P2P Verification (WCS-106 procedure)
 
 1. Flash P2P build to either board
-2. Run `wifi_mode P2P` then reboot
+2. Run `app_wifi_mode P2P` then reboot
 3. Enable Wi-Fi Direct on Android phone
 4. Run `wifi p2p peer` — confirm phone appears in list
 5. Run `wifi p2p connect <phone_MAC> pbc -g 0`

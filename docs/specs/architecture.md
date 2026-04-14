@@ -28,7 +28,7 @@ src/
 ├── main.c                        ← startup banner, SYS_INIT trigger
 └── modules/
     ├── messages.h                ← all Zbus message structs (shared)
-    ├── mode_selector/            ← wifi_mode shell command + NVS persistence
+    ├── mode_selector/            ← app_wifi_mode shell command + NVS persistence
     ├── button/                   ← GPIO button monitoring
     ├── led/                      ← LED output control
     ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P_GO/P2P_CLIENT)
@@ -128,7 +128,7 @@ enum wifi_msg_type {
 
 struct wifi_msg {
     enum wifi_msg_type type;
-    enum wifi_mode     active_mode;  /* NEW v2.0 */
+    enum app_wifi_mode     active_mode;  /* NEW v2.0 */
     char               ip_addr[16];  /* NEW v2.0: dotted-decimal */
     char               ssid[33];     /* NEW v2.0 */
     int                error_code;
@@ -141,7 +141,7 @@ struct wifi_msg {
 
 | Priority | Module | Function | Notes |
 |----------|--------|----------|-------|
-| 0 | mode_selector | `mode_selector_init` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `wifi_mode` shell command |
+| 0 | mode_selector | `mode_selector_init` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `app_wifi_mode` shell command |
 | 5 | network | `network_module_init` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; starts Wi-Fi thread |
 | 90 | button | `button_module_init` | GPIO IRQ setup via dk_buttons_and_leds |
 | 90 | led | `led_module_init` | LED GPIO setup via dk_buttons_and_leds |
@@ -183,7 +183,7 @@ graph TB
 
     HW_BTN -->|GPIO IRQ| ButtonMod
     HW_FLASH <-->|NVS read/write| ModeSel
-    HW_UART <-->|wifi_mode shell cmd| ModeSel
+    HW_UART <-->|app_wifi_mode shell cmd| ModeSel
 
     ModeSel -->|publish once| WIFI_MODE_CHAN
     WIFI_MODE_CHAN -->|subscribe| NetMod
@@ -218,7 +218,7 @@ sequenceDiagram
     participant Btn as Button Module
 
     HW->>ModeSel: SYS_INIT APPLICATION priority 0
-    ModeSel->>NVS: Read "app/wifi_mode"
+    ModeSel->>NVS: Read "app/app_wifi_mode"
     alt First boot (no NVS entry)
         NVS-->>ModeSel: -ENOENT → use P2P_GO default
     else NVS entry exists

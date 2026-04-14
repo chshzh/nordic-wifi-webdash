@@ -8,7 +8,7 @@
 
 Nordic Wi-Fi WebDash is a browser-based demo and reference application for Nordic nRF70 Wi-Fi development kits. The device hosts the dashboard itself, so users can monitor buttons, control LEDs, and inspect system state directly from a browser without relying on cloud services.
 
-The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `wifi_mode` shell command. **Default on fresh flash is P2P_GO.**
+The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `app_wifi_mode` shell command. **Default on fresh flash is P2P_GO.**
 
 ## Project Overview
 
@@ -27,7 +27,7 @@ Supported hardware:
 ### Features
 
 - Four Wi-Fi modes: SoftAP, STA, P2P_GO (device is Group Owner), and P2P_CLIENT (device joins phone's group)
-- Runtime mode switching with `wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`
+- Runtime mode switching with `app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`
 - Browser dashboard for button status, LED control, and system information
 - REST API for `/api/system`, `/api/buttons`, `/api/leds`, and `/api/led`
 - Gzip-compressed static web assets served from flash
@@ -75,11 +75,11 @@ Download the pre-built `.hex` for your board from the [Releases](https://github.
 Open a serial terminal at `115200` baud and follow the instructions printed by the firmware.
 
 - **P2P_GO** (default on fresh flash): the P2P group and WPS PIN (`12345678`) are auto-started at boot — no shell commands needed; on the phone open Wi-Fi Direct, wait for the DK to appear, select it, enter PIN `12345678`, then open `http://192.168.7.1` or `http://nrfwebdash.local`
-- **P2P_CLIENT**: run `wifi_mode P2P_CLIENT`, reboot, the device auto-starts peer discovery; on the phone enable Wi-Fi Direct, then run `wifi p2p connect <MAC> pbc` on the device and accept on the phone; open the IP shown in the terminal
-- **SoftAP**: run `wifi_mode SoftAP`, reboot, connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
-- **STA**: run `wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
+- **P2P_CLIENT**: run `app_wifi_mode P2P_CLIENT`, reboot, the device auto-starts peer discovery; on the phone enable Wi-Fi Direct, then run `wifi p2p connect <MAC> pbc` on the device and accept on the phone; open the IP shown in the terminal
+- **SoftAP**: run `app_wifi_mode SoftAP`, reboot, connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
+- **STA**: run `app_wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
 
-At any time, you can switch modes with `uart:~$ wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`. The choice is saved to NVS and survives reboot.
+At any time, you can switch modes with `uart:~$ app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]`. The choice is saved to NVS and survives reboot.
 
 ## Developer Info
 
@@ -132,7 +132,7 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 
 - nRF54LM20DK + nRF7002EBII loses one button because of shield pin conflicts; BUTTON0–BUTTON2 remain available
 - STA connections are intentionally session-based to avoid unwanted reconnects when returning to other modes
-- Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `wifi_mode` if preferred
+- Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `app_wifi_mode` if preferred
 - mDNS behavior, mode handling, and module responsibilities are documented in [docs/PRD.md](docs/PRD.md)
 
 ### Troubleshooting

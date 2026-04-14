@@ -259,7 +259,7 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 
 ### TC-WEB-002: Dashboard loads in STA mode
 
-1. Run `wifi_mode STA` and reboot
+1. Run `app_wifi_mode STA` and reboot
 2. Run `wifi connect -s "TestAP" -p "password" -k 1` via shell
 3. Note DHCP IP from logs
 4. Navigate to `http://<dhcp-ip>` or `http://nrfwebdash.local`
