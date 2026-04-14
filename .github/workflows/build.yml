@@ -1,4 +1,4 @@
-name: Build and Test Nordic WiFi Web Dashboard
+name: Build and Test Nordic Wi-Fi WebDash
 
 on:
   push:
@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       NCS_VERSION: ${{ steps.extract-version.outputs.NCS_VERSION }}
+      TOOLCHAIN_VERSION: ${{ steps.extract-version.outputs.TOOLCHAIN_VERSION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,11 +29,20 @@ jobs:
         run: |
           NCS_VERSION=$(grep 'revision:' west.yml | awk '{print $2}')
           echo "NCS_VERSION=${NCS_VERSION}" >> $GITHUB_OUTPUT
+          # Docker toolchain images use release tags (e.g. v3.2.4, v3.3.0-rc1).
+          # Branch names like v3.3-branch have no matching image, so read the
+          # pinned toolchain tag from .toolchain-version when needed.
+          if [[ "${NCS_VERSION}" == *-branch ]]; then
+            TOOLCHAIN_VERSION=$(cat .toolchain-version 2>/dev/null || echo "${NCS_VERSION}")
+          else
+            TOOLCHAIN_VERSION="${NCS_VERSION}"
+          fi
+          echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}" >> $GITHUB_OUTPUT
 
   build-and-test:
     needs: set-version
     runs-on: ubuntu-24.04
-    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.NCS_VERSION }}
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.TOOLCHAIN_VERSION }}
     defaults:
       run:
         shell: bash
@@ -65,14 +75,18 @@ jobs:
           BUILD_LOG="${{ matrix.config.build_dir }}/build.log"
           EXTRA_ARGS="${{ matrix.config.cmake_args }}"
 
+          # Inject firmware version: use the git tag on tag pushes, "dev" otherwise.
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            FW_VERSION="${{ github.ref_name }}"
+          else
+            FW_VERSION="dev"
+          fi
+          EXTRA_ARGS="$EXTRA_ARGS -DAPP_VERSION_STRING=${FW_VERSION}"
+
           mkdir -p "${{ matrix.config.build_dir }}"
           set -o pipefail
 
-          if [ -n "$EXTRA_ARGS" ]; then
-            west build -p -b ${{ matrix.config.board }} -d ${{ matrix.config.build_dir }} -- $EXTRA_ARGS 2>&1 | tee "$BUILD_LOG"
-          else
-            west build -p -b ${{ matrix.config.board }} -d ${{ matrix.config.build_dir }} 2>&1 | tee "$BUILD_LOG"
-          fi
+          west build -p -b ${{ matrix.config.board }} -d ${{ matrix.config.build_dir }} -- $EXTRA_ARGS 2>&1 | tee "$BUILD_LOG"
 
       - name: Extract memory usage for ${{ matrix.config.name }}
         if: always()
@@ -120,18 +134,23 @@ jobs:
 
           echo "Generated size report: $SIZE_REPORT"
 
+      - name: Stage artifacts for ${{ matrix.config.name }}
+        if: always()
+        working-directory: app-workspace/nordic-wifi-webdash
+        run: |
+          STAGE="artifact-staging-${{ matrix.config.build_dir }}"
+          mkdir -p "$STAGE"
+          for f in merged.hex build.log usage-summary.txt size-report.txt build_info.yml; do
+            cp "${{ matrix.config.build_dir }}/$f" "$STAGE/" 2>/dev/null || true
+          done
+
       - name: Upload artifacts for ${{ matrix.config.name }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: build-${{ matrix.config.build_dir }}
-          path: |
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/merged.hex
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/build.log
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/usage-summary.txt
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/size-report.txt
-            app-workspace/nordic-wifi-webdash/${{ matrix.config.build_dir }}/build_info.yml
+          path: app-workspace/nordic-wifi-webdash/artifact-staging-${{ matrix.config.build_dir }}/
 
   validate-documentation:
     runs-on: ubuntu-24.04
@@ -146,7 +165,7 @@ jobs:
         run: |
           echo "Validating README.md structure..."
 
-          # Required sections for WiFi SoftAP Webserver
+          # Required sections for Wi-Fi SoftAP Webserver
           grep -q "Project Overview" README.md || (echo "Missing Project Overview section" && exit 1)
           grep -q "Quick Start" README.md || (echo "Missing Quick Start section" && exit 1)
           grep -q "Developer Info" README.md || (echo "Missing Developer Info section" && exit 1)
@@ -164,15 +183,12 @@ jobs:
           [ -f CMakeLists.txt ] || (echo "Missing CMakeLists.txt" && exit 1)
           [ -f Kconfig ] || (echo "Missing Kconfig" && exit 1)
 
-          # Credential template
-          [ -f overlay-wifi-credentials.conf.template ] || (echo "Missing credential template" && exit 1)
-
           echo "Configuration files validation passed ✓"
 
   static-analysis:
     needs: set-version
     runs-on: ubuntu-24.04
-    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.NCS_VERSION }}
+    container: ghcr.io/nrfconnect/sdk-nrf-toolchain:${{ needs.set-version.outputs.TOOLCHAIN_VERSION }}
     defaults:
       run:
         shell: bash
@@ -236,7 +252,7 @@ jobs:
 
           if [ -z "$PREV_TAG" ]; then
             echo "First release - no previous tag found"
-            CHANGELOG="Initial release of Nordic WiFi Web Dashboard"
+            CHANGELOG="Initial release of Nordic Wi-Fi WebDash"
           else
             echo "Generating changelog from $PREV_TAG to ${{ github.ref_name }}"
             CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD)
@@ -272,7 +288,7 @@ jobs:
           : "${NRF54LM20_RAM:=n/a}"
 
           cat > /tmp/release-body.txt <<EOF
-          ## Nordic WiFi Web Dashboard Release ${{ github.ref_name }}
+          ## Nordic Wi-Fi WebDash Release ${{ github.ref_name }}
 
           > **Note**: Built with NCS ${{ needs.set-version.outputs.NCS_VERSION }}
 
@@ -321,7 +337,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: "Nordic WiFi Web Dashboard ${{ github.ref_name }}"
+          name: "Nordic Wi-Fi WebDash ${{ github.ref_name }}"
           body_path: /tmp/release-body.txt
           files: |
             release-package/*.hex

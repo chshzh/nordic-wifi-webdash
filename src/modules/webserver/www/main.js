@@ -1,5 +1,5 @@
 /*
- * Nordic WiFi Web Dashboard — Main JavaScript (v2.0)
+ * Nordic Wi-Fi WebDash — Main JavaScript 
  */
 
 // Configuration
@@ -23,13 +23,15 @@ function boardLabel(raw) {
 
 // Mode banner colors per Wi-Fi mode
 const MODE_COLORS = {
-    'SoftAP': '#1565c0', // blue
-    'STA':    '#2e7d32', // green
-    'P2P':    '#6a1b9a', // purple
+    'SoftAP':     '#1565c0', // blue
+    'STA':        '#2e7d32', // green
+    'P2P_GO':     '#6a1b9a', // purple
+    'P2P_CLIENT': '#e65100', // orange
 };
 
 // State
 let updateInterval    = null;
+let refreshInFlight   = false;
 let buttonGrid        = null;
 let buttonTemplate    = null;
 let buttonPlaceholder = null;
@@ -43,7 +45,7 @@ let availableLedNumbers  = [];
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Nordic WiFi Web Dashboard v2.0 initialized');
+    console.log('Nordic Wi-Fi WebDash initialized');
 
     buttonGrid        = document.getElementById('button-grid');
     buttonTemplate    = document.getElementById('button-template');
@@ -53,9 +55,6 @@ document.addEventListener('DOMContentLoaded', function () {
     ledPlaceholder    = document.getElementById('led-placeholder');
 
     startAutoUpdate();
-    updateSystemInfo();
-    updateButtonStates();
-    updateLEDStates();
 });
 
 // Start automatic updates
@@ -64,13 +63,30 @@ function startAutoUpdate() {
         clearInterval(updateInterval);
     }
 
+    refreshAllSections();
+
     updateInterval = setInterval(function () {
-        updateSystemInfo();
-        updateButtonStates();
-        updateLEDStates();
+        refreshAllSections();
     }, REFRESH_INTERVAL);
 
     console.log('Auto-update started');
+}
+
+async function refreshAllSections() {
+    if (refreshInFlight) {
+        return;
+    }
+
+    refreshInFlight = true;
+    try {
+        await Promise.allSettled([
+            updateButtonStates(),
+            updateLEDStates(),
+            updateSystemInfo(),
+        ]);
+    } finally {
+        refreshInFlight = false;
+    }
 }
 
 // ============================================================================
@@ -92,21 +108,27 @@ async function updateSystemInfo() {
         if (banner && label && data.mode) {
             const color   = MODE_COLORS[data.mode] || '#37474f';
             banner.style.backgroundColor = color;
-            label.textContent = modeLabel(data.mode, data.ip);
+            label.textContent = modeLabel(data.mode, data.device_ip);
         }
 
-        // Info grid
+        // Meta row
+        const modeElem   = document.getElementById('app-wifi-mode');
         const boardElem  = document.getElementById('board-name');
-        const modeElem   = document.getElementById('wifi-mode');
         const ssidElem   = document.getElementById('wifi-ssid');
-        const ipElem     = document.getElementById('wifi-ip');
         const uptimeElem = document.getElementById('uptime');
+        if (modeElem)   { modeElem.textContent   = data.mode || '--'; }
+        if (boardElem)  { boardElem.textContent  = boardLabel(data.board || ''); }
+        if (ssidElem)   { ssidElem.textContent   = data.ssid || '--'; }
+        if (uptimeElem) { uptimeElem.textContent = formatUptime(data.uptime_s); }
 
-        if (boardElem)  { boardElem.textContent   = boardLabel(data.board || ''); }
-        if (modeElem)   { modeElem.textContent     = data.mode  || '--'; }
-        if (ssidElem)   { ssidElem.textContent      = data.ssid  || '--'; }
-        if (ipElem)     { ipElem.textContent        = data.ip    || '--'; }
-        if (uptimeElem) { uptimeElem.textContent    = formatUptime(data.uptime_s); }
+        // Network row — endpoint IPs only
+        const deviceIpElem = document.getElementById('device-ip');
+        const clientIpElem = document.getElementById('client-ip');
+        const clientMacElem = document.getElementById('client-mac');
+
+        if (deviceIpElem) { deviceIpElem.textContent = data.device_ip || '--'; }
+        if (clientIpElem) { clientIpElem.textContent = data.client_ip || '--'; }
+        if (clientMacElem) { clientMacElem.textContent = data.client_mac || '--'; }
 
         updateConnectionStatus(true);
 
@@ -116,12 +138,13 @@ async function updateSystemInfo() {
     }
 }
 
-function modeLabel(mode, ip) {
+function modeLabel(mode, serverIp) {
     switch (mode) {
-    case 'SoftAP': return `AP Mode \u2014 ${ip || '192.168.7.1'}`;
-    case 'STA':    return `Station Mode \u2014 ${ip || '...'}`;
-    case 'P2P':    return `P2P Direct \u2014 ${ip || '...'}`;
-    default:       return mode;
+    case 'SoftAP':     return `AP Mode \u2014 ${serverIp || '192.168.7.1'}`;
+    case 'STA':        return `Station Mode \u2014 ${serverIp || '...'}`;
+    case 'P2P_GO':     return `P2P GO \u2014 ${serverIp || '192.168.7.1'}`;
+    case 'P2P_CLIENT': return `P2P Client \u2014 ${serverIp || '...'}`;
+    default:           return mode;
     }
 }
 
@@ -150,6 +173,10 @@ async function updateButtonStates() {
 
         if (data && Array.isArray(data.buttons)) {
             renderButtonStates(data.buttons);
+            if (buttonPlaceholder && data.buttons.length === 0) {
+                buttonPlaceholder.textContent = 'No buttons available on this board';
+                buttonPlaceholder.style.display = 'block';
+            }
         }
 
     } catch (error) {

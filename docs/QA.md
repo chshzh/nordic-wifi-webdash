@@ -1,6 +1,6 @@
 # NCS Project Quality Assurance Report
 
-**Project Name**: Nordic WiFi SoftAP Webserver
+**Project Name**: Nordic Wi-Fi SoftAP Webserver
 **Project Repository**: /opt/nordic/ncs/myApps/nordic_wifi_softap_webserver
 **Review Date**: February 3, 2026
 **Reviewer(s)**: GitHub Copilot (Product Manager skill)

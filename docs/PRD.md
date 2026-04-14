@@ -1,13 +1,13 @@
-# Product Requirements Document — Nordic WiFi Web Dashboard
+# Product Requirements Document — Nordic Wi-Fi WebDash
 
 ## Document Information
 
 | Field | Value |
 |---|---|
-| Product Name | Nordic WiFi Web Dashboard |
+| Product Name | Nordic Wi-Fi WebDash |
 | Product ID | nordic-wifi-webdash |
-| Version | 2026-04-09-12-00 |
-| Previous Version | 2026-03-31 |
+| Version | 2026-04-14-15-00 |
+| Previous Version | 2026-04-14-11-00 |
 | Status | Draft |
 | Product Manager | Charlie Shao |
 | NCS Version | v3.2.4 |
@@ -19,7 +19,10 @@
 
 | Version | Summary of changes |
 |---|---|
-| 2026-04-09-12-00 | Replace Button-1 long-press mode selection with `wifi_mode` shell command; remove Wi-Fi credential storage (STA is session-based); remove Cloud & Monitoring placeholder section; P2P now supported on both boards; update target users to Evaluator + Application Developer |
+| 2026-04-14-15-00 | Startup improvements: firmware version string printed at boot (git tag on CI / v&lt;NCS&gt;-dev locally); startup banner with aligned labels and module boot sequence (SYS_INIT priorities); SoftAP periodic reminder — SSID/password/IP logged every 300 s until first client connects (mirrors P2P_GO WPS re-arm pattern) |
+| 2026-04-14-11-00 | P2P_GO auto-start: firmware automatically runs group_add and sets WPS PIN at boot; waits up to 5 min for first client (same pattern as SoftAP); no manual shell commands needed to start a P2P_GO session |
+| 2026-04-14-10-00 | Code sync: P2P split into P2P_GO (device is GO) and P2P_CLIENT (device joins phone group); default mode on fresh flash changed to P2P_GO; app_wifi_mode command updated to [softap|sta|p2p_go|p2p_client]; WPS PIN connection method added; /api/system fields updated to device_ip, device_mac, client_ip, board |
+| 2026-04-09-12-00 | Replace Button-1 long-press mode selection with `app_wifi_mode` shell command; remove Wi-Fi credential storage (STA is session-based); remove Cloud & Monitoring placeholder section; P2P now supported on both boards; update target users to Evaluator + Application Developer |
 | 2026-04-09-09-00 | Regenerated to PRD template; updated architecture (wifi merged into network module, SYS_INIT priority 5); added DNS-SD `_http._tcp.local` service discovery (FR-104); corrected P2P connection method to `pbc`; removed Kconfig / Flash / RAM / architecture diagrams (→ engineering specs) |
 | 2026-03-31 | v2.0.0 — STA + P2P modes, boot-time mode selector, `/api/system` endpoint, NVS persistence |
 | 2026-02-02 | v1.0.0 — Initial release — SoftAP only |
@@ -30,9 +33,9 @@
 
 ### 1.1 Product Overview
 
-Nordic WiFi Web Dashboard (`nordic-wifi-webdash`) is an IoT demonstration and reference platform for **nRF7x series Wi-Fi development kits**. It serves a real-time, browser-based dashboard directly from the nRF device — no cloud required. Users can view and control device GPIO (buttons and LEDs) from any browser on the same network.
+Nordic Wi-Fi WebDash (`nordic-wifi-webdash`) is an IoT demonstration and reference platform for **nRF7x series Wi-Fi development kits**. It serves a real-time, browser-based dashboard directly from the nRF device — no cloud required. Users can view and control device GPIO (buttons and LEDs) from any browser on the same network.
 
-The device supports three Wi-Fi modes: SoftAP (creates its own Wi-Fi hotspot), STA (joins an existing network), and P2P/Wi-Fi Direct (connects directly to a phone without a router). The active mode is selected at boot and persisted in flash so it survives power cycles.
+The device supports four Wi-Fi operating modes: SoftAP (creates its own Wi-Fi hotspot), STA (joins an existing network), P2P_GO (device is the Wi-Fi Direct Group Owner), and P2P_CLIENT (device joins a phone's group). The active mode is selected at boot and persisted in flash so it survives power cycles.
 
 ### 1.2 Problem Statement
 
@@ -67,10 +70,13 @@ Developers evaluating nRF7x Wi-Fi need connectivity flexibility:
 ### 2.1 Wi-Fi Connectivity
 
 - [x] **Connect to an existing Wi-Fi network (STA mode)** — device joins a network for the current session using `wifi connect -s <SSID> -p <password> -k 1`; dashboard reachable at the DHCP IP or `http://nrfwebdash.local`
-- [x] **Create its own Wi-Fi hotspot (SoftAP mode)** — device creates the `WebDash_AP` access point (password `12345678`); dashboard reachable at `http://192.168.7.1`; max 2 client stations
-- [x] **Connect directly to a phone without a router (P2P / Wi-Fi Direct)** — device auto-starts P2P peer discovery; user connects via `wifi p2p connect <MAC> pbc -g 0`; supported on both boards
+- [x] **Create its own Wi-Fi hotspot (SoftAP mode)** — device creates the `WebDash_AP` access point (password `12345678`); dashboard reachable at `http://192.168.7.1`; max 2 client stations; SSID/password/IP logged every 300 s until the first client connects
+- [x] **Connect directly to a phone without a router (P2P / Wi-Fi Direct)** — two sub-modes:
+  - **P2P_GO**: device **automatically** creates the P2P group and activates WPS PIN at boot (no manual shell commands needed); the WPS PIN is logged to the serial console; the device waits up to **5 minutes** for a phone to connect; once connected, phone joins and device assigns IPs; same auto-start pattern as SoftAP
+  - **P2P_CLIENT**: device discovers peers and joins the phone's group (`wifi p2p connect <MAC> pbc`); phone assigns IPs
+  - Supported on both boards with `-DSNIPPET=wifi-p2p`
 
-The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`. The choice is saved to NVS and takes effect after reboot. Default on first boot is SoftAP.
+The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2p_go|p2p_client]`. The choice is saved to NVS and takes effect after reboot. **Default on fresh flash is P2P_GO.**
 
 ### 2.2 Communication & Protocols
 
@@ -80,8 +86,8 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 
 ### 2.3 Storage & Memory
 
-- [x] **Remember Wi-Fi mode after power-off** — selected mode (SoftAP / STA / P2P) stored in NVS; restored automatically on next boot
-- Default mode on first boot is SoftAP
+- [x] **Remember Wi-Fi mode after power-off** — selected mode (SoftAP / STA / P2P_GO / P2P_CLIENT) stored in NVS; restored automatically on next boot
+- Default mode on **fresh flash** is P2P_GO
 - STA connections are session-based; no credentials are stored permanently
 
 ### 2.4 Buttons & LEDs
@@ -93,7 +99,7 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 
 | Button | Behavior |
 |---|---|
-| All buttons | Monitored and displayed in real time on the web dashboard |
+| All buttons | Monitored and displayed in real time on the WebDash |
 
 | LED | Meaning |
 |---|---|
@@ -101,8 +107,8 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 
 ### 2.5 Developer & Debug Features
 
-- [x] **Serial shell** — developer can run `wifi_mode [SoftAP|STA|P2P]` to switch mode, `wifi connect` to join a network, `wifi p2p find/peer/connect` for P2P, `wifi scan` and `wifi status` for diagnostics
-- [x] **Startup log** — board name, MAC address, active Wi-Fi mode, build date, and IP address logged at boot
+- [x] **Serial shell** — developer can run `app_wifi_mode [softap|sta|p2p_go|p2p_client]` to switch mode, `wifi connect` to join a network, `wifi p2p find/peer/connect` for P2P_CLIENT, `wifi scan` and `wifi status` for diagnostics; in P2P_GO mode the auto-start sequence runs at boot so no manual `wifi p2p group_add` or `wifi wps_pin` is needed
+- [x] **Startup log** — firmware version string (git tag on CI / `v<NCS>-dev` locally), board name, MAC address, active Wi-Fi mode, build date, and module boot sequence with SYS_INIT priorities logged at boot
 
 ---
 
@@ -114,18 +120,18 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 |---|---|---|---|---|---|
 | FR-001 | user | power on in SoftAP mode and open the dashboard | I can demo the device with no network infrastructure | - `WebDash_AP` SSID visible<br>- Dashboard loads at `http://192.168.7.1`<br>- Max 2 client stations enforced | [network-module.md](specs/network-module.md) |
 | FR-002 | user | connect the device to an existing Wi-Fi network (STA) and access the dashboard | I can demo while staying on my office network | - Run `wifi connect -s <SSID> -p <password> -k 1` in shell<br>- Dashboard at DHCP IP or `http://nrfwebdash.local`<br>- `[network] STA CONNECTED IP: <x>` logged | [network-module.md](specs/network-module.md) |
-| FR-003 | user | connect my phone directly to the device via Wi-Fi Direct (P2P) and access the dashboard | I can demo where no Wi-Fi router is available | - Auto P2P find starts at boot in P2P mode<br>- `wifi p2p connect <MAC> pbc -g 0` connects<br>- Dashboard at P2P IP (e.g. `http://192.168.49.x`)<br>- Supported on both boards | [network-module.md](specs/network-module.md) |
-| FR-004 | user | switch the Wi-Fi mode with a shell command and have it persist | I can change modes on the fly without reflashing | - `uart:~$ wifi_mode [SoftAP\|STA\|P2P]` saves mode to NVS<br>- Mode takes effect after reboot<br>- Factory default: SoftAP | [mode-selector.md](specs/mode-selector.md) |
-| FR-005 | user | have the selected Wi-Fi mode remembered after power-off | I don't have to reconfigure after every power cycle | - Mode stored in NVS<br>- Factory default: SoftAP<br>- No button press needed on subsequent boots | [mode-selector.md](specs/mode-selector.md) |
+| FR-003 | user | connect my phone directly to the device via Wi-Fi Direct (P2P) and access the dashboard | I can demo where no Wi-Fi router is available | - **P2P_GO**: device auto-creates the P2P group and activates WPS PIN at boot; WPS PIN logged to serial console; device waits up to 5 min for first client; phone joins via Wi-Fi Direct → PIN method; dashboard at P2P IP after client connects<br>- **P2P_CLIENT**: auto P2P find at boot; `wifi p2p connect <MAC> pbc` connects to phone’s group<br>- Supported on both boards | [network-module.md](specs/network-module.md) |
+| FR-004 | user | switch the Wi-Fi mode with a shell command and have it persist | I can change modes on the fly without reflashing | - `uart:~$ app_wifi_mode [SoftAP\|STA\|P2P_GO\|P2P_CLIENT]` saves mode to NVS<br>- Mode takes effect after reboot<br>- Factory default (fresh flash): P2P_GO | [mode-selector.md](specs/mode-selector.md) |
+| FR-005 | user | have the selected Wi-Fi mode remembered after power-off | I don’t have to reconfigure after every power cycle | - Mode stored in NVS<br>- Factory default (fresh flash): P2P_GO<br>- No button press needed on subsequent boots | [mode-selector.md](specs/mode-selector.md) |
 | FR-006 | user | see button states and control LEDs in the browser | I can verify GPIO is working during demos | - Buttons show correct count per board (2 or 3)<br>- LEDs show correct count per board (2 or 4)<br>- ON / OFF / Toggle responds in < 100 ms | [webserver-module.md](specs/webserver-module.md) |
-| FR-007 | user | see the active Wi-Fi mode and device IP address in the dashboard | I know at a glance which mode is active | - Mode banner shows SoftAP / STA / P2P<br>- Current IP address displayed<br>- `/api/system` returns `{mode, ip, ssid, uptime_s}` | [webserver-module.md](specs/webserver-module.md) |
+| FR-007 | user | see the active Wi-Fi mode and device IP address in the dashboard | I know at a glance which mode is active | - Mode banner shows SoftAP / STA / P2P_GO / P2P_CLIENT<br>- Current IP address displayed<br>- `/api/system` returns `{mode, device_ip, device_mac, client_ip, ssid, uptime_s, board}` | [webserver-module.md](specs/webserver-module.md) |
 
 ### P1 — Should Have
 
 | ID | As a… | I want to… | So that… | Acceptance Criteria | Engineering Spec |
 |---|---|---|---|---|---|
 | FR-101 | developer | call a REST API to read device state | I can integrate the device into custom tooling | - `GET /api/buttons` → JSON<br>- `GET /api/leds` → JSON<br>- `POST /api/led` → LED control<br>- `GET /api/system` → mode + IP | [webserver-module.md](specs/webserver-module.md) |
-| FR-102 | developer | use shell commands over UART for Wi-Fi diagnostics and mode changes | I can inspect and test connectivity without a browser | - `wifi_mode [SoftAP\|STA\|P2P]` switches and persists mode<br>- `wifi connect -s <SSID> -p <pwd> -k 1` joins a network (STA)<br>- `wifi scan`, `wifi status` work<br>- P2P: `wifi p2p find / peer / connect` work | [network-module.md](specs/network-module.md) |
+| FR-102 | developer | use shell commands over UART for Wi-Fi diagnostics and mode changes | I can inspect and test connectivity without a browser | - `app_wifi_mode [SoftAP\|STA\|P2P_GO\|P2P_CLIENT]` switches and persists mode<br>- `wifi connect -s <SSID> -p <pwd> -k 1` joins a network (STA)<br>- `wifi scan`, `wifi status` work<br>- P2P_CLIENT: `wifi p2p find / peer / connect` work<br>- P2P_GO: group and WPS PIN auto-start at boot; no manual shell commands required | [network-module.md](specs/network-module.md) |
 | FR-103 | developer | see board name, MAC, mode, and IP in the startup log | I can confirm firmware state without opening a browser | - Board ID, MAC, build date logged at boot<br>- Active mode logged<br>- IP logged when connected | [architecture.md](specs/architecture.md) |
 | FR-104 | user | discover the device automatically without knowing its IP | I can open the dashboard just by name | - Device registers `_http._tcp.local` via DNS-SD<br>- Device reachable at `http://nrfwebdash.local` via mDNS | [webserver-module.md](specs/webserver-module.md) |
 
@@ -149,7 +155,9 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 | LED control response (web → device) | < 100 ms |
 | SoftAP client connection | < 10 seconds |
 | STA connection (after `wifi connect` command) | < 30 seconds |
-| P2P connection (user-assisted) | < 120 seconds from `wifi p2p find` |
+| P2P connection (user-assisted, P2P_CLIENT) | < 120 seconds from device boot |
+| P2P_GO ready for client | < 10 seconds from boot (auto group_add + WPS PIN) |
+| P2P_GO client connect timeout | 5 minutes; group stays alive after timeout |
 
 ### 4.2 Reliability
 
@@ -199,13 +207,13 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 
 **To switch to STA mode:**
 
-1. In the serial terminal: `uart:~$ wifi_mode STA` — mode is saved and device reboots.
+1. In the serial terminal: `uart:~$ app_wifi_mode STA` — mode is saved and device reboots.
 2. After reboot: `uart:~$ wifi connect -s <SSID> -p <password> -k 1`
 3. Open `http://<DHCP-IP>` or `http://nrfwebdash.local`.
 
 **To switch to P2P mode:**
 
-1. In the serial terminal: `uart:~$ wifi_mode P2P` — mode is saved and device reboots.
+1. In the serial terminal: `uart:~$ app_wifi_mode P2P` — mode is saved and device reboots.
 2. Follow the Wi-Fi Direct instructions printed in the terminal.
 
 ### 6.2 Normal Operation
@@ -220,9 +228,9 @@ The active mode is changed at runtime with `uart:~$ wifi_mode [SoftAP|STA|P2P]`.
 Switch mode at any time from the serial shell:
 
 ```
-uart:~$ wifi_mode SoftAP
-uart:~$ wifi_mode STA
-uart:~$ wifi_mode P2P
+uart:~$ app_wifi_mode SoftAP
+uart:~$ app_wifi_mode STA
+uart:~$ app_wifi_mode P2P
 ```
 
 The selected mode is saved to NVS and takes effect after the device reboots. There is no need to hold buttons or use a boot-time menu.
@@ -259,7 +267,7 @@ All P0 requirements (FR-001 to FR-007) must pass on all supported boards before 
 - [ ] FR-001 pass: SoftAP dashboard accessible at `http://192.168.7.1`
 - [ ] FR-002 pass: STA dashboard accessible after `wifi connect` command
 - [ ] FR-003 pass: P2P dashboard accessible from phone (both boards)
-- [ ] FR-004 pass: `wifi_mode` command saves mode; device reboots into new mode
+- [ ] FR-004 pass: `app_wifi_mode` command saves mode; device reboots into new mode
 - [ ] FR-005 pass: Selected mode survives power-off/on without re-entering command
 - [ ] FR-006 pass: Buttons and LEDs visible and controllable in browser
 - [ ] FR-007 pass: Mode banner and IP address shown in dashboard

@@ -12,7 +12,7 @@
 
 ## Overview
 
-The LED module provides runtime LED control for the web dashboard. It exposes
+The LED module provides runtime LED control for the WebDash. It exposes
 two Zbus channels — one for incoming commands (`LED_CMD_CHAN`) and one for
 publishing current LED state (`LED_STATE_CHAN`). Each LED is managed by a
 2-state SMF (Off / On). The webserver REST API sends `LED_CMD_CHAN` messages;

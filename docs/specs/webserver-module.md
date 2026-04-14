@@ -6,6 +6,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-04-14-10-00 | Code sync: subscribes to CLIENT_CONNECTED_CHAN (not WIFI_CHAN); /api/system fields updated (device_ip, device_mac, client_ip, board); client IP tracked in all modes via zsock_getpeername(); MAX_WEB_CLIENTS=4; mode values include P2P_GO/P2P_CLIENT |
 | 2026-04-09-14-00 | Code alignment: fix DNS-SD macro to `DNS_SD_REGISTER_SERVICE` (not `DNS_SD_REGISTER_TCP_SERVICE`) |
 | 2026-04-09-12-00 | Add DNS-SD `_http._tcp.local` service registration (FR-104) |
 | 2026-03-31 | v2.0 — mode-aware dashboard, `/api/system` endpoint |
@@ -14,7 +15,7 @@
 
 ## Overview
 
-The Webserver module serves the web dashboard over HTTP and exposes a JSON REST API for device state control. It is **mode-aware**: it shows the active Wi-Fi mode in the UI banner and provides a `/api/system` endpoint that returns mode, IP address, and SSID.
+The Webserver module serves the WebDash over HTTP and exposes a JSON REST API for device state control. It is **mode-aware**: it shows the active Wi-Fi mode in the UI banner and provides a `/api/system` endpoint that returns mode, IP address, and SSID.
 
 The module subscribes to `WIFI_CHAN` to know when the network is ready and what IP/mode is active, `BUTTON_CHAN` for button state polling, and `LED_STATE_CHAN` for LED state.
 
@@ -30,7 +31,7 @@ The module subscribes to `WIFI_CHAN` to know when the network is ready and what 
 ## Zbus Integration
 
 **Subscribes to**:
-- `WIFI_CHAN` — to know when to start the HTTP server and what mode/IP is active
+- `CLIENT_CONNECTED_CHAN` — to know when to start the HTTP server and what mode/IP/MAC/SSID is active
 - `BUTTON_CHAN` — caches latest button states for `/api/buttons`
 - `LED_STATE_CHAN` — caches latest LED states for `/api/leds`
 
@@ -41,13 +42,14 @@ The module subscribes to `WIFI_CHAN` to know when the network is ready and what 
 
 ## HTTP Server Startup
 
-The HTTP server starts after receiving `WIFI_SOFTAP_STARTED`, `WIFI_STA_CONNECTED`, or `WIFI_P2P_CONNECTED` on `WIFI_CHAN`.
+The HTTP server starts after receiving a `CLIENT_CONNECTED_CHAN` message (any mode). Server start is deferred via `k_work_schedule` with `K_NO_WAIT` from the Zbus listener; `MAX_WEB_CLIENTS = 4` to allow parallel asset fetches at page load.
 
 | Mode | Server starts on | Access URL |
 |------|-----------------|------------|
-| SoftAP | `WIFI_SOFTAP_STARTED` | `http://192.168.7.1` or `http://nrfwebdash.local` |
-| STA | `WIFI_STA_CONNECTED` | `http://<dhcp-ip>` or `http://nrfwebdash.local` |
-| P2P | `WIFI_P2P_CONNECTED` | `http://<p2p-dhcp-ip>` (mDNS may not work on all phones) |
+| SoftAP | First STA joins (`AP_STA_CONNECTED`) | `http://192.168.7.1` or `http://nrfwebdash.local` |
+| STA | DHCP bound | `http://<dhcp-ip>` or `http://nrfwebdash.local` |
+| P2P_GO | First peer joins (`AP_STA_CONNECTED`) | `http://<go-ip>` |
+| P2P_CLIENT | DHCP bound (from phone's server) | `http://<p2p-ip>` (mDNS may not work on all phones) |
 
 ---
 
@@ -73,7 +75,7 @@ This works in conjunction with `CONFIG_MDNS_RESPONDER=y` so the device is reacha
 
 ## REST API Endpoints
 
-### GET /api/system (NEW in v2.0)
+### GET /api/system 
 
 Returns current Wi-Fi mode, IP address, and SSID.
 
@@ -81,13 +83,18 @@ Returns current Wi-Fi mode, IP address, and SSID.
 ```json
 {
   "mode": "SoftAP",
-  "ip": "192.168.7.1",
+  "device_ip": "192.168.7.1",
+  "device_mac": "AA:BB:CC:DD:EE:FF",
+  "client_ip": "192.168.7.100",
   "ssid": "WebDash_AP",
-  "uptime_s": 42
+  "uptime_s": 42,
+  "board": "nrf54lm20dk"
 }
 ```
 
-`mode` values: `"SoftAP"`, `"STA"`, `"P2P"`
+`mode` values: `"SoftAP"`, `"STA"`, `"P2P_GO"`, `"P2P_CLIENT"`
+
+`client_ip`: IP of the HTTP client (browser) as seen by the server socket, via `zsock_getpeername()`. Updated on every API request in all modes. Returns `"0.0.0.0"` until first request.
 
 ---
 
@@ -142,7 +149,7 @@ Controls a specific LED.
 
 ---
 
-## Web UI Updates (v2.0)
+## Web UI Updates 
 
 ### Mode Banner
 
@@ -150,9 +157,10 @@ A new header banner shows the active Wi-Fi mode with color coding:
 
 | Mode | Badge color | Label |
 |------|-------------|-------|
-| SoftAP | Blue | `AP Mode — 192.168.7.1` |
-| STA | Green | `Station Mode — <IP>` |
-| P2P | Purple | `P2P Direct — <IP>` |
+| SoftAP | Blue | `SoftAP — 192.168.7.1` |
+| STA | Green | `STA — <IP>` |
+| P2P_GO | Purple | `P2P_GO — <IP>` |
+| P2P_CLIENT | Orange | `P2P_CLIENT — <IP>` |
 
 ### Existing Panels (unchanged)
 
@@ -170,13 +178,13 @@ The web UI polls `/api/system`, `/api/buttons`, and `/api/leds` every 500 ms (un
 
 ```mermaid
 sequenceDiagram
-    participant WiFi as WiFi Module
+    participant Wi-Fi as Wi-Fi Module
     participant WIFI_CHAN
     participant Web as Webserver Module
     participant HTTP as HTTP Server
     participant Browser
 
-    WiFi->>WIFI_CHAN: Publish WIFI_SOFTAP_STARTED\n(ip="192.168.7.1", mode=AP)
+    Wi-Fi->>WIFI_CHAN: Publish WIFI_SOFTAP_STARTED\n(ip="192.168.7.1", mode=AP)
     WIFI_CHAN-->>Web: zbus listener triggered
     Web->>Web: Store active_mode=AP, ip="192.168.7.1"
     Web->>HTTP: http_server_start()
@@ -251,7 +259,7 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 
 ### TC-WEB-002: Dashboard loads in STA mode
 
-1. Run `wifi_mode STA` and reboot
+1. Run `app_wifi_mode STA` and reboot
 2. Run `wifi connect -s "TestAP" -p "password" -k 1` via shell
 3. Note DHCP IP from logs
 4. Navigate to `http://<dhcp-ip>` or `http://nrfwebdash.local`

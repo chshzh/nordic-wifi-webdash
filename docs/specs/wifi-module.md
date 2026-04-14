@@ -1,4 +1,4 @@
-# WiFi Module Specification
+# Wi-Fi Module Specification
 
 > **PRD Version**: 2026-04-09-12-00
 
@@ -14,7 +14,7 @@
 
 ## Overview
 
-The WiFi module manages all Wi-Fi connectivity for `nordic-wifi-webdash`. It supports three runtime-selectable roles:
+The Wi-Fi module manages all Wi-Fi connectivity for `nordic-wifi-webdash`. It supports three runtime-selectable roles:
 
 | Mode | Value | Description |
 |------|-------|-------------|
@@ -22,7 +22,7 @@ The WiFi module manages all Wi-Fi connectivity for `nordic-wifi-webdash`. It sup
 | STA | 1 | Device connects to existing infrastructure AP |
 | P2P | 2 | Device connects to phone/peer via Wi-Fi Direct |
 
-The active mode is determined at boot by reading `WIFI_MODE_CHAN` (published by mode_selector before WiFi init).
+The active mode is determined at boot by reading `WIFI_MODE_CHAN` (published by mode_selector before Wi-Fi init).
 
 ---
 
@@ -46,7 +46,7 @@ struct wifi_msg {
     enum wifi_msg_type type;     /* WIFI_SOFTAP_STARTED, WIFI_STA_CONNECTED,
                                     WIFI_STA_DISCONNECTED, WIFI_P2P_CONNECTED,
                                     WIFI_P2P_DISCONNECTED, WIFI_ERROR */
-    enum wifi_mode     active_mode;
+    enum app_wifi_mode     active_mode;
     char               ip_addr[16];  /* dotted-decimal, filled on connect */
     char               ssid[33];     /* filled on connect */
     int                error_code;
@@ -57,7 +57,7 @@ struct wifi_msg {
 
 ## State Machine
 
-The WiFi module uses a unified SMF with mode-specific transitions:
+The Wi-Fi module uses a unified SMF with mode-specific transitions:
 
 ```mermaid
 stateDiagram-v2
@@ -110,16 +110,16 @@ CONFIG_NET_DHCPV4_SERVER_ADDR_COUNT=2
 
 ```mermaid
 sequenceDiagram
-    participant WiFi as WiFi Module
+    participant Wi-Fi as Wi-Fi Module
     participant WPA as WPA Supplicant
     participant DHCP as DHCP Server
     participant WIFI_CHAN
 
-    WiFi->>WiFi: wifi_softap_start()
-    WiFi->>WPA: net_mgmt(WIFI_AP_ENABLE)
-    WPA-->>WiFi: AP_ENABLE_SUCCESS
-    WiFi->>DHCP: dhcpv4_server_start()
-    WiFi->>WIFI_CHAN: Publish WIFI_SOFTAP_STARTED\n(ip="192.168.7.1", ssid=CONFIG_APP_WIFI_SSID)
+    Wi-Fi->>Wi-Fi: wifi_softap_start()
+    Wi-Fi->>WPA: net_mgmt(WIFI_AP_ENABLE)
+    WPA-->>Wi-Fi: AP_ENABLE_SUCCESS
+    Wi-Fi->>DHCP: dhcpv4_server_start()
+    Wi-Fi->>WIFI_CHAN: Publish WIFI_SOFTAP_STARTED\n(ip="192.168.7.1", ssid=CONFIG_APP_WIFI_SSID)
 ```
 
 ### Published Event
@@ -159,24 +159,24 @@ The `-k 1` flag selects WPA2-PSK security. After a disconnect the device returns
 
 ```mermaid
 sequenceDiagram
-    participant WiFi as WiFi Module
+    participant Wi-Fi as Wi-Fi Module
     participant WPA as WPA Supplicant
     participant Net as Network Stack
     participant WIFI_CHAN
 
-    WiFi->>WiFi: wifi_sta_start() — wait for supplicant ready
-    Note over WiFi: Idle; waiting for manual wifi connect command
+    Wi-Fi->>Wi-Fi: wifi_sta_start() — wait for supplicant ready
+    Note over Wi-Fi: Idle; waiting for manual wifi connect command
 
     WPA->>WPA: User runs: wifi connect -s SSID -p pwd -k 1
     WPA->>WPA: Association + WPA key exchange
-    Net->>WiFi: NET_EVENT_IPV4_DHCP_BOUND (IP assigned)
-    Net->>WiFi: NET_EVENT_L4_CONNECTED
-    WiFi->>WIFI_CHAN: Publish WIFI_STA_CONNECTED (ip=dhcp_ip, ssid=connected_ssid)
+    Net->>Wi-Fi: NET_EVENT_IPV4_DHCP_BOUND (IP assigned)
+    Net->>Wi-Fi: NET_EVENT_L4_CONNECTED
+    Wi-Fi->>WIFI_CHAN: Publish WIFI_STA_CONNECTED (ip=dhcp_ip, ssid=connected_ssid)
 
-    Note over WiFi: On disconnect:
-    Net->>WiFi: NET_EVENT_L4_DISCONNECTED
-    WiFi->>WIFI_CHAN: Publish WIFI_STA_DISCONNECTED
-    WiFi->>WiFi: Return to idle (no auto-retry)
+    Note over Wi-Fi: On disconnect:
+    Net->>Wi-Fi: NET_EVENT_L4_DISCONNECTED
+    Wi-Fi->>WIFI_CHAN: Publish WIFI_STA_DISCONNECTED
+    Wi-Fi->>Wi-Fi: Return to idle (no auto-retry)
 ```
 
 ### Published Events
@@ -215,14 +215,14 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nr
 
 ```mermaid
 sequenceDiagram
-    participant WiFi as WiFi Module
+    participant Wi-Fi as Wi-Fi Module
     participant WPA as WPA Supplicant
     participant Shell as UART Shell
     participant Phone as Android Phone
     participant Net as Network Stack
     participant WIFI_CHAN
 
-    WiFi->>WPA: wifi_p2p_find() [auto at boot]
+    Wi-Fi->>WPA: wifi_p2p_find() [auto at boot]
     WPA-->>Shell: P2P-DEVICE-FOUND <MAC> name='<Device Name>'
     Note over Shell: Log shows: "P2P find started"
 
@@ -232,14 +232,14 @@ sequenceDiagram
     Shell->>WPA: wifi p2p connect <MAC> pbc -g 0 [user command]
 
     Phone->>WPA: P2P-GO-NEG-SUCCESS (phone=GO, device=GI)
-    WPA-->>WiFi: P2P-GROUP-STARTED wlan0 client ssid="DIRECT-xx-<PhoneName>"
-    Net->>WiFi: DHCP from phone → IP assigned
-    WiFi->>WIFI_CHAN: Publish WIFI_P2P_CONNECTED\n(ip=p2p_ip, ssid="DIRECT-xx-...")
+    WPA-->>Wi-Fi: P2P-GROUP-STARTED wlan0 client ssid="DIRECT-xx-<PhoneName>"
+    Net->>Wi-Fi: DHCP from phone → IP assigned
+    Wi-Fi->>WIFI_CHAN: Publish WIFI_P2P_CONNECTED\n(ip=p2p_ip, ssid="DIRECT-xx-...")
 
-    Note over WiFi: On P2P disconnect:
-    WPA-->>WiFi: P2P-GROUP-REMOVED
-    WiFi->>WIFI_CHAN: Publish WIFI_P2P_DISCONNECTED
-    WiFi->>WiFi: Restart wifi_p2p_find()
+    Note over Wi-Fi: On P2P disconnect:
+    WPA-->>Wi-Fi: P2P-GROUP-REMOVED
+    Wi-Fi->>WIFI_CHAN: Publish WIFI_P2P_DISCONNECTED
+    Wi-Fi->>Wi-Fi: Restart wifi_p2p_find()
 ```
 
 ### WPA Supplicant Events Monitored
@@ -284,7 +284,7 @@ sequenceDiagram
 # In Kconfig.wifi
 
 config APP_WIFI_MODULE
-    bool "Enable WiFi Module"
+    bool "Enable Wi-Fi Module"
     default y
 
 config APP_WIFI_SSID
@@ -303,7 +303,7 @@ config APP_WIFI_STA_RECONNECT_DELAY_MS
     depends on APP_WIFI_MODULE
 
 config APP_WIFI_MODULE_LOG_LEVEL
-    int "WiFi module log level"
+    int "Wi-Fi module log level"
     default 3   # LOG_LEVEL_INF
 ```
 
@@ -316,7 +316,7 @@ config APP_WIFI_MODULE_LOG_LEVEL
 | SoftAP (WPA supplicant AP) | ~65 KB | ~50 KB |
 | STA additions (session-based, no wifi_credentials) | +0 KB | +0 KB |
 | P2P additions (-DSNIPPET=wifi-p2p) | +5 KB | +3 KB |
-| WiFi module application code | ~3 KB | ~2 KB |
+| Wi-Fi module application code | ~3 KB | ~2 KB |
 
 ---
 
@@ -345,7 +345,7 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nr
 
 ### STA Verification
 
-1. Boot in STA mode (`wifi_mode STA` then reboot)
+1. Boot in STA mode (`app_wifi_mode STA` then reboot)
 2. Run `wifi connect -s "TestAP" -p "password" -k 1` via shell
 3. Confirm `[network] STA CONNECTED - IP: <ip>` log
 4. Navigate to `http://<ip>` or `http://nrfwebdash.local`
@@ -353,7 +353,7 @@ west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -DSNIPPET=wifi-p2p -- -DSHIELD=nr
 ### P2P Verification (WCS-106 procedure)
 
 1. Flash P2P build to either board
-2. Run `wifi_mode P2P` then reboot
+2. Run `app_wifi_mode P2P` then reboot
 3. Enable Wi-Fi Direct on Android phone
 4. Run `wifi p2p peer` — confirm phone appears in list
 5. Run `wifi p2p connect <phone_MAC> pbc -g 0`

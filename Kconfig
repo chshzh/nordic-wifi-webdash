@@ -4,21 +4,21 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-menu "Nordic WiFi Web Dashboard"
+menu "Nordic Wi-Fi WebDash"
 
 config APP_WIFI_SSID
-	string "WiFi SoftAP SSID"
+	string "Wi-Fi SoftAP SSID"
 	default "WebDash_AP"
 	help
-	  SSID of the WiFi SoftAP to create. Override this value in
+	  SSID of the Wi-Fi SoftAP to create. Override this value in
 	  overlay-wifi-credentials.conf (listed in .gitignore) to avoid committing
 	  production credentials.
 
 config APP_WIFI_PASSWORD
-	string "WiFi SoftAP Password"
+	string "Wi-Fi SoftAP Password"
 	default "12345678"
 	help
-	  Password for WiFi SoftAP (min 8 characters for WPA2). Provide real
+	  Password for Wi-Fi SoftAP (min 8 characters for WPA2). Provide real
 	  credentials via the local overlay-wifi-credentials.conf to keep secrets
 	  out of version control.
 

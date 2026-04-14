@@ -72,24 +72,25 @@ static inline const char *app_led_label(size_t index)
 }
 
 /* ============================================================================
- * WI-FI MODE (v2.0)
+ * WI-FI MODE
  * ============================================================================
  */
 
 /**
- * @brief Wi-Fi operating mode
+ * @brief Wi-Fi operating mode (application-specific enum to avoid conflicts with Zephyr)
  */
-enum wifi_mode {
-	WIFI_MODE_SOFTAP = 0, /**< Device creates its own SoftAP */
-	WIFI_MODE_STA = 1,    /**< Device connects to existing SoftAP */
-	WIFI_MODE_P2P = 2,    /**< Wi-Fi Direct to phone/peer */
+enum app_wifi_mode {
+	APP_WIFI_MODE_SOFTAP = 0,     /**< Device creates its own SoftAP */
+	APP_WIFI_MODE_STA = 1,        /**< Device connects to existing SoftAP */
+	APP_WIFI_MODE_P2P_GO = 2,     /**< Wi-Fi Direct — device is Group Owner */
+	APP_WIFI_MODE_P2P_CLIENT = 3, /**< Wi-Fi Direct — device joins phone's group */
 };
 
 /**
  * @brief Wi-Fi mode message (published once at boot by mode_selector)
  */
 struct wifi_mode_msg {
-	enum wifi_mode mode;
+	enum app_wifi_mode mode;
 };
 
 /* ============================================================================
@@ -151,55 +152,19 @@ struct led_state_msg {
 };
 
 /* ============================================================================
- * WIFI MESSAGES (v2.0 — multi-mode)
+ * DK WIFI INFO MESSAGES
  * ============================================================================
  */
 
 /**
- * @brief WiFi message types
+ * @brief Message published by net_event_mgmt when DK Wi-Fi connection is ready.
  */
-enum wifi_msg_type {
-	WIFI_SOFTAP_STARTED,          /**< SoftAP started, clients may connect */
-	WIFI_SOFTAP_STA_CONNECTED,    /**< A client station joined the SoftAP */
-	WIFI_SOFTAP_STA_DISCONNECTED, /**< A client station left the SoftAP */
-	WIFI_STA_CONNECTED,           /**< STA associated and IP assigned */
-	WIFI_STA_DISCONNECTED,        /**< STA lost connection */
-	WIFI_P2P_CONNECTED,           /**< P2P group established, IP assigned */
-	WIFI_P2P_DISCONNECTED,        /**< P2P group removed */
-	WIFI_ERROR,                   /**< WiFi subsystem error */
-};
-
-/**
- * @brief WiFi message structure
- */
-struct wifi_msg {
-	enum wifi_msg_type type;
-	enum wifi_mode active_mode; /**< Mode that produced this event */
-	char ip_addr[16];           /**< Dotted-decimal IP, filled on connect */
-	char ssid[33];              /**< SSID, filled on connect */
+struct dk_wifi_info_msg {
+	enum app_wifi_mode active_mode; /**< Mode that produced this event */
+	char dk_ip_addr[16];            /**< Device IP */
+	char dk_mac_addr[18];           /**< Device MAC as XX:XX:XX:XX:XX:XX */
+	char ssid[33];                  /**< SoftAP/P2P_GO SSID, or connected AP/GO SSID */
 	int error_code;
-};
-
-/* ============================================================================
- * WEBSERVER MESSAGES (kept for backward compat, unused internally)
- * ============================================================================
- */
-
-/**
- * @brief Webserver message types
- */
-enum webserver_msg_type {
-	WEBSERVER_STARTED,        /**< Webserver started */
-	WEBSERVER_STOPPED,        /**< Webserver stopped */
-	WEBSERVER_CLIENT_REQUEST, /**< Client request received */
-};
-
-/**
- * @brief Webserver message structure
- */
-struct webserver_msg {
-	enum webserver_msg_type type;
-	uint32_t timestamp;
 };
 
 #endif /* MESSAGES_H */

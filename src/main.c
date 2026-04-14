@@ -37,14 +37,17 @@ int main(void)
 	const char *mode_str;
 
 	switch (mode_selector_get_active_mode()) {
-	case WIFI_MODE_SOFTAP:
+	case APP_WIFI_MODE_SOFTAP:
 		mode_str = "SoftAP";
 		break;
-	case WIFI_MODE_STA:
+	case APP_WIFI_MODE_STA:
 		mode_str = "STA";
 		break;
-	case WIFI_MODE_P2P:
-		mode_str = "P2P";
+	case APP_WIFI_MODE_P2P_GO:
+		mode_str = "P2P_GO";
+		break;
+	case APP_WIFI_MODE_P2P_CLIENT:
+		mode_str = "P2P_CLIENT";
 		break;
 	default:
 		mode_str = "Unknown";
@@ -52,44 +55,58 @@ int main(void)
 	}
 
 	LOG_INF("==============================================");
-	LOG_INF("Nordic WiFi Web Dashboard v2.0");
+	LOG_INF("Nordic Wi-Fi WebDash");
 	LOG_INF("==============================================");
-	LOG_INF("Build: %s %s", __DATE__, __TIME__);
-	LOG_INF("Board: %s", board_name);
+	LOG_INF("Version: %s", APP_VERSION_STRING);
+	LOG_INF("Build:   %s %s", __DATE__, __TIME__);
+	LOG_INF("Board:   %s", board_name);
 
 	if (mac_addr && mac_addr->len == 6) {
-		LOG_INF("MAC: %02X:%02X:%02X:%02X:%02X:%02X", mac_addr->addr[0], mac_addr->addr[1],
-			mac_addr->addr[2], mac_addr->addr[3], mac_addr->addr[4], mac_addr->addr[5]);
+		LOG_INF("MAC:     %02X:%02X:%02X:%02X:%02X:%02X", mac_addr->addr[0],
+			mac_addr->addr[1], mac_addr->addr[2], mac_addr->addr[3], mac_addr->addr[4],
+			mac_addr->addr[5]);
 	}
 
-	LOG_INF("Current active Wi-Fi mode: %s", mode_str);
-
-	LOG_INF("Type 'wifi_mode [SoftAP|STA|P2P]' to change mode after reboot.");
+	LOG_INF("Mode:    %s", mode_str);
 	LOG_INF("==============================================");
-	LOG_INF("=============Connect Web Dashboard============");
+	LOG_INF("Modules (SYS_INIT boot order):");
+	LOG_INF("  [0]  mode_selector  -- NVS read, WIFI_MODE_CHAN publish");
+	LOG_INF("  [5]  network        -- net-mgmt callbacks, Wi-Fi/P2P start");
+	LOG_INF("  [40] heap_monitor   -- heap usage tracking");
+	LOG_INF("  [90] led            -- LED GPIO init");
+	LOG_INF("  [90] button         -- button GPIO init");
+	LOG_INF("  [-]  main           -- this banner (runs after SYS_INIT)");
+	LOG_INF("  [-]  webserver      -- starts on CLIENT_CONNECTED_CHAN event");
+	LOG_INF("==============================================");
+	LOG_INF("Type 'app_wifi_mode [softap|sta|p2p_go|p2p_client]' to change mode.");
+	LOG_INF("==============================================");
+	LOG_INF("WebDash connection instructions:");
 
 	switch (mode_selector_get_active_mode()) {
-	case WIFI_MODE_SOFTAP:
-		LOG_INF("SoftAP mode: SSID='%s' Password='12345678'", CONFIG_APP_WIFI_SSID);
-		LOG_INF("Connect and open http://192.168.7.1:%d", CONFIG_APP_HTTP_PORT);
+	case APP_WIFI_MODE_SOFTAP:
+		LOG_INF("Connect AP SSID='%s' using Password='%s'", CONFIG_APP_WIFI_SSID,
+			CONFIG_APP_WIFI_PASSWORD);
 		break;
 
-	case WIFI_MODE_STA:
+	case APP_WIFI_MODE_STA:
 		LOG_INF("STA mode: connect via shell:");
 		LOG_INF("  wifi connect -s <SSID> -p <password> -k 1 -- WPA2");
 		LOG_INF("  wifi connect --help                       -- help for more options");
 		break;
 
-	case WIFI_MODE_P2P:
-		LOG_INF("P2P mode: connect phone peer via shell:");
-		LOG_INF("1.DK: wifi p2p find                   -- search for peers");
-		LOG_INF("2.Phone: Enable Wi-Fi Direct, then wait device MAC appears.");
-		LOG_INF("3.DK: wifi p2p peer                   -- list peers and find phone "
-			"MAC");
-		LOG_INF("4.DK: wifi p2p connect <phone MAC> pbc -g 0   -- connect to target "
-			"phone");
-		LOG_INF("5.Phone: Press ACCEPT button on your phone for Invitation to "
-			"connect.");
+	case APP_WIFI_MODE_P2P_GO:
+		LOG_INF("P2P_GO mode: P2P group + WPS PIN auto-started at boot.");
+		LOG_INF("1. P2P Peer: Turn on Wi-Fi, disconnect from other APs");
+		LOG_INF("2. P2P Peer: Wi-Fi Direct -> wait for DK, select it, enter PIN 12345678");
+		break;
+
+	case APP_WIFI_MODE_P2P_CLIENT:
+		LOG_INF("P2P_CLIENT mode: DK joins P2P Peer's P2P group:");
+		LOG_INF("1. DK:    wifi p2p find              -- search for peers");
+		LOG_INF("2. Phone: Enable Wi-Fi Direct, wait for DK MAC to appear");
+		LOG_INF("3. DK:    wifi p2p peer              -- list peers, find P2P Peer MAC");
+		LOG_INF("4. DK:    wifi p2p connect <P2P Peer MAC> pbc -g 0  -- connect");
+		LOG_INF("5. Phone: Press ACCEPT on the Wi-Fi Direct invitation");
 		break;
 	}
 

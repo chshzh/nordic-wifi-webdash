@@ -6,13 +6,13 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Nordic WiFi Web Dashboard</title>
+    <title>Nordic Wi-Fi WebDash</title>
     <link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🌐 Nordic WiFi Web Dashboard</h1>
+            <h1>🌐 Nordic Wi-Fi WebDash</h1>
             <!-- Mode banner: updated by /api/system polling -->
             <div class="mode-banner" id="mode-banner">
                 <span class="mode-label" id="mode-label">Loading...</span>
@@ -39,34 +39,42 @@
             <!-- System Info Section -->
             <section class="card info-section">
                 <h2>ℹ️ System Information</h2>
-                <div class="info-grid">
+                <!-- Row 1: device meta -->
+                <div class="info-grid info-meta">
+                    <div class="info-item">
+                        <span class="info-label">Wi-Fi Mode:</span>
+                        <span class="info-value" id="app-wifi-mode">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">SSID:</span>
+                        <span class="info-value" id="wifi-ssid">--</span>
+                    </div>
                     <div class="info-item">
                         <span class="info-label">Board:</span>
                         <span class="info-value" id="board-name">Loading...</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Wi-Fi Mode:</span>
-                        <span class="info-value" id="wifi-mode">Loading...</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">WiFi SSID:</span>
-                        <span class="info-value" id="wifi-ssid">Loading...</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">IP Address:</span>
-                        <span class="info-value" id="wifi-ip">Loading...</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Uptime:</span>
-                        <span class="info-value" id="uptime">--</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Connection:</span>
                         <span class="info-value status-online" id="connection-status">⬤ Connected</span>
                     </div>
                     <div class="info-item">
+                        <span class="info-label">Uptime:</span>
+                        <span class="info-value" id="uptime">--</span>
+                    </div>
+                    <div class="info-item">
                         <span class="info-label">Auto-Refresh:</span>
-                        <span class="info-value">Every 500ms</span>
+                        <span class="info-value">Every 500 ms</span>
+                    </div>
+                </div>
+                <!-- Row 2: network endpoints -->
+                <div class="info-grid info-network">
+                    <div class="info-item info-server">
+                        <div class="info-endpoint-label">HTTP Server/DK IP:</div>
+                        <div class="info-endpoint-ip" id="device-ip">--</div>
+                    </div>
+                    <div class="info-item info-client">
+                        <div class="info-endpoint-label">HTTP Client IP:</div>
+                        <div class="info-endpoint-ip" id="client-ip">--</div>
                     </div>
                 </div>
             </section>
