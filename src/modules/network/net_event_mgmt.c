@@ -69,14 +69,15 @@ extern const struct zbus_channel WIFI_MODE_CHAN;
  * ============================================================================
  */
 
-ZBUS_CHAN_DEFINE(WIFI_CHAN, struct wifi_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0));
+ZBUS_CHAN_DEFINE(CLIENT_CONNECTED_CHAN, struct dk_wifi_info_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
+		 ZBUS_MSG_INIT(0));
 
 /* ============================================================================
  * MODULE STATE
  * ============================================================================
  */
 
-static enum wifi_mode active_mode = WIFI_MODE_SOFTAP;
+static enum app_wifi_mode active_mode = APP_WIFI_MODE_SOFTAP;
 /* Track network connectivity state (WiFi connected + IP assigned) */
 static bool network_connected;
 /* SSID captured at L4_CONNECTED; "DIRECT-" prefix → P2P session */
@@ -149,18 +150,43 @@ static const char *wifi_disconn_reason_str(enum wifi_disconn_reason reason)
 	}
 }
 
-static const char *mode_to_str(enum wifi_mode mode)
+static const char *mode_to_str(enum app_wifi_mode mode)
 {
 	switch (mode) {
-	case WIFI_MODE_SOFTAP:
+	case APP_WIFI_MODE_SOFTAP:
 		return "SoftAP";
-	case WIFI_MODE_STA:
+	case APP_WIFI_MODE_STA:
 		return "STA";
-	case WIFI_MODE_P2P:
-		return "P2P";
+	case APP_WIFI_MODE_P2P_GO:
+		return "P2P_GO";
+	case APP_WIFI_MODE_P2P_CLIENT:
+		return "P2P_CLIENT";
 	default:
 		return "Unknown";
 	}
+}
+
+static void mac_to_str(const uint8_t mac[6], char out[18])
+{
+	snprintf(out, 18, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4],
+		 mac[5]);
+}
+
+static void iface_mac_to_str(struct net_if *iface, char out[18])
+{
+	if (iface == NULL) {
+		snprintf(out, 18, "%s", "00:00:00:00:00:00");
+		return;
+	}
+
+	struct net_linkaddr *link_addr = net_if_get_link_addr(iface);
+
+	if (link_addr == NULL || link_addr->len < 6) {
+		snprintf(out, 18, "%s", "00:00:00:00:00:00");
+		return;
+	}
+
+	mac_to_str((const uint8_t *)link_addr->addr, out);
 }
 
 /* ============================================================================
@@ -230,24 +256,12 @@ static void l2_wifi_conn_event_handler(struct net_mgmt_event_callback *cb, uint6
 
 		if (status->status == 0) {
 			LOG_INF("NET_EVENT_WIFI_CONNECT_RESULT: success");
-			if (active_mode == WIFI_MODE_P2P) {
+			if (active_mode == APP_WIFI_MODE_P2P_GO) {
 				int ret = wifi_setup_dhcp_server();
 
 				if (ret < 0) {
-					LOG_WRN("P2P: DHCP server start failed (%d)", ret);
+					LOG_WRN("P2P_GO: DHCP server start failed (%d)", ret);
 				}
-				/* P2P GO uses a static IP — NET_EVENT_IPV4_DHCP_BOUND never
-				 * fires.  Publish WIFI_P2P_CONNECTED now so the webserver
-				 * caches the correct mode and can start its HTTP server.
-				 */
-				struct wifi_msg p2p_msg = {
-					.type = WIFI_P2P_CONNECTED,
-					.active_mode = WIFI_MODE_P2P,
-				};
-
-				snprintf(p2p_msg.ip_addr, sizeof(p2p_msg.ip_addr), "%s",
-					 "192.168.7.1");
-				zbus_chan_pub(&WIFI_CHAN, &p2p_msg, K_NO_WAIT);
 			}
 		} else {
 			LOG_ERR("NET_EVENT_WIFI_CONNECT_RESULT: failed: status=%d", status->status);
@@ -316,13 +330,6 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 		} else {
 			LOG_ERR("NET_EVENT_WIFI_AP_ENABLE_RESULT: failed: status=%d",
 				status->status);
-			struct wifi_msg msg = {
-				.type = WIFI_ERROR,
-				.active_mode = WIFI_MODE_SOFTAP,
-				.error_code = status->status,
-			};
-
-			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
 			break;
 		}
 
@@ -331,23 +338,16 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 
 		/* Re-assert the static IP.  The WPA-level disconnect before
 		 * AP_ENABLE can remove the manually-assigned address. */
-		zsock_inet_pton(AF_INET, "192.168.7.1", &addr);
+		zsock_inet_pton(AF_INET, CONFIG_NET_CONFIG_MY_IPV4_ADDR, &addr);
 		zsock_inet_pton(AF_INET, "255.255.255.0", &netmask);
 		net_if_ipv4_addr_rm(ap_iface, &addr);
 		net_if_ipv4_addr_add(ap_iface, &addr, NET_ADDR_MANUAL, 0);
 		net_if_ipv4_set_netmask_by_addr(ap_iface, &addr, &netmask);
 
-		LOG_INF("SoftAP enabled: SSID='%s' IP=192.168.7.1", CONFIG_APP_WIFI_SSID);
-
-		struct wifi_msg msg = {
-			.type = WIFI_SOFTAP_STARTED,
-			.active_mode = WIFI_MODE_SOFTAP,
-			.error_code = 0,
-		};
-
-		snprintf(msg.ip_addr, sizeof(msg.ip_addr), "%s", "192.168.7.1");
-		snprintf(msg.ssid, sizeof(msg.ssid), "%s", CONFIG_APP_WIFI_SSID);
-		zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+		LOG_INF("SoftAP enabled: SSID='%s' IP='%s' waiting for client",
+			CONFIG_APP_WIFI_SSID, CONFIG_NET_CONFIG_MY_IPV4_ADDR);
+		/* HTTP server starts only when the first WiFi client joins
+		 * (NET_EVENT_WIFI_AP_STA_CONNECTED). Do not publish here. */
 		break;
 	}
 
@@ -374,37 +374,38 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 
 		k_sem_give(&station_connected_sem);
 		{
-			/* P2P GO and SoftAP both fire NET_EVENT_WIFI_AP_STA_CONNECTED.
-			 * Publish the correct Zbus event type based on the active mode.
-			 * For P2P, also capture the group SSID (DIRECT-XX-...) so the
-			 * webserver can display it.
-			 */
-			bool is_p2p_go = (active_mode == WIFI_MODE_P2P);
-			struct wifi_msg msg = {
-				.type = is_p2p_go ? WIFI_P2P_CONNECTED : WIFI_SOFTAP_STA_CONNECTED,
+			bool is_p2p_go = (active_mode == APP_WIFI_MODE_P2P_GO);
+			struct net_if *wifi_iface = net_if_get_first_wifi();
+			struct dk_wifi_info_msg msg = {
 				.active_mode = active_mode,
-				.error_code = sta_count,
+				.error_code = 0,
 			};
 
-			snprintf(msg.ip_addr, sizeof(msg.ip_addr), "%s", "192.168.7.1");
-			snprintf(msg.client_mac, sizeof(msg.client_mac), "%s", mac_str);
+			snprintf(msg.dk_ip_addr, sizeof(msg.dk_ip_addr), "%s",
+				 CONFIG_NET_CONFIG_MY_IPV4_ADDR);
+			iface_mac_to_str(wifi_iface, msg.dk_mac_addr);
 
 			if (is_p2p_go) {
-				struct net_if *p2p_iface = net_if_get_first_wifi();
 				struct wifi_iface_status wstatus = {0};
 
-				if (p2p_iface &&
-				    net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, p2p_iface, &wstatus,
+				if (wifi_iface &&
+				    net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS, wifi_iface, &wstatus,
 					     sizeof(wstatus)) == 0 &&
 				    wstatus.ssid_len > 0) {
 					snprintf(msg.ssid, sizeof(msg.ssid), "%.*s",
 						 wstatus.ssid_len, (char *)wstatus.ssid);
 				}
-				LOG_INF("P2P peer connected: ip=%s mac=%s ssid=%s", msg.ip_addr,
-					mac_str, msg.ssid);
+
+				LOG_INF("Publishing CLIENT_CONNECTED_CHAN: mode=P2P_GO dk_ip=%s",
+					msg.dk_ip_addr);
+			} else {
+				snprintf(msg.ssid, sizeof(msg.ssid), "%s", CONFIG_APP_WIFI_SSID);
+				LOG_INF("Publishing CLIENT_CONNECTED_CHAN: mode=SoftAP dk_ip=%s "
+					"clients=%d",
+					msg.dk_ip_addr, sta_count);
 			}
 
-			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
+			zbus_chan_pub(&CLIENT_CONNECTED_CHAN, &msg, K_NO_WAIT);
 		}
 		break;
 	}
@@ -430,16 +431,6 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 
 		LOG_INF("NET_EVENT_WIFI_AP_STA_DISCONNECTED: mac=%s clients=%d", mac_str,
 			rem_count);
-		{
-			struct wifi_msg msg = {
-				.type = (active_mode == WIFI_MODE_P2P) ? WIFI_P2P_DISCONNECTED
-								       : WIFI_SOFTAP_STA_DISCONNECTED,
-				.active_mode = active_mode,
-				.error_code = rem_count,
-			};
-			snprintf(msg.client_mac, sizeof(msg.client_mac), "%s", mac_str);
-			zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
-		}
 		break;
 	}
 
@@ -480,31 +471,25 @@ static void l3_ipv4_event_handler(struct net_mgmt_event_callback *cb, uint64_t m
 	LOG_INF("ip: %s, ssid: %s ", ip, sta_ssid[0] ? sta_ssid : "<unknown>");
 
 	network_connected = true;
-	if (active_mode != WIFI_MODE_STA && active_mode != WIFI_MODE_P2P) {
+	if (active_mode != APP_WIFI_MODE_STA && active_mode != APP_WIFI_MODE_P2P_GO &&
+	    active_mode != APP_WIFI_MODE_P2P_CLIENT) {
 		LOG_INF("NET_EVENT_IPV4_DHCP_BOUND: DHCP bound in mode %d, ignoring", active_mode);
 		return;
 	}
-	bool is_p2p = (strncmp(sta_ssid, "DIRECT-", 7) == 0);
+	bool is_p2p_client = (strncmp(sta_ssid, "DIRECT-", 7) == 0);
 
-	if (is_p2p) {
-		struct wifi_msg msg = {
-			.type = WIFI_P2P_CONNECTED,
-			.active_mode = WIFI_MODE_P2P,
-		};
+	struct dk_wifi_info_msg msg = {
+		.active_mode = is_p2p_client ? APP_WIFI_MODE_P2P_CLIENT : APP_WIFI_MODE_STA,
+		.error_code = 0,
+	};
 
-		snprintf(msg.ip_addr, sizeof(msg.ip_addr), "%s", ip);
-		snprintf(msg.ssid, sizeof(msg.ssid), "%s", sta_ssid);
-		zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
-	} else {
-		struct wifi_msg msg = {
-			.type = WIFI_STA_CONNECTED,
-			.active_mode = WIFI_MODE_STA,
-		};
+	snprintf(msg.dk_ip_addr, sizeof(msg.dk_ip_addr), "%s", ip);
+	iface_mac_to_str(iface, msg.dk_mac_addr);
+	snprintf(msg.ssid, sizeof(msg.ssid), "%s", sta_ssid);
 
-		snprintf(msg.ip_addr, sizeof(msg.ip_addr), "%s", ip);
-		snprintf(msg.ssid, sizeof(msg.ssid), "%s", sta_ssid);
-		zbus_chan_pub(&WIFI_CHAN, &msg, K_NO_WAIT);
-	}
+	LOG_INF("Publishing CLIENT_CONNECTED_CHAN: mode=%s dk_ip=%s ssid=%s",
+		is_p2p_client ? "P2P_CLIENT" : "STA", msg.dk_ip_addr, msg.ssid);
+	zbus_chan_pub(&CLIENT_CONNECTED_CHAN, &msg, K_NO_WAIT);
 }
 
 /* ============================================================================
@@ -577,12 +562,12 @@ int network_module_init(void)
 
 	/* Read active mode from WIFI_MODE_CHAN (published by mode_selector at priority 0)
 	 */
-	struct wifi_mode_msg mode_msg = {.mode = WIFI_MODE_SOFTAP};
+	struct wifi_mode_msg mode_msg = {.mode = APP_WIFI_MODE_SOFTAP};
 	int ret = zbus_chan_read(&WIFI_MODE_CHAN, &mode_msg, K_NO_WAIT);
 
 	if (ret) {
 		LOG_WRN("Failed to read WIFI_MODE_CHAN (%d), defaulting to SoftAP", ret);
-		active_mode = WIFI_MODE_SOFTAP;
+		active_mode = APP_WIFI_MODE_SOFTAP;
 	} else {
 		active_mode = mode_msg.mode;
 	}
@@ -632,14 +617,17 @@ int network_module_init(void)
 	}
 
 	switch (mode_selector_get_active_mode()) {
-	case WIFI_MODE_SOFTAP:
+	case APP_WIFI_MODE_SOFTAP:
 		wifi_run_softap_mode();
 		break;
-	case WIFI_MODE_STA:
+	case APP_WIFI_MODE_STA:
 		/* STA: user connects via shell; conn_mgr handles DHCP */
 		break;
-	case WIFI_MODE_P2P:
-		/* P2P: user drives via wifi p2p shell commands */
+	case APP_WIFI_MODE_P2P_GO:
+		/* P2P_GO: user runs 'wifi p2p group_add' then 'wifi wps_pin' */
+		break;
+	case APP_WIFI_MODE_P2P_CLIENT:
+		/* P2P_CLIENT: user runs 'wifi p2p find' then 'wifi p2p connect <MAC> pbc -g 0' */
 		break;
 	default:
 		LOG_WRN("Unsupported mode, falling back to SoftAP");

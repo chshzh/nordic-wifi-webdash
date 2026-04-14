@@ -25,6 +25,6 @@
 /**
  * @brief Return the Wi-Fi mode loaded from NVS at boot.
  */
-enum wifi_mode mode_selector_get_active_mode(void);
+enum app_wifi_mode mode_selector_get_active_mode(void);
 
 #endif /* MODE_SELECTOR_H */

@@ -37,14 +37,17 @@ int main(void)
 	const char *mode_str;
 
 	switch (mode_selector_get_active_mode()) {
-	case WIFI_MODE_SOFTAP:
+	case APP_WIFI_MODE_SOFTAP:
 		mode_str = "SoftAP";
 		break;
-	case WIFI_MODE_STA:
+	case APP_WIFI_MODE_STA:
 		mode_str = "STA";
 		break;
-	case WIFI_MODE_P2P:
-		mode_str = "P2P";
+	case APP_WIFI_MODE_P2P_GO:
+		mode_str = "P2P_GO";
+		break;
+	case APP_WIFI_MODE_P2P_CLIENT:
+		mode_str = "P2P_CLIENT";
 		break;
 	default:
 		mode_str = "Unknown";
@@ -52,7 +55,7 @@ int main(void)
 	}
 
 	LOG_INF("==============================================");
-	LOG_INF("Nordic WiFi WebDash");
+	LOG_INF("Nordic Wi-Fi WebDash");
 	LOG_INF("==============================================");
 	LOG_INF("Build: %s %s", __DATE__, __TIME__);
 	LOG_INF("Board: %s", board_name);
@@ -64,29 +67,37 @@ int main(void)
 
 	LOG_INF("Current active Wi-Fi mode: %s", mode_str);
 
-	LOG_INF("Type 'wifi_mode [SoftAP|STA|P2P]' to change mode after reboot.");
+	LOG_INF("Type 'wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]' to change mode after reboot.");
 	LOG_INF("==============================================");
-	LOG_INF("=============Connect WebDash============");
+	LOG_INF("WebDash connection instructions:");
 
 	switch (mode_selector_get_active_mode()) {
-	case WIFI_MODE_SOFTAP:
-		LOG_INF("SoftAP mode: SSID='%s' Password='12345678'", CONFIG_APP_WIFI_SSID);
-		LOG_INF("Connect and open http://192.168.7.1:%d", CONFIG_APP_HTTP_PORT);
+	case APP_WIFI_MODE_SOFTAP:
+		LOG_INF("Connect AP SSID='%s' using Password='%s'", CONFIG_APP_WIFI_SSID,
+			CONFIG_APP_WIFI_PASSWORD);
 		break;
 
-	case WIFI_MODE_STA:
+	case APP_WIFI_MODE_STA:
 		LOG_INF("STA mode: connect via shell:");
 		LOG_INF("  wifi connect -s <SSID> -p <password> -k 1 -- WPA2");
 		LOG_INF("  wifi connect --help                       -- help for more options");
 		break;
 
-	case WIFI_MODE_P2P:
-		LOG_INF("P2P mode: DK acts as Group Owner (GO):");
-		LOG_INF("1.DK: wifi p2p group_add       -- start P2P group");
-		LOG_INF("2.DK: wifi wps_pin             -- display WPS PIN");
-		LOG_INF("3.Phone: Turn on Wi-Fi but disconnect with other APs");
-		LOG_INF("4.Phone: Wi - Fi Direct-> wait DK MAC address to appear, select to enter "
-			"PIN.");
+	case APP_WIFI_MODE_P2P_GO:
+		LOG_INF("P2P_GO mode: DK acts as Group Owner:");
+		LOG_INF("1. DK:    wifi p2p group_add        -- start P2P group");
+		LOG_INF("2. DK:    wifi wps_pin  12345678    -- set WPS PIN");
+		LOG_INF("3. Phone: Turn on Wi-Fi, disconnect from other APs");
+		LOG_INF("4. Phone: Wi-Fi Direct -> wait for DK MAC, select and enter PIN");
+		break;
+
+	case APP_WIFI_MODE_P2P_CLIENT:
+		LOG_INF("P2P_CLIENT mode: DK joins phone's P2P group:");
+		LOG_INF("1. DK:    wifi p2p find              -- search for peers");
+		LOG_INF("2. Phone: Enable Wi-Fi Direct, wait for DK MAC to appear");
+		LOG_INF("3. DK:    wifi p2p peer              -- list peers, find phone MAC");
+		LOG_INF("4. DK:    wifi p2p connect <phone MAC> pbc -g 0  -- connect");
+		LOG_INF("5. Phone: Press ACCEPT on the Wi-Fi Direct invitation");
 		break;
 	}
 

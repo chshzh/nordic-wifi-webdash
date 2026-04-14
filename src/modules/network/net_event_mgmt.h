@@ -8,7 +8,10 @@
 #define NET_EVENT_MGMT_H
 
 #include <zephyr/kernel.h>
+#include <zephyr/zbus/zbus.h>
 #include "../messages.h"
+
+extern const struct zbus_channel CLIENT_CONNECTED_CHAN;
 
 /**
  * @brief Initialize unified network/Wi-Fi event management module.
