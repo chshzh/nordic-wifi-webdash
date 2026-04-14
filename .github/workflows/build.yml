@@ -75,14 +75,18 @@ jobs:
           BUILD_LOG="${{ matrix.config.build_dir }}/build.log"
           EXTRA_ARGS="${{ matrix.config.cmake_args }}"
 
+          # Inject firmware version: use the git tag on tag pushes, "dev" otherwise.
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            FW_VERSION="${{ github.ref_name }}"
+          else
+            FW_VERSION="dev"
+          fi
+          EXTRA_ARGS="$EXTRA_ARGS -DAPP_VERSION_STRING=${FW_VERSION}"
+
           mkdir -p "${{ matrix.config.build_dir }}"
           set -o pipefail
 
-          if [ -n "$EXTRA_ARGS" ]; then
-            west build -p -b ${{ matrix.config.board }} -d ${{ matrix.config.build_dir }} -- $EXTRA_ARGS 2>&1 | tee "$BUILD_LOG"
-          else
-            west build -p -b ${{ matrix.config.board }} -d ${{ matrix.config.build_dir }} 2>&1 | tee "$BUILD_LOG"
-          fi
+          west build -p -b ${{ matrix.config.board }} -d ${{ matrix.config.build_dir }} -- $EXTRA_ARGS 2>&1 | tee "$BUILD_LOG"
 
       - name: Extract memory usage for ${{ matrix.config.name }}
         if: always()

@@ -44,6 +44,18 @@ add_subdirectory(src/modules/led)
 add_subdirectory(src/modules/webserver)
 add_subdirectory(src/modules/memory)
 
+# Firmware version string shown in the startup log.
+# - Release CI:    pass -DAPP_VERSION_STRING=<git-tag>  (e.g. v1.2.3)
+# - Local builds:  automatically constructed as v<NCS_VERSION_STRING>-dev
+#                  (NCS_VERSION_STRING is set by NCS cmake, e.g. "3.3.0-rc1")
+if(DEFINED APP_VERSION_STRING)
+	target_compile_definitions(app PRIVATE APP_VERSION_STRING="${APP_VERSION_STRING}")
+elseif(DEFINED NCS_VERSION)
+	target_compile_definitions(app PRIVATE APP_VERSION_STRING="v${NCS_VERSION}-dev")
+else()
+	target_compile_definitions(app PRIVATE APP_VERSION_STRING="dev")
+endif()
+
 target_sources(app PRIVATE
 	src/main.c
 )
