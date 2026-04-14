@@ -42,7 +42,7 @@ ZBUS_CHAN_DEFINE(WIFI_MODE_CHAN, struct wifi_mode_msg, NULL, NULL, ZBUS_OBSERVER
  * ============================================================================
  */
 
-static enum app_wifi_mode selected_mode = APP_WIFI_MODE_SOFTAP;
+static enum app_wifi_mode selected_mode = APP_WIFI_MODE_P2P_GO;
 
 /* ============================================================================
  * NVS / SETTINGS PERSISTENCE
@@ -182,10 +182,10 @@ static int mode_selector_init(void)
 	/* Load persisted mode from NVS */
 	ret = settings_subsys_init();
 	if (ret) {
-		LOG_WRN("settings_subsys_init failed (%d), using SoftAP", ret);
-		selected_mode = APP_WIFI_MODE_SOFTAP;
+		LOG_WRN("settings_subsys_init failed (%d), using P2P_GO", ret);
+		selected_mode = APP_WIFI_MODE_P2P_GO;
 	} else {
-		selected_mode = APP_WIFI_MODE_SOFTAP; /* default if key absent */
+		selected_mode = APP_WIFI_MODE_P2P_GO; /* default if key absent (fresh flash) */
 		settings_load_subtree("app");
 		/* NVS backward-compat: old value 2 was WIFI_MODE_P2P, treat as P2P_GO */
 		if ((int)selected_mode == 2 && selected_mode != APP_WIFI_MODE_P2P_GO) {
