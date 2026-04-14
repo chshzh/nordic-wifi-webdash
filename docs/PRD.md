@@ -1,10 +1,10 @@
-# Product Requirements Document — Nordic WiFi WebDash
+# Product Requirements Document — Nordic Wi-Fi WebDash
 
 ## Document Information
 
 | Field | Value |
 |---|---|
-| Product Name | Nordic WiFi WebDash |
+| Product Name | Nordic Wi-Fi WebDash |
 | Product ID | nordic-wifi-webdash |
 | Version | 2026-04-09-12-00 |
 | Previous Version | 2026-03-31 |
@@ -30,7 +30,7 @@
 
 ### 1.1 Product Overview
 
-Nordic WiFi WebDash (`nordic-wifi-webdash`) is an IoT demonstration and reference platform for **nRF7x series Wi-Fi development kits**. It serves a real-time, browser-based dashboard directly from the nRF device — no cloud required. Users can view and control device GPIO (buttons and LEDs) from any browser on the same network.
+Nordic Wi-Fi WebDash (`nordic-wifi-webdash`) is an IoT demonstration and reference platform for **nRF7x series Wi-Fi development kits**. It serves a real-time, browser-based dashboard directly from the nRF device — no cloud required. Users can view and control device GPIO (buttons and LEDs) from any browser on the same network.
 
 The device supports three Wi-Fi modes: SoftAP (creates its own Wi-Fi hotspot), STA (joins an existing network), and P2P/Wi-Fi Direct (connects directly to a phone without a router). The active mode is selected at boot and persisted in flash so it survives power cycles.
 

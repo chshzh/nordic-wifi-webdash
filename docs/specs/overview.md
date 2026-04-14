@@ -1,4 +1,4 @@
-# Engineering Specs Overview — Nordic WiFi WebDash
+# Engineering Specs Overview — Nordic Wi-Fi WebDash
 
 ## Document Information
 

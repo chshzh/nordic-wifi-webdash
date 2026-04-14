@@ -1,4 +1,4 @@
-name: Build and Test Nordic WiFi WebDash
+name: Build and Test Nordic Wi-Fi WebDash
 
 on:
   push:
@@ -243,7 +243,7 @@ jobs:
 
           if [ -z "$PREV_TAG" ]; then
             echo "First release - no previous tag found"
-            CHANGELOG="Initial release of Nordic WiFi WebDash"
+            CHANGELOG="Initial release of Nordic Wi-Fi WebDash"
           else
             echo "Generating changelog from $PREV_TAG to ${{ github.ref_name }}"
             CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREV_TAG}..HEAD)
@@ -279,7 +279,7 @@ jobs:
           : "${NRF54LM20_RAM:=n/a}"
 
           cat > /tmp/release-body.txt <<EOF
-          ## Nordic WiFi WebDash Release ${{ github.ref_name }}
+          ## Nordic Wi-Fi WebDash Release ${{ github.ref_name }}
 
           > **Note**: Built with NCS ${{ needs.set-version.outputs.NCS_VERSION }}
 
@@ -328,7 +328,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: "Nordic WiFi WebDash ${{ github.ref_name }}"
+          name: "Nordic Wi-Fi WebDash ${{ github.ref_name }}"
           body_path: /tmp/release-body.txt
           files: |
             release-package/*.hex
