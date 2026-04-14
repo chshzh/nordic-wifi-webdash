@@ -6,8 +6,8 @@
 |---|---|
 | Product Name | Nordic Wi-Fi WebDash |
 | Product ID | nordic-wifi-webdash |
-| Version | 2026-04-09-12-00 |
-| Previous Version | 2026-03-31 |
+| Version | 2026-04-14-15-00 |
+| Previous Version | 2026-04-14-11-00 |
 | Status | Draft |
 | Product Manager | Charlie Shao |
 | NCS Version | v3.2.4 |
@@ -19,6 +19,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-04-14-15-00 | Startup improvements: firmware version string printed at boot (git tag on CI / v&lt;NCS&gt;-dev locally); startup banner with aligned labels and module boot sequence (SYS_INIT priorities); SoftAP periodic reminder — SSID/password/IP logged every 300 s until first client connects (mirrors P2P_GO WPS re-arm pattern) |
 | 2026-04-14-11-00 | P2P_GO auto-start: firmware automatically runs group_add and sets WPS PIN at boot; waits up to 5 min for first client (same pattern as SoftAP); no manual shell commands needed to start a P2P_GO session |
 | 2026-04-14-10-00 | Code sync: P2P split into P2P_GO (device is GO) and P2P_CLIENT (device joins phone group); default mode on fresh flash changed to P2P_GO; app_wifi_mode command updated to [softap|sta|p2p_go|p2p_client]; WPS PIN connection method added; /api/system fields updated to device_ip, device_mac, client_ip, board |
 | 2026-04-09-12-00 | Replace Button-1 long-press mode selection with `app_wifi_mode` shell command; remove Wi-Fi credential storage (STA is session-based); remove Cloud & Monitoring placeholder section; P2P now supported on both boards; update target users to Evaluator + Application Developer |
@@ -34,7 +35,7 @@
 
 Nordic Wi-Fi WebDash (`nordic-wifi-webdash`) is an IoT demonstration and reference platform for **nRF7x series Wi-Fi development kits**. It serves a real-time, browser-based dashboard directly from the nRF device — no cloud required. Users can view and control device GPIO (buttons and LEDs) from any browser on the same network.
 
-The device supports three Wi-Fi modes: SoftAP (creates its own Wi-Fi hotspot), STA (joins an existing network), and P2P/Wi-Fi Direct (connects directly to a phone without a router). The active mode is selected at boot and persisted in flash so it survives power cycles.
+The device supports four Wi-Fi operating modes: SoftAP (creates its own Wi-Fi hotspot), STA (joins an existing network), P2P_GO (device is the Wi-Fi Direct Group Owner), and P2P_CLIENT (device joins a phone's group). The active mode is selected at boot and persisted in flash so it survives power cycles.
 
 ### 1.2 Problem Statement
 
@@ -69,7 +70,7 @@ Developers evaluating nRF7x Wi-Fi need connectivity flexibility:
 ### 2.1 Wi-Fi Connectivity
 
 - [x] **Connect to an existing Wi-Fi network (STA mode)** — device joins a network for the current session using `wifi connect -s <SSID> -p <password> -k 1`; dashboard reachable at the DHCP IP or `http://nrfwebdash.local`
-- [x] **Create its own Wi-Fi hotspot (SoftAP mode)** — device creates the `WebDash_AP` access point (password `12345678`); dashboard reachable at `http://192.168.7.1`; max 2 client stations
+- [x] **Create its own Wi-Fi hotspot (SoftAP mode)** — device creates the `WebDash_AP` access point (password `12345678`); dashboard reachable at `http://192.168.7.1`; max 2 client stations; SSID/password/IP logged every 300 s until the first client connects
 - [x] **Connect directly to a phone without a router (P2P / Wi-Fi Direct)** — two sub-modes:
   - **P2P_GO**: device **automatically** creates the P2P group and activates WPS PIN at boot (no manual shell commands needed); the WPS PIN is logged to the serial console; the device waits up to **5 minutes** for a phone to connect; once connected, phone joins and device assigns IPs; same auto-start pattern as SoftAP
   - **P2P_CLIENT**: device discovers peers and joins the phone's group (`wifi p2p connect <MAC> pbc`); phone assigns IPs
@@ -107,7 +108,7 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 ### 2.5 Developer & Debug Features
 
 - [x] **Serial shell** — developer can run `app_wifi_mode [softap|sta|p2p_go|p2p_client]` to switch mode, `wifi connect` to join a network, `wifi p2p find/peer/connect` for P2P_CLIENT, `wifi scan` and `wifi status` for diagnostics; in P2P_GO mode the auto-start sequence runs at boot so no manual `wifi p2p group_add` or `wifi wps_pin` is needed
-- [x] **Startup log** — board name, MAC address, active Wi-Fi mode, build date, and IP address logged at boot
+- [x] **Startup log** — firmware version string (git tag on CI / `v<NCS>-dev` locally), board name, MAC address, active Wi-Fi mode, build date, and module boot sequence with SYS_INIT priorities logged at boot
 
 ---
 
