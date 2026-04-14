@@ -111,6 +111,11 @@ int wifi_set_tx_injection_mode(void);
 int wifi_run_p2p_go_mode(void);
 
 /**
+ * @brief Cancel the SoftAP periodic reminder timer (call when first client connects).
+ */
+void wifi_softap_cancel_remind_timer(void);
+
+/**
  * @brief Cancel the P2P_GO WPS-wait timer (call when first client connects).
  */
 void wifi_p2p_go_cancel_wps_timer(void);

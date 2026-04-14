@@ -401,12 +401,15 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 
 				LOG_INF("Publishing CLIENT_CONNECTED_CHAN: mode=P2P_GO dk_ip=%s",
 					msg.dk_ip_addr);
-			} else {
-				snprintf(msg.ssid, sizeof(msg.ssid), "%s", CONFIG_APP_WIFI_SSID);
-				LOG_INF("Publishing CLIENT_CONNECTED_CHAN: mode=SoftAP dk_ip=%s "
-					"clients=%d",
-					msg.dk_ip_addr, sta_count);
-			}
+		} else {
+			/* Cancel the SoftAP reminder timer — first client connected */
+			wifi_softap_cancel_remind_timer();
+
+			snprintf(msg.ssid, sizeof(msg.ssid), "%s", CONFIG_APP_WIFI_SSID);
+			LOG_INF("Publishing CLIENT_CONNECTED_CHAN: mode=SoftAP dk_ip=%s "
+				"clients=%d",
+				msg.dk_ip_addr, sta_count);
+		}
 
 			zbus_chan_pub(&CLIENT_CONNECTED_CHAN, &msg, K_NO_WAIT);
 		}

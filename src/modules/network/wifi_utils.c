@@ -311,6 +311,29 @@ int wifi_setup_dhcp_server(void)
 	return 0;
 }
 
+/* ============================================================================
+ * SOFTAP PERIODIC REMINDER
+ * Logs SSID/password every 300 s until the first client connects.
+ * Runs on sysworkq — pure logging, no net_mgmt calls.
+ * ============================================================================
+ */
+#define SOFTAP_REMIND_TIMEOUT_S 300
+
+static struct k_work_delayable softap_remind_work;
+
+static void softap_remind_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+	LOG_WRN("SoftAP: no client in %d s SSID='%s' Password='%s' IP=%s", SOFTAP_REMIND_TIMEOUT_S,
+		CONFIG_APP_WIFI_SSID, CONFIG_APP_WIFI_PASSWORD, CONFIG_NET_CONFIG_MY_IPV4_ADDR);
+	k_work_schedule(&softap_remind_work, K_SECONDS(SOFTAP_REMIND_TIMEOUT_S));
+}
+
+void wifi_softap_cancel_remind_timer(void)
+{
+	k_work_cancel_delayable(&softap_remind_work);
+}
+
 int wifi_run_softap_mode(void)
 {
 	int ret;
@@ -336,6 +359,10 @@ int wifi_run_softap_mode(void)
 		LOG_ERR("Failed to setup SoftAP: %d", ret);
 		return ret;
 	}
+
+	/* Arm 5-minute reminder: re-logs SSID/password until a client connects */
+	k_work_init_delayable(&softap_remind_work, softap_remind_handler);
+	k_work_schedule(&softap_remind_work, K_SECONDS(SOFTAP_REMIND_TIMEOUT_S));
 
 	return 0;
 }
