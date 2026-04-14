@@ -84,12 +84,11 @@ int main(void)
 		break;
 
 	case APP_WIFI_MODE_P2P_GO:
-		LOG_INF("P2P_GO mode: DK acts as Group Owner:");
-		LOG_INF("1. DK:    wifi p2p group_add        -- start P2P group");
-		LOG_INF("2. DK:    wifi wps_pin  12345678    -- set WPS PIN");
-		LOG_INF("3. Phone: Turn on Wi-Fi, disconnect from other APs");
-		LOG_INF("4. Phone: Wi-Fi Direct -> wait for DK MAC, select and enter PIN");
-		break;
+		LOG_INF("P2P_GO mode: P2P group + WPS PIN auto-started at boot.");
+		LOG_INF("1. Phone: Turn on Wi-Fi, disconnect from other APs");
+		LOG_INF("2. Phone: Wi-Fi Direct -> wait for DK, select it, enter PIN 12345678");
+			CONFIG_NET_CONFIG_MY_IPV4_ADDR);
+			break;
 
 	case APP_WIFI_MODE_P2P_CLIENT:
 		LOG_INF("P2P_CLIENT mode: DK joins phone's P2P group:");

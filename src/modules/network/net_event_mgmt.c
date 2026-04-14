@@ -78,7 +78,7 @@ ZBUS_CHAN_DEFINE(CLIENT_CONNECTED_CHAN, struct dk_wifi_info_msg, NULL, NULL, ZBU
  */
 
 static enum app_wifi_mode active_mode = APP_WIFI_MODE_SOFTAP;
-/* Track network connectivity state (WiFi connected + IP assigned) */
+/* Track network connectivity state (Wi-Fi connected + IP assigned) */
 static bool network_connected;
 /* SSID captured at L4_CONNECTED; "DIRECT-" prefix → P2P session */
 static char sta_ssid[WIFI_SSID_MAX_LEN + 1];
@@ -304,7 +304,7 @@ static void l2_wifi_conn_event_handler(struct net_mgmt_event_callback *cb, uint6
 		break;
 	}
 	default:
-		LOG_DBG("Unhandled WiFi event: 0x%08" PRIx64, mgmt_event);
+		LOG_DBG("Unhandled Wi-Fi event: 0x%08" PRIx64, mgmt_event);
 		break;
 	}
 }
@@ -346,7 +346,7 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 
 		LOG_INF("SoftAP enabled: SSID='%s' IP='%s' waiting for client",
 			CONFIG_APP_WIFI_SSID, CONFIG_NET_CONFIG_MY_IPV4_ADDR);
-		/* HTTP server starts only when the first WiFi client joins
+		/* HTTP server starts only when the first Wi-Fi client joins
 		 * (NET_EVENT_WIFI_AP_STA_CONNECTED). Do not publish here. */
 		break;
 	}
@@ -386,6 +386,9 @@ static void l2_softap_event_handler(struct net_mgmt_event_callback *cb, uint64_t
 			iface_mac_to_str(wifi_iface, msg.dk_mac_addr);
 
 			if (is_p2p_go) {
+				/* Cancel the WPS-wait timer — client connected */
+				wifi_p2p_go_cancel_wps_timer();
+
 				struct wifi_iface_status wstatus = {0};
 
 				if (wifi_iface &&
@@ -578,10 +581,10 @@ int network_module_init(void)
 	net_mgmt_add_event_callback(&iface_event_cb);
 	LOG_DBG("Interface event handler registered");
 
-	/* L2: WiFi connect/disconnect results */
+	/* L2: Wi-Fi connect/disconnect results */
 	net_mgmt_init_event_callback(&wifi_event_cb, l2_wifi_conn_event_handler, L2_WIFI_CONN_MASK);
 	net_mgmt_add_event_callback(&wifi_event_cb);
-	LOG_DBG("WiFi L2 event handler registered");
+	LOG_DBG("Wi-Fi L2 event handler registered");
 
 #if IS_ENABLED(CONFIG_WIFI_NM_WPA_SUPPLICANT_AP)
 	/* L2: SoftAP events */
@@ -624,7 +627,7 @@ int network_module_init(void)
 		/* STA: user connects via shell; conn_mgr handles DHCP */
 		break;
 	case APP_WIFI_MODE_P2P_GO:
-		/* P2P_GO: user runs 'wifi p2p group_add' then 'wifi wps_pin' */
+		wifi_run_p2p_go_mode();
 		break;
 	case APP_WIFI_MODE_P2P_CLIENT:
 		/* P2P_CLIENT: user runs 'wifi p2p find' then 'wifi p2p connect <MAC> pbc -g 0' */

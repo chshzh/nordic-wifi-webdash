@@ -99,4 +99,20 @@ int wifi_set_mode(int mode);
  */
 int wifi_set_tx_injection_mode(void);
 
+/**
+ * @brief Start P2P_GO mode: create group and activate WPS PIN.
+ *
+ * Calls wifi p2p group_add then sets the WPS PIN. Starts a 5-minute
+ * k_work_delayable timer; if it fires with no client, it re-arms
+ * the WPS window (the group stays alive).
+ *
+ * @return 0 on success, negative error code on failure
+ */
+int wifi_run_p2p_go_mode(void);
+
+/**
+ * @brief Cancel the P2P_GO WPS-wait timer (call when first client connects).
+ */
+void wifi_p2p_go_cancel_wps_timer(void);
+
 #endif /* WIFI_UTILS_H */

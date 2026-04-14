@@ -273,9 +273,9 @@ int wifi_setup_dhcp_server(void)
 		return -1;
 	}
 
-	/* Ensure the gateway static IP is assigned to the WiFi interface.
+	/* Ensure the gateway static IP is assigned to the Wi-Fi interface.
 	 * net_config_init (prio 95) may assign it to a different iface if the
-	 * WiFi interface is not yet up at that time.  net_dhcpv4_server_start
+	 * Wi-Fi interface is not yet up at that time.  net_dhcpv4_server_start
 	 * requires the server address to already be present on the iface. */
 	zsock_inet_pton(AF_INET, CONFIG_NET_CONFIG_MY_IPV4_ADDR, &gw_addr);
 	zsock_inet_pton(AF_INET, "255.255.255.0", &netmask);
@@ -433,8 +433,7 @@ static void p2p_go_set_wps_pin(void)
 		LOG_ERR("P2P_GO: WPS PIN set failed (%d)", ret);
 	} else {
 		LOG_INF("P2P_GO: WPS PIN active: %s", P2P_GO_WPS_PIN);
-		LOG_INF("P2P_GO: On your phone: Wi-Fi Direct -> connect -> PIN %s",
-			P2P_GO_WPS_PIN);
+		LOG_INF("P2P_GO: On your phone: Wi-Fi Direct -> connect -> PIN %s", P2P_GO_WPS_PIN);
 	}
 }
 
@@ -463,31 +462,21 @@ int wifi_run_p2p_go_mode(void)
 
 	LOG_INF("P2P_GO mode: creating group...");
 
-	/* Step 1: group_add — retry up to 3 times with 1 s delay.
-	 * The P2P sub-module inside wpa_supplicant may not be ready immediately
-	 * after NET_EVENT_SUPPLICANT_READY fires, causing a transient -EIO.
+	/* Step 1: group_add — persistent = -1 means "autonomous (non-persistent) group".
+	 * Leaving persistent = 0 would request stored credentials (persistent group ID 0)
+	 * which don't exist on a fresh device, causing P2P_GROUP_ADD to fail with -EIO.
 	 */
 	struct wifi_p2p_params p2p = {
 		.oper = WIFI_P2P_GROUP_ADD,
-		.timeout = 0,
+		.group_add = {
+			.persistent = -1,
+		},
 	};
 
-	int ret = -EIO;
-
-	for (int attempt = 1; attempt <= 3; attempt++) {
-		ret = net_mgmt(NET_REQUEST_WIFI_P2P_OPER, iface, &p2p, sizeof(p2p));
-		if (ret == 0) {
-			break;
-		}
-		LOG_WRN("P2P_GO: group_add attempt %d/3 failed (%d)%s", attempt, ret,
-			attempt < 3 ? " — retrying in 1 s" : "");
-		if (attempt < 3) {
-			k_sleep(K_SECONDS(1));
-		}
-	}
+	int ret = net_mgmt(NET_REQUEST_WIFI_P2P_OPER, iface, &p2p, sizeof(p2p));
 
 	if (ret) {
-		LOG_ERR("P2P_GO: group_add failed after 3 attempts (%d)", ret);
+		LOG_ERR("P2P_GO: group_add failed (%d)", ret);
 		return ret;
 	}
 
@@ -518,4 +507,3 @@ void wifi_p2p_go_cancel_wps_timer(void)
 }
 
 #endif /* CONFIG_WIFI_NM_WPA_SUPPLICANT_P2P && CONFIG_WIFI_NM_WPA_SUPPLICANT_WPS */
-
