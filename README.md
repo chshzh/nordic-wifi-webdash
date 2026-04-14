@@ -33,6 +33,7 @@ Supported hardware:
 - Gzip-compressed static web assets served from flash
 - mDNS hostname support via `http://nrfwebdash.local`
 - Modular architecture based on SMF + Zbus
+- Startup banner with firmware version string (git tag on CI / `v<NCS>-dev` locally), module boot sequence with SYS_INIT priorities, and periodic reminders (SSID/PIN) until a client connects
 
 ### Project Structure
 
@@ -133,6 +134,8 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 - nRF54LM20DK + nRF7002EBII loses one button because of shield pin conflicts; BUTTON0–BUTTON2 remain available
 - STA connections are intentionally session-based to avoid unwanted reconnects when returning to other modes
 - Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `app_wifi_mode` if preferred
+- The startup banner prints firmware version (`Version: <tag>` on CI / `v<NCS>-dev` locally), aligned board/MAC/mode labels, and a module list with SYS_INIT boot priorities — useful for orientation when reading serial logs
+- SoftAP and P2P_GO both log connectivity instructions every 300 s until the first client connects; the reminders stop automatically on first connection
 - mDNS behavior, mode handling, and module responsibilities are documented in [docs/PRD.md](docs/PRD.md)
 
 ### Troubleshooting
@@ -260,4 +263,4 @@ SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
 ## Development
 
-This project was developed using [Charlie Skills](https://github.com/chshzh/charlie-skills) with Product Manager and Developer roles for systematic requirements management, architecture design, and implementation.
+This project was developed using [Charlie Skills](https://github.com/chshzh/charlie-skills) for systematic requirements management, architecture design, and implementation.
