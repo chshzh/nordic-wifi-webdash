@@ -58,17 +58,27 @@ int main(void)
 	LOG_INF("Nordic Wi-Fi WebDash");
 	LOG_INF("==============================================");
 	LOG_INF("Version: %s", APP_VERSION_STRING);
-	LOG_INF("Build: %s %s", __DATE__, __TIME__);
-	LOG_INF("Board: %s", board_name);
+	LOG_INF("Build:   %s %s", __DATE__, __TIME__);
+	LOG_INF("Board:   %s", board_name);
 
 	if (mac_addr && mac_addr->len == 6) {
-		LOG_INF("MAC: %02X:%02X:%02X:%02X:%02X:%02X", mac_addr->addr[0], mac_addr->addr[1],
-			mac_addr->addr[2], mac_addr->addr[3], mac_addr->addr[4], mac_addr->addr[5]);
+		LOG_INF("MAC:     %02X:%02X:%02X:%02X:%02X:%02X", mac_addr->addr[0],
+			mac_addr->addr[1], mac_addr->addr[2], mac_addr->addr[3], mac_addr->addr[4],
+			mac_addr->addr[5]);
 	}
 
-	LOG_INF("Current active Wi-Fi mode: %s", mode_str);
-
-	LOG_INF("Type 'app_wifi_mode [SoftAP|STA|P2P_GO|P2P_CLIENT]' to change mode after reboot.");
+	LOG_INF("Mode:    %s", mode_str);
+	LOG_INF("==============================================");
+	LOG_INF("Modules (SYS_INIT boot order):");
+	LOG_INF("  [0]  mode_selector  -- NVS read, WIFI_MODE_CHAN publish");
+	LOG_INF("  [5]  network        -- net-mgmt callbacks, Wi-Fi/P2P start");
+	LOG_INF("  [40] heap_monitor   -- heap usage tracking");
+	LOG_INF("  [90] led            -- LED GPIO init");
+	LOG_INF("  [90] button         -- button GPIO init");
+	LOG_INF("  [-]  main           -- this banner (runs after SYS_INIT)");
+	LOG_INF("  [-]  webserver      -- starts on CLIENT_CONNECTED_CHAN event");
+	LOG_INF("==============================================");
+	LOG_INF("Type 'app_wifi_mode [softap|sta|p2p_go|p2p_client]' to change mode.");
 	LOG_INF("==============================================");
 	LOG_INF("WebDash connection instructions:");
 
