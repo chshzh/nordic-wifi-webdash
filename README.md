@@ -1,14 +1,18 @@
 # Nordic Wi-Fi WebDash
 
 [![Build](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml)
-[![NCS Version](https://img.shields.io/badge/NCS-v3.2.4-green.svg)](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK)
+[![NCS Version](https://img.shields.io/badge/NCS-v3.3--branch-green.svg)](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK)
 ![Nordic Semiconductor](https://img.shields.io/badge/Nordic%20Semiconductor-nRF7002DK-blue)
 ![Nordic Semiconductor](https://img.shields.io/badge/Nordic%20Semiconductor-nRF54LM20DK%2BnRF7002EBII-red)
 [![License](https://img.shields.io/badge/License-LicenseRef--Nordic--5--Clause-blue.svg)](LICENSE)
 
-Nordic Wi-Fi WebDash is a browser-based demo and reference application for Nordic nRF70 Wi-Fi development kits. The device hosts the dashboard itself, so users can monitor buttons, control LEDs, and inspect system state directly from a browser without relying on cloud services.
+Nordic Wi-Fi WebDash is a browser-based demo and reference application for Nordic nRF7x Wi-Fi development kits. The device hosts the dashboard itself, so users can monitor buttons, control LEDs, and inspect system state directly from a browser without relying on cloud services.
 
 The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `app_wifi_mode` shell command. **Default on fresh flash is P2P_GO.**
+
+Connect to the device via Wi-Fi and open the dashboard in your browser:
+
+![Web Interface](picture/webgui.png)
 
 ## Project Overview
 
@@ -17,7 +21,7 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 This project is designed for two common use cases:
 
 - **Evaluator** — grab a pre-built `.hex` from the [Releases](https://github.com/chshzh/nordic-wifi-webdash/releases) page, flash it, and follow the [Quick Start](#quick-start) guide to reach the dashboard in two steps.
-- **Application Developer** — clone the workspace, build from source, and customise the firmware; see [Developer Info](#developer-info) and [pm/PRD.md](pm/PRD.md) for architecture and requirements.
+- **Application Developer** — clone the workspace, build from source, and customise the firmware; see [Developer Info](#developer-info) for build setup and [Documentation](#documentation) for product requirements, architecture, and per-module specs.
 
 Supported hardware:
 
@@ -44,8 +48,15 @@ nordic-wifi-webdash/
 ├── prj.conf
 ├── west.yml
 ├── docs/
-│   ├── PRD.md
+│   ├── PRD.md                     ← product requirements, features, acceptance criteria
 │   └── specs/
+│       ├── overview.md            ← spec index, PRD-to-spec mapping, architecture summary
+│       ├── architecture.md        ← module map, Zbus channels, SYS_INIT boot order
+│       ├── network-module.md      ← SoftAP / STA / P2P_GO / P2P_CLIENT paths
+│       ├── mode-selector.md       ← app_wifi_mode shell command, NVS persistence
+│       ├── webserver-module.md    ← HTTP server, REST API, DNS-SD, web UI
+│       ├── button-module.md       ← GPIO button monitoring, SMF events
+│       └── led-module.md          ← LED control, Zbus-commanded
 ├── src/
 │   ├── main.c
 │   └── modules/
@@ -60,7 +71,7 @@ nordic-wifi-webdash/
 
 ## Quick Start
 
-This section is intentionally short so a non-developer can get to a working dashboard quickly.
+This section is intentionally short so an evaluator can get to a working dashboard quickly.
 
 ### Step 1 - Flash the firmware
 
@@ -84,7 +95,7 @@ At any time, you can switch modes with `uart:~$ app_wifi_mode [softap|sta|p2p_go
 
 ## Developer Info
 
-This section keeps only the setup information needed for development. Detailed product behavior, architecture, and acceptance criteria are in [pm/PRD.md](pm/PRD.md).
+This section covers environment setup, build commands, and configuration. For product requirements, architecture decisions, and per-module specs, see the [Documentation](#documentation) section below.
 
 ### Environment Setup
 
@@ -116,7 +127,7 @@ This repository is a workspace application. The normal flow is:
 2. Run `west update`.
 3. Build and flash for the target board.
 
-For broader product context and implementation details, refer to [docs/PRD.md](docs/PRD.md) and `docs/specs/`.
+For product context and implementation details, start at [docs/specs/overview.md](docs/specs/overview.md) — it maps every PRD requirement to the spec file that implements it.
 
 ### Configuration
 
@@ -136,7 +147,7 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 - Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `app_wifi_mode` if preferred
 - The startup banner prints firmware version (`Version: <tag>` on CI / `v<NCS>-dev` locally), aligned board/MAC/mode labels, and a module list with SYS_INIT boot priorities — useful for orientation when reading serial logs
 - SoftAP and P2P_GO both log connectivity instructions every 300 s until the first client connects; the reminders stop automatically on first connection
-- mDNS behavior, mode handling, and module responsibilities are documented in [docs/PRD.md](docs/PRD.md)
+- mDNS behavior and module responsibilities are in [docs/specs/network-module.md](docs/specs/network-module.md); mode handling is in [docs/specs/mode-selector.md](docs/specs/mode-selector.md)
 
 ### Troubleshooting
 
@@ -149,7 +160,7 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 
 ## Web Interface
 
-![Web Interface](picture/webgui.png)
+The firmware serves a live dashboard. Connect to the device via Wi-Fi and open the printed IP (or `http://nrfwebdash.local`) in any browser.
 
 ### Button Status Panel
 
@@ -171,11 +182,25 @@ Provides per-LED control for supported boards.
 
 The dashboard also reports:
 
-- active Wi-Fi mode
-- SSID
-- IP address
-- connection status
-- uptime
+- Active Wi-Fi mode and SSID
+- Device IP address and MAC
+- Connected client IP
+- Uptime
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/PRD.md](docs/PRD.md) | Product Requirements — features, behavior, acceptance criteria, changelog |
+| [docs/specs/overview.md](docs/specs/overview.md) | **Start here** — spec index, PRD-to-spec mapping, architecture summary, design decisions |
+| [docs/specs/architecture.md](docs/specs/architecture.md) | System architecture — module map, Zbus channels, SYS_INIT boot sequence, memory budget |
+| [docs/specs/network-module.md](docs/specs/network-module.md) | Network module — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
+| [docs/specs/mode-selector.md](docs/specs/mode-selector.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
+| [docs/specs/webserver-module.md](docs/specs/webserver-module.md) | Webserver module — HTTP server, REST API endpoints, DNS-SD, web UI |
+| [docs/specs/button-module.md](docs/specs/button-module.md) | Button module — GPIO monitoring, SMF press/release events, board differences |
+| [docs/specs/led-module.md](docs/specs/led-module.md) | LED module — per-LED state machine, Zbus-commanded via `LED_CMD_CHAN` |
+
+The PRD describes **what** the device should do and for whom. The engineering specs describe **how** — each module spec maps back to PRD requirements and documents the state machine, Kconfig options, API, and test cases for that module.
 
 ## REST API
 
@@ -243,13 +268,27 @@ Example request:
 
 Supported actions: `on`, `off`, `toggle`
 
+## Development Methodology
+
+This project was developed using the [chsh-ncs-workflow](https://github.com/chshzh/charlie-skills) — a four-phase lifecycle for NCS/Zephyr IoT projects where each phase has a dedicated AI skill:
+
+| Phase | Focus | Skill | Output |
+|-------|-------|-------|--------|
+| 1 — Product Definition | What the device should do, for whom, and why | `chsh-pm-prd` | `docs/PRD.md` |
+| 2 — Technical Design | Translate PRD into engineering specs | `chsh-dev-spec` | `docs/specs/*.md` |
+| 3 — Implementation | Implement code from approved specs | `chsh-dev-project` | `src/`, passing build |
+| 4 — QA & Test | Validate the build against PRD criteria | `chsh-qa-test` | `TEST-*.md`, `QA-*.md` |
+
+Each phase feeds the next: requirements drive specs, specs drive code, code drives tests. Issues loop back to the right phase — code bugs to Phase 3, spec gaps to Phase 2, new requirements to Phase 1.
+
+Supporting skills: `chsh-dev-commit` (logical git history), `chsh-dev-mem-opt` (flash/RAM analysis).
+
 ## References
 
 - [nRF Connect SDK Documentation](https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/index.html)
 - [Zephyr State Machine Framework](https://docs.zephyrproject.org/latest/services/smf/index.html)
 - [Zephyr Zbus](https://docs.zephyrproject.org/latest/services/zbus/index.html)
 - [nRF70 Series Wi-Fi](https://www.nordicsemi.com/Products/nRF7002)
-- [PRD](pm/PRD.md)
 
 ## Contributing
 
@@ -261,6 +300,4 @@ Copyright (c) 2026 Nordic Semiconductor ASA
 
 SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
-## Development
 
-This project was developed using [Charlie Skills](https://github.com/chshzh/charlie-skills) for systematic requirements management, architecture design, and implementation.
