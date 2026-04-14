@@ -55,7 +55,6 @@ static bool server_started;
 struct button_state {
 	bool is_pressed;
 	uint32_t press_count;
-	uint8_t button_number;
 };
 
 static struct button_state button_states[NUM_BUTTONS];
@@ -67,7 +66,6 @@ static void button_listener(const struct zbus_channel *chan)
 	if (msg->button_number < NUM_BUTTONS) {
 		int idx = msg->button_number;
 
-		button_states[idx].button_number = msg->button_number;
 		button_states[idx].press_count = msg->press_count;
 		button_states[idx].is_pressed = (msg->type == BUTTON_PRESSED);
 
@@ -336,7 +334,7 @@ static int button_api_handler(struct http_client_ctx *client, enum http_transact
 
 	for (int i = 0; i < NUM_BUTTONS; i++) {
 		const bool is_last = (i == NUM_BUTTONS - 1);
-		const uint8_t btn_num = button_states[i].button_number;
+		const uint8_t btn_num = (uint8_t)i;
 		const char *btn_name = app_button_label(btn_num);
 
 		written = snprintf((char *)button_api_buf + offset, remaining,
