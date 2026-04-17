@@ -129,6 +129,38 @@ jobs:
 
           echo "Generated size report: $SIZE_REPORT"
 
+      - name: Create merged hex for ${{ matrix.config.name }}
+        if: always()
+        working-directory: app-workspace/nordic-wifi-webdash
+        run: |
+          BUILD_DIR="${{ matrix.config.build_dir }}"
+          MERGED_HEX="${BUILD_DIR}/merged.hex"
+
+          if [ -f "${MERGED_HEX}" ]; then
+            echo "merged.hex already exists"
+          else
+            echo "merged.hex not found, creating from mcuboot + signed app..."
+            MCUBOOT_HEX="${BUILD_DIR}/mcuboot/zephyr/zephyr.hex"
+            APP_HEX="${BUILD_DIR}/nordic-wifi-webdash/zephyr/zephyr.signed.hex"
+
+            if [ -f "${MCUBOOT_HEX}" ] && [ -f "${APP_HEX}" ]; then
+              python3 - <<EOF
+from intelhex import IntelHex
+ih = IntelHex()
+ih.loadhex("${MCUBOOT_HEX}")
+app = IntelHex()
+app.loadhex("${APP_HEX}")
+ih.merge(app, overlap="replace")
+ih.write_hex_file("${MERGED_HEX}")
+print("merged.hex created successfully")
+EOF
+            else
+              echo "Warning: required hex files not found, skipping merged.hex creation"
+              [ -f "${MCUBOOT_HEX}" ] || echo "  Missing: ${MCUBOOT_HEX}"
+              [ -f "${APP_HEX}" ]     || echo "  Missing: ${APP_HEX}"
+            fi
+          fi
+
       - name: Stage artifacts for ${{ matrix.config.name }}
         if: always()
         working-directory: app-workspace/nordic-wifi-webdash
