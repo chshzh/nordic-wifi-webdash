@@ -345,10 +345,16 @@ jobs:
                "release-package/nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex"
           fi
 
-          # Create zip archive
-          cd release-package
-          zip -r "../nordic-wifi-webdash-firmware-${{ github.ref_name }}.zip" .
-          cd ..
+          # Create zip archive (only if hex files were found)
+          HEX_COUNT=$(find release-package -name "*.hex" | wc -l)
+          if [ "$HEX_COUNT" -gt 0 ]; then
+            cd release-package
+            zip -r "../nordic-wifi-webdash-firmware-${{ github.ref_name }}.zip" .
+            cd ..
+            echo "Created zip with $HEX_COUNT hex file(s)"
+          else
+            echo "Warning: no merged hex files found in artifacts, skipping zip"
+          fi
 
           ls -la release-package/
 
