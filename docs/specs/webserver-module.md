@@ -1,11 +1,12 @@
 # Webserver Module Specification
 
-> **PRD Version**: 2026-04-09-12-00
+> **PRD Version**: 2026-04-17-10-00
 
 ## Changelog
 
 | Version | Summary |
 |---|---|
+| 2026-04-17-10-00 | Add dark mode (FR-105): CSS `prefers-color-scheme` auto-detect + manual toggle button; no persistence; all UI elements legible in both modes |
 | 2026-04-14-10-00 | Code sync: subscribes to CLIENT_CONNECTED_CHAN (not WIFI_CHAN); /api/system fields updated (device_ip, device_mac, client_ip, board); client IP tracked in all modes via zsock_getpeername(); MAX_WEB_CLIENTS=4; mode values include P2P_GO/P2P_CLIENT |
 | 2026-04-09-14-00 | Code alignment: fix DNS-SD macro to `DNS_SD_REGISTER_SERVICE` (not `DNS_SD_REGISTER_TCP_SERVICE`) |
 | 2026-04-09-12-00 | Add DNS-SD `_http._tcp.local` service registration (FR-104) |
@@ -172,6 +173,38 @@ A new header banner shows the active Wi-Fi mode with color coding:
 
 The web UI polls `/api/system`, `/api/buttons`, and `/api/leds` every 500 ms (unchanged from v1.0).
 
+### Dark Mode (FR-105)
+
+The UI supports light and dark colour schemes.
+
+**Auto-detect (default)**  
+A CSS `@media (prefers-color-scheme: dark)` block applies the dark palette automatically when the browser/OS is in dark mode. No JavaScript is required for the default path.
+
+**Manual toggle**  
+A sun/moon icon button in the page header lets the user override the system setting for the current session.
+
+- Clicking the button adds or removes a `data-theme="dark"` attribute on `<html>`.
+- CSS uses `html[data-theme="dark"] { ... }` selectors, which take precedence over the media query.
+- The toggle resets on page reload (no `localStorage`).
+
+**Colour tokens** (CSS custom properties):
+
+| Token | Light value | Dark value |
+|-------|-------------|------------|
+| `--bg` | `#ffffff` | `#1a1a2e` |
+| `--bg-panel` | `#f4f4f4` | `#16213e` |
+| `--text` | `#111111` | `#e0e0e0` |
+| `--border` | `#cccccc` | `#444466` |
+| `--accent` | *(mode badge colours unchanged)* | *(mode badge colours unchanged)* |
+
+All existing UI elements — mode banner badges, button state indicators, LED control buttons, system information table — use these tokens. No element uses hardcoded colour values.
+
+**Implementation notes**:
+- All colour declarations in `styles.css` must use `var(--<token>)`.
+- The toggle button HTML is a `<button id="theme-toggle">` in the `<header>`.
+- Approximately 5–8 lines of JavaScript handle the click event and attribute mutation.
+- No server-side changes required; this is purely a static file change.
+
 ---
 
 ## Sequence Diagram — Mode-Aware Startup
@@ -231,7 +264,7 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 | webserver.c (handlers) | ~8 KB | ~5 KB |
 | HTTP server (Zephyr) | ~25 KB | ~20 KB |
 | JSON library | ~5 KB | ~2 KB |
-| www/ static files (index.html, main.js, styles.css) | ~10 KB Flash | 0 (served from flash) |
+| www/ static files (index.html, main.js, styles.css) | ~12 KB Flash | 0 (served from flash) |
 | **Total** | **~48 KB** | **~27 KB** |
 
 ---
@@ -284,6 +317,16 @@ curl http://192.168.7.1/api/system
 1. GET `/api/buttons` — verify count of entries matches board
 2. GET `/api/leds` — verify count of entries matches board
 3. POST `/api/led` with `{"led":0,"action":"toggle"}` — verify LED changes
+
+### TC-WEB-006: Dark mode
+
+1. Open the dashboard in a browser set to dark mode (`prefers-color-scheme: dark`)
+2. Verify page background is dark (`--bg` token applied)
+3. Verify all text and UI elements are legible (no invisible text or missing borders)
+4. Click the theme toggle button in the header
+5. Verify the page switches to light mode without a reload
+6. Set the browser to light mode; reload the page
+7. Verify light mode is shown (toggle override did not persist)
 
 ---
 

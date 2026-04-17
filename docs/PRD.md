@@ -19,6 +19,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-04-17-10-00 | Add FR-105: dark mode for web UI — auto-detect via `prefers-color-scheme`, manual toggle override, no persistence |
 | 2026-04-14-15-00 | Startup improvements: firmware version string printed at boot (git tag on CI / v&lt;NCS&gt;-dev locally); startup banner with aligned labels and module boot sequence (SYS_INIT priorities); SoftAP periodic reminder — SSID/password/IP logged every 300 s until first client connects (mirrors P2P_GO WPS re-arm pattern) |
 | 2026-04-14-11-00 | P2P_GO auto-start: firmware automatically runs group_add and sets WPS PIN at boot; waits up to 5 min for first client (same pattern as SoftAP); no manual shell commands needed to start a P2P_GO session |
 | 2026-04-14-10-00 | Code sync: P2P split into P2P_GO (device is GO) and P2P_CLIENT (device joins phone group); default mode on fresh flash changed to P2P_GO; app_wifi_mode command updated to [softap|sta|p2p_go|p2p_client]; WPS PIN connection method added; /api/system fields updated to device_ip, device_mac, client_ip, board |
@@ -134,6 +135,7 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | FR-102 | developer | use shell commands over UART for Wi-Fi diagnostics and mode changes | I can inspect and test connectivity without a browser | - `app_wifi_mode [SoftAP\|STA\|P2P_GO\|P2P_CLIENT]` switches and persists mode<br>- `wifi connect -s <SSID> -p <pwd> -k 1` joins a network (STA)<br>- `wifi scan`, `wifi status` work<br>- P2P_CLIENT: `wifi p2p find / peer / connect` work<br>- P2P_GO: group and WPS PIN auto-start at boot; no manual shell commands required | [network-module.md](specs/network-module.md) |
 | FR-103 | developer | see board name, MAC, mode, and IP in the startup log | I can confirm firmware state without opening a browser | - Board ID, MAC, build date logged at boot<br>- Active mode logged<br>- IP logged when connected | [architecture.md](specs/architecture.md) |
 | FR-104 | user | discover the device automatically without knowing its IP | I can open the dashboard just by name | - Device registers `_http._tcp.local` via DNS-SD<br>- Device reachable at `http://nrfwebdash.local` via mDNS | [webserver-module.md](specs/webserver-module.md) |
+| FR-105 | user | switch between light and dark mode in the dashboard | I can comfortably view it in any lighting condition | - Dashboard auto-applies dark mode when the browser/OS is set to dark (`prefers-color-scheme: dark`)<br>- A toggle button in the header lets the user override to light or dark independently of system setting<br>- Override resets on page reload (no persistence)<br>- All UI elements (buttons, LEDs, status panel, text) are legible in both modes | [webserver-module.md](specs/webserver-module.md) |
 
 ### P2 — Nice to Have
 

@@ -5,8 +5,8 @@
 | Field | Value |
 |-------|-------|
 | Project | nordic-wifi-webdash |
-| Version | 2026-04-14-15-00 |
-| PRD Version | 2026-04-14-15-00 |
+| Version | 2026-04-17-10-00 |
+| PRD Version | 2026-04-17-10-00 |
 | Author | Charlie Shao |
 | NCS Version | v3.3.0-rc2 |
 | Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EBII |
@@ -18,6 +18,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-04-17-10-00 | Add FR-105 dark mode to webserver-module.md: CSS tokens, `prefers-color-scheme` auto-detect, manual toggle, TC-WEB-006; PRD Version bumped |
 | 2026-04-14-15-00 | Startup: APP_VERSION_STRING injected at build time (git tag / v<NCS>-dev); banner aligned labels + module boot sequence; SoftAP periodic reminder timer (300 s, sysworkq, cancelled on first client); PRD Version bumped |
 | 2026-04-14-11-00 | P2P_GO auto-start feature: group_add + wps_pin run automatically at boot; 5-min client wait timer; PRD Version bumped |
 | 2026-04-14-10-00 | Code sync: P2P split into P2P_GO/P2P_CLIENT; default mode changed to P2P_GO; WIFI_CHAN+wifi_msg → CLIENT_CONNECTED_CHAN+dk_wifi_info_msg; WPS Kconfig added; /api/system fields updated; client IP tracked in all modes |
