@@ -146,9 +146,16 @@ jobs:
             if [ -f "${MCUBOOT_HEX}" ] && [ -f "${APP_HEX}" ]; then
               python3 -c "import sys; from intelhex import IntelHex; ih = IntelHex(); ih.loadhex(sys.argv[1]); app = IntelHex(); app.loadhex(sys.argv[2]); ih.merge(app, overlap='replace'); ih.write_hex_file(sys.argv[3]); print('merged.hex created successfully')" "${MCUBOOT_HEX}" "${APP_HEX}" "${MERGED_HEX}"
             else
-              echo "Warning: required hex files not found, skipping merged.hex creation"
-              [ -f "${MCUBOOT_HEX}" ] || echo "  Missing: ${MCUBOOT_HEX}"
-              [ -f "${APP_HEX}" ]     || echo "  Missing: ${APP_HEX}"
+              PLAIN_HEX="${BUILD_DIR}/nordic-wifi-webdash/zephyr/zephyr.hex"
+              if [ -f "${PLAIN_HEX}" ]; then
+                echo "No MCUboot image found, using plain zephyr.hex as release artifact"
+                cp "${PLAIN_HEX}" "${MERGED_HEX}"
+              else
+                echo "Warning: no flashable hex found"
+                [ -f "${MCUBOOT_HEX}" ] || echo "  Missing: ${MCUBOOT_HEX}"
+                [ -f "${APP_HEX}" ]     || echo "  Missing: ${APP_HEX}"
+                [ -f "${PLAIN_HEX}" ]   || echo "  Missing: ${PLAIN_HEX}"
+              fi
             fi
           fi
 
