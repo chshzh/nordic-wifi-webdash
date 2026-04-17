@@ -8,7 +8,7 @@
 | Version | 2026-04-14-15-00 |
 | PRD Version | 2026-04-14-15-00 |
 | Author | Charlie Shao |
-| NCS Version | v3.2.4 |
+| NCS Version | v3.3.0-rc2 |
 | Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EBII |
 | Status | Current |
 

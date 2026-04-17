@@ -99,7 +99,7 @@ This section covers environment setup, build commands, and configuration. For pr
 
 ### Environment Setup
 
-- nRF Connect SDK `v3.3-branch`
+- nRF Connect SDK `v3.3.0-rc2`
 - West workspace driven by [west.yml](west.yml)
 - nRF Connect for VS Code or a shell initialized with the NCS toolchain
 
@@ -154,7 +154,7 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 - SoftAP not reachable: verify the terminal shows the expected IP and SoftAP instructions
 - STA not reachable: confirm the device received a DHCP IP and use that address first
 - mDNS not resolving: test the printed IP before investigating hostname resolution on the host OS
-- Build issues: confirm the workspace is using NCS `v3.3-branch` and the correct board/shield combination
+- Build issues: confirm the workspace is using NCS `v3.3.0-rc2` and the correct board/shield combination
 - P2P_GO not working: ensure build uses `-DSNIPPET=wifi-p2p`; group is auto-started at boot — check the terminal for errors if it fails
 - P2P_CLIENT not finding peers: verify `-DSNIPPET=wifi-p2p` is used; phone's Wi-Fi Direct must be active
 
