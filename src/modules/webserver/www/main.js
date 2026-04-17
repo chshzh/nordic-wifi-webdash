@@ -140,7 +140,7 @@ async function updateSystemInfo() {
 
 function modeLabel(mode, serverIp) {
     switch (mode) {
-    case 'SoftAP':     return `AP Mode \u2014 ${serverIp || '192.168.7.1'}`;
+    case 'SoftAP':     return `SoftAP Mode \u2014 ${serverIp || '192.168.7.1'}`;
     case 'STA':        return `Station Mode \u2014 ${serverIp || '...'}`;
     case 'P2P_GO':     return `P2P GO \u2014 ${serverIp || '192.168.7.1'}`;
     case 'P2P_CLIENT': return `P2P Client \u2014 ${serverIp || '...'}`;

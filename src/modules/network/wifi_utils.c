@@ -242,11 +242,11 @@ static int wifi_set_softap(const char *ssid, const char *psk)
 	}
 	params.security = WIFI_SECURITY_TYPE_PSK;
 
-	/* Enable AP mode */
+	/* Enable SoftAP mode */
 	ret = net_mgmt(NET_REQUEST_WIFI_AP_ENABLE, iface, &params,
 		       sizeof(struct wifi_connect_req_params));
 	if (ret) {
-		LOG_ERR("AP mode enable failed: %s", strerror(-ret));
+		LOG_ERR("SoftAP mode enable failed: %s", strerror(-ret));
 		return ret;
 	}
 

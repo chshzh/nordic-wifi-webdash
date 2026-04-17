@@ -255,7 +255,7 @@ config APP_WEBSERVER_MODULE_LOG_LEVEL
 1. Boot in SoftAP mode
 2. Connect phone to `WebDash_AP`
 3. Navigate to `http://192.168.7.1`
-4. Verify mode banner shows `AP Mode — 192.168.7.1`
+4. Verify mode banner shows `SoftAP Mode — 192.168.7.1`
 
 ### TC-WEB-002: Dashboard loads in STA mode
 
