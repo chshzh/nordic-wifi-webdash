@@ -29,15 +29,10 @@ jobs:
         run: |
           NCS_VERSION=$(grep 'revision:' west.yml | awk '{print $2}')
           echo "NCS_VERSION=${NCS_VERSION}" >> $GITHUB_OUTPUT
-          # Docker toolchain images use release tags (e.g. v3.2.4, v3.3.0-rc1).
-          # Branch names like v3.3-branch have no matching image, so read the
-          # pinned toolchain tag from .toolchain-version when needed.
-          if [[ "${NCS_VERSION}" == *-branch ]]; then
-            TOOLCHAIN_VERSION=$(cat .toolchain-version 2>/dev/null || echo "${NCS_VERSION}")
-          else
-            TOOLCHAIN_VERSION="${NCS_VERSION}"
-          fi
-          echo "TOOLCHAIN_VERSION=${TOOLCHAIN_VERSION}" >> $GITHUB_OUTPUT
+          # The toolchain Docker image tag matches the NCS revision exactly.
+          # Nordic publishes toolchain images for every release including RCs
+          # (e.g. ghcr.io/nrfconnect/sdk-nrf-toolchain:v3.3.0-rc2).
+          echo "TOOLCHAIN_VERSION=${NCS_VERSION}" >> $GITHUB_OUTPUT
 
   build-and-test:
     needs: set-version
