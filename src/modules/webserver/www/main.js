@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
     ledTemplate       = document.getElementById('led-template');
     ledPlaceholder    = document.getElementById('led-placeholder');
 
+    initThemeToggle();
     startAutoUpdate();
 });
 
@@ -413,4 +414,32 @@ function pruneInactiveLeds(activeNumbers) {
             ledElements.delete(number);
         }
     }
+}
+
+// ============================================================================
+// Dark mode toggle (FR-105)
+// ============================================================================
+
+function initThemeToggle() {
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) { return; }
+
+    function isDark() {
+        const attr = document.documentElement.getAttribute('data-theme');
+        if (attr === 'dark')  { return true; }
+        if (attr === 'light') { return false; }
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    function syncLabel() {
+        btn.textContent = isDark() ? '☀️' : '🌙';
+        btn.title = isDark() ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+
+    btn.addEventListener('click', function () {
+        document.documentElement.setAttribute('data-theme', isDark() ? 'light' : 'dark');
+        syncLabel();
+    });
+
+    syncLabel();
 }
