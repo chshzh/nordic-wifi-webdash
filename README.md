@@ -18,7 +18,7 @@ Connect to the device via Wi-Fi and open the dashboard in your browser:
 This project is designed for two common use cases:
 
 - **Evaluator** — grab a pre-built `.hex` from the [Releases](https://github.com/chshzh/nordic-wifi-webdash/releases) page, flash it, and follow the [Quick Start](#quick-start) guide to reach the dashboard in two steps.
-- **Application Developer** — clone the workspace, build from source, and customise the firmware; see [Developer Info](#developer-info) for build setup and [Documentation](#documentation) for product requirements, architecture, and per-module specs.
+- **Developer** — clone the workspace, build from source, and customise the firmware; see [Developer Info](#developer-info) for build setup and [Documentation](#documentation) for product requirements, architecture, and per-module specs.
 
 Supported hardware:
 
@@ -96,7 +96,7 @@ This section covers environment setup, build commands, and configuration. For pr
 
 ### Environment Setup
 
-- nRF Connect SDK `v3.3.0-rc2`
+- nRF Connect SDK `v3.3.0`
 - West workspace driven by [west.yml](west.yml)
 - nRF Connect for VS Code or a shell initialized with the NCS toolchain
 
@@ -151,7 +151,7 @@ CONFIG_NET_HOSTNAME="nrfwebdash"
 - SoftAP not reachable: verify the terminal shows the expected IP and SoftAP instructions
 - STA not reachable: confirm the device received a DHCP IP and use that address first
 - mDNS not resolving: test the printed IP before investigating hostname resolution on the host OS
-- Build issues: confirm the workspace is using NCS `v3.3.0-rc2` and the correct board/shield combination
+- Build issues: confirm the workspace is using NCS `v3.3.0` and the correct board/shield combination
 - P2P_GO not working: ensure build uses `-DSNIPPET=wifi-p2p`; group is auto-started at boot — check the terminal for errors if it fails
 - P2P_CLIENT not finding peers: verify `-DSNIPPET=wifi-p2p` is used; phone's Wi-Fi Direct must be active
 

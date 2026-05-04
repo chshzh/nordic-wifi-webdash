@@ -10,7 +10,7 @@
 | Previous Version | 2026-04-14-11-00 |
 | Status | Draft |
 | Product Manager | Charlie Shao |
-| NCS Version | v3.3.0-rc2 |
+| NCS Version | v3.3.0 |
 | Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EBII |
 
 ---
