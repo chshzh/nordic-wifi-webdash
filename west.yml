@@ -30,5 +30,10 @@ manifest:
       revision: main
       remote: chshzh
 
+    - name: nordic-wifi-audio
+      path: nordic-wifi-audio
+      revision: main
+      remote: chshzh
+
   self:
     path: nordic-wifi-webdash

@@ -118,11 +118,39 @@ west flash
 
 ### Workspace Setup
 
-This repository is a workspace application. The normal flow is:
+#### Method 1 (Preferred) — Add to an existing NCS installation
 
-1. Initialize the workspace from [west.yml](west.yml).
-2. Run `west update`.
-3. Build and flash for the target board.
+If you already have a matching NCS version installed, reuse it directly — no re-downloading required.
+
+Under a terminal with the toolchain:
+
+```sh
+cd /opt/nordic/ncs/<ncs-version>   # your existing NCS workspace root
+
+git clone https://github.com/chshzh/nordic-wifi-webdash.git
+
+# Switch the workspace manifest to nordic-wifi-webdash (one-time change)
+west config manifest.path nordic-wifi-webdash
+
+# Sync — NCS repos already present, only new project repos are cloned
+west update
+```
+
+#### Method 2 — Fresh installation as a Workspace Application
+
+##### Option A: nRF Connect for VS Code
+
+Follow the [custom repository guide](https://docs.nordicsemi.com/bundle/nrf-connect-vscode/page/guides/extension_custom_repo.html).
+
+##### Option B: CLI
+
+See the Nordic guide on [Workspace Application Setup](https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/dev_model_and_contributions/adding_code.html#workflow_4_workspace_application_repository_recommended).
+
+```sh
+west init -m https://github.com/chshzh/nordic-wifi-webdash --mr main <workspace-dir>
+cd <workspace-dir>
+west update
+```
 
 For product context and implementation details, start at [docs/specs/overview.md](docs/specs/overview.md) — it maps every PRD requirement to the spec file that implements it.
 
