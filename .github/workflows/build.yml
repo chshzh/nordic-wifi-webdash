@@ -8,6 +8,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Cancel any in-progress run for the same branch/PR to avoid wasting CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -165,7 +170,7 @@ jobs:
         run: |
           STAGE="artifact-staging-${{ matrix.config.build_dir }}"
           mkdir -p "$STAGE"
-          for f in merged.hex build.log usage-summary.txt size-report.txt build_info.yml; do
+          for f in merged.hex build.log usage-summary.txt size-report.txt; do
             cp "${{ matrix.config.build_dir }}/$f" "$STAGE/" 2>/dev/null || true
           done
 
@@ -192,7 +197,7 @@ jobs:
 
           # Required sections for Wi-Fi SoftAP Webserver
           grep -q "Project Overview" README.md || (echo "Missing Project Overview section" && exit 1)
-          grep -q "Quick Start" README.md || (echo "Missing Quick Start section" && exit 1)
+          grep -q "Evaluator Quick Start" README.md || (echo "Missing Evaluator Quick Start section" && exit 1)
           grep -q "Developer Info" README.md || (echo "Missing Developer Info section" && exit 1)
 
           echo "README.md validation passed ✓"
@@ -366,7 +371,7 @@ jobs:
           ls -la release-package/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: "Nordic Wi-Fi WebDash ${{ github.ref_name }}"
           body_path: /tmp/release-body.txt
