@@ -15,6 +15,12 @@
 #include "modules/network/wifi_utils.h"
 
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
+
+/* Tracks which spec version this firmware was built against.
+ * Update when docs/specs/overview.md Changelog gets a new entry.
+ */
+#define SPECS_VERSION "2026-05-06-12-00"
+
 /* ============================================================================
  * MAIN APPLICATION
  * ============================================================================
@@ -58,6 +64,7 @@ int main(void)
 	LOG_INF("Nordic Wi-Fi WebDash");
 	LOG_INF("==============================================");
 	LOG_INF("Version: %s", APP_VERSION_STRING);
+	LOG_INF("Specs:   %s", SPECS_VERSION);
 	LOG_INF("Build:   %s %s", __DATE__, __TIME__);
 	LOG_INF("Board:   %s", board_name);
 
