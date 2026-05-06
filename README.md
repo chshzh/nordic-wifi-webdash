@@ -96,15 +96,18 @@ nordic-wifi-webdash/
 ├── prj.conf
 ├── west.yml
 ├── docs/
-│   ├── PRD.md                     ← product requirements, features, acceptance criteria
-│   └── specs/
-│       ├── overview.md            ← spec index, PRD-to-spec mapping, architecture summary
-│       ├── architecture.md        ← module map, Zbus channels, SYS_INIT boot order
-│       ├── network-module.md      ← SoftAP / STA / P2P_GO / P2P_CLIENT paths
-│       ├── mode-selector.md       ← app_wifi_mode shell command, NVS persistence
-│       ├── webserver-module.md    ← HTTP server, REST API, DNS-SD, web UI
-│       ├── button-module.md       ← GPIO button monitoring, SMF events
-│       └── led-module.md          ← LED control, Zbus-commanded
+│   ├── pm-prd/
+│   │   └── PRD.md                 ← product requirements, features, acceptance criteria
+│   ├── dev-specs/
+│   │   ├── overview.md            ← spec index, PRD-to-spec mapping, architecture summary
+│   │   ├── architecture.md        ← module map, Zbus channels, SYS_INIT boot order
+│   │   ├── network-module.md      ← SoftAP / STA / P2P_GO / P2P_CLIENT paths
+│   │   ├── mode-selector.md       ← app_wifi_mode shell command, NVS persistence
+│   │   ├── webserver-module.md    ← HTTP server, REST API, DNS-SD, web UI
+│   │   ├── button-module.md       ← GPIO button monitoring, SMF events
+│   │   └── led-module.md          ← LED control, Zbus-commanded
+│   └── qa-test/
+│       └── QA-*.md               ← dated test + QA reports
 ├── src/
 │   ├── main.c
 │   └── modules/
@@ -196,23 +199,23 @@ Connect at **115200 baud**. The device prints its IP address, Wi-Fi mode, and co
 - Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `app_wifi_mode` if preferred
 - The startup banner prints firmware version (`Version: <tag>` on CI / `v<NCS>-dev` locally), aligned board/MAC/mode labels, and a module list with SYS_INIT boot priorities — useful for orientation when reading serial logs
 - SoftAP and P2P_GO both log connectivity instructions every 300 s until the first client connects; the reminders stop automatically on first connection
-- mDNS behavior and module responsibilities are in [docs/specs/network-module.md](docs/specs/network-module.md); mode handling is in [docs/specs/mode-selector.md](docs/specs/mode-selector.md)
+- mDNS behavior and module responsibilities are in [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md); mode handling is in [docs/dev-specs/mode-selector.md](docs/dev-specs/mode-selector.md)
 
 
 ## Documentation
 
-The full design documentation lives under `docs/`. Start with [docs/specs/overview.md](docs/specs/overview.md), which maps every PRD requirement to the spec file that implements it and provides an architecture summary.
+The full design documentation lives under `docs/`. Start with [docs/dev-specs/overview.md](docs/dev-specs/overview.md), which maps every PRD requirement to the spec file that implements it and provides an architecture summary.
 
 | Document | Description |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | Product Requirements — user perspective features, behavior, acceptance criteria, changelog |
-| [docs/specs/overview.md](docs/specs/overview.md) | **Start here** — technical spec index, PRD-to-spec mapping, architecture summary, design decisions |
-| [docs/specs/architecture.md](docs/specs/architecture.md) | System architecture — module map, Zbus channels, SYS_INIT boot sequence, memory budget |
-| [docs/specs/network-module.md](docs/specs/network-module.md) | Network module — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
-| [docs/specs/mode-selector.md](docs/specs/mode-selector.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
-| [docs/specs/webserver-module.md](docs/specs/webserver-module.md) | Webserver module — HTTP server, REST API endpoints, DNS-SD, web UI |
-| [docs/specs/button-module.md](docs/specs/button-module.md) | Button module — GPIO monitoring, SMF press/release events, board differences |
-| [docs/specs/led-module.md](docs/specs/led-module.md) | LED module — per-LED state machine, Zbus-commanded via `LED_CMD_CHAN` |
+| [docs/pm-prd/PRD.md](docs/pm-prd/PRD.md) | Product Requirements — user perspective features, behavior, acceptance criteria, changelog |
+| [docs/dev-specs/overview.md](docs/dev-specs/overview.md) | **Start here** — technical spec index, PRD-to-spec mapping, architecture summary, design decisions |
+| [docs/dev-specs/architecture.md](docs/dev-specs/architecture.md) | System architecture — module map, Zbus channels, SYS_INIT boot sequence, memory budget |
+| [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md) | Network module — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
+| [docs/dev-specs/mode-selector.md](docs/dev-specs/mode-selector.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
+| [docs/dev-specs/webserver-module.md](docs/dev-specs/webserver-module.md) | Webserver module — HTTP server, REST API endpoints, DNS-SD, web UI |
+| [docs/dev-specs/button-module.md](docs/dev-specs/button-module.md) | Button module — GPIO monitoring, SMF press/release events, board differences |
+| [docs/dev-specs/led-module.md](docs/dev-specs/led-module.md) | LED module — per-LED state machine, Zbus-commanded via `LED_CMD_CHAN` |
 
 ## Methodology
 
@@ -220,10 +223,10 @@ This project was developed using the [chsh-ncs-workflow](https://github.com/chsh
 
 | Phase | Focus | Skill | Output |
 |-------|-------|-------|--------|
-| 1 — Product Definition | What the device should do, for whom, and why | `chsh-pm-prd` | `docs/PRD.md` |
-| 2 — Technical Design | Translate PRD into engineering specs | `chsh-dev-spec` | `docs/specs/*.md` |
+| 1 — Product Definition | What the device should do, for whom, and why | `chsh-pm-prd` | `docs/pm-prd/PRD.md` |
+| 2 — Technical Design | Translate PRD into engineering specs | `chsh-dev-spec` | `docs/dev-specs/*.md` |
 | 3 — Implementation | Implement code from approved specs | `chsh-dev-project` | `src/`, passing build |
-| 4 — QA & Test | Validate the build against PRD criteria | `chsh-qa-test` | `docs/TEST-*.md` |
+| 4 — QA & Test | Validate the build against PRD criteria | `chsh-qa-test` | `docs/qa-test/QA-*.md` |
 
 Each phase feeds the next: requirements drive specs, specs drive code, code drives tests. Issues loop back to the right phase — code bugs to Phase 3, spec gaps to Phase 2, new requirements to Phase 1.
 
