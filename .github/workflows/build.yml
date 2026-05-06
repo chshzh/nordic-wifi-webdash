@@ -32,7 +32,7 @@ jobs:
         id: extract-version
         working-directory: app-workspace/nordic-wifi-webdash
         run: |
-          NCS_VERSION=$(grep 'revision:' west.yml | awk '{print $2}')
+          NCS_VERSION=$(awk '/name: sdk-nrf/{found=1} found && /revision:/{print $2; exit}' west.yml)
           echo "NCS_VERSION=${NCS_VERSION}" >> $GITHUB_OUTPUT
           # The toolchain Docker image tag matches the NCS revision exactly.
           # Nordic publishes toolchain images for every release including RCs
