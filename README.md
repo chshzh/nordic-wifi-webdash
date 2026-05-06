@@ -129,7 +129,6 @@ West workspace is driven by [west.yml](west.yml). Which contains the ncs version
       remote: ncs
 ```
 
-
 Use nRF Connect for VS Code or a shell initialized with the NCS toolchain.
 
 #### Method 1 (Preferred) — Add to an existing NCS installation
@@ -158,15 +157,13 @@ Follow the [custom repository guide](https://docs.nordicsemi.com/bundle/nrf-conn
 
 ##### Option B: CLI
 
-See the Nordic guide on [Workspace Application Setup](https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/dev_model_and_contributions/adding_code.html#workflow_4_workspace_application_repository_recommended).
-
 ```sh
 west init -m https://github.com/chshzh/nordic-wifi-webdash --mr main <workspace-dir>
 cd <workspace-dir>
 west update
 ```
 
-For product context and implementation details, start at [docs/specs/overview.md](docs/specs/overview.md) — it maps every PRD requirement to the spec file that implements it.
+See the Nordic guide on [Workspace Application Setup](https://docs.nordicsemi.com/bundle/ncs-latest/page/nrf/dev_model_and_contributions/adding_code.html#workflow_4_workspace_application_repository_recommended) for details.
 
 ### Build
 
@@ -203,6 +200,8 @@ Connect at **115200 baud**. The device prints its IP address, Wi-Fi mode, and co
 
 
 ## Documentation
+
+The full design documentation lives under `docs/`. Start with [docs/specs/overview.md](docs/specs/overview.md), which maps every PRD requirement to the spec file that implements it and provides an architecture summary.
 
 | Document | Description |
 |---|---|
