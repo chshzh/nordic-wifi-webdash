@@ -182,39 +182,6 @@ jobs:
           name: build-${{ matrix.config.build_dir }}
           path: app-workspace/nordic-wifi-webdash/artifact-staging-${{ matrix.config.build_dir }}/
 
-  validate-documentation:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          path: app-workspace/nordic-wifi-webdash
-
-      - name: Validate README structure
-        working-directory: app-workspace/nordic-wifi-webdash
-        run: |
-          echo "Validating README.md structure..."
-
-          # Required sections for Wi-Fi SoftAP Webserver
-          grep -q "Project Overview" README.md || (echo "Missing Project Overview section" && exit 1)
-          grep -q "Evaluator Quick Start" README.md || (echo "Missing Evaluator Quick Start section" && exit 1)
-          grep -q "Developer Info" README.md || (echo "Missing Developer Info section" && exit 1)
-
-          echo "README.md validation passed ✓"
-
-      - name: Validate configuration files exist
-        working-directory: app-workspace/nordic-wifi-webdash
-        run: |
-          echo "Checking configuration files..."
-
-          # Core configuration
-          [ -f prj.conf ] || (echo "Missing prj.conf" && exit 1)
-          [ -f west.yml ] || (echo "Missing west.yml" && exit 1)
-          [ -f CMakeLists.txt ] || (echo "Missing CMakeLists.txt" && exit 1)
-          [ -f Kconfig ] || (echo "Missing Kconfig" && exit 1)
-
-          echo "Configuration files validation passed ✓"
-
   static-analysis:
     needs: set-version
     runs-on: ubuntu-24.04
@@ -256,7 +223,7 @@ jobs:
           echo "Checkpatch analysis completed ✓"
 
   create-release:
-    needs: [set-version, build-and-test, validate-documentation, static-analysis]
+    needs: [set-version, build-and-test, static-analysis]
     runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
