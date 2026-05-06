@@ -33,7 +33,7 @@
 This document is the entry point for the engineering specs of `nordic-wifi-webdash`.
 It maps product requirements to spec files and captures top-level design decisions.
 
-For the product requirements that drive this design, see [`docs/PRD.md`](../PRD.md).
+For the product requirements that drive this design, see [`docs/pm-prd/PRD.md`](../pm-prd/PRD.md).
 
 ---
 
