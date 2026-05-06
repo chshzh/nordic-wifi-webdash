@@ -11,7 +11,7 @@ manifest:
       url-base: https://github.com/chshzh
 
   projects:
-    # NCS v3.3.0 — imports zephyr, bootloader, modules, nrfxlib, tools, etc.
+    # NCS imports zephyr, bootloader, modules, nrfxlib, tools, etc.
     - name: sdk-nrf
       path: nrf
       revision: v3.3.0
