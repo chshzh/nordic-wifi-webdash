@@ -63,6 +63,20 @@ jobs:
         with:
           path: app-workspace/nordic-wifi-webdash
 
+      - name: Cache west workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            app-workspace/nrf
+            app-workspace/zephyr
+            app-workspace/modules
+            app-workspace/nrfxlib
+            app-workspace/bootloader
+            app-workspace/zego
+            app-workspace/nordic-wifi-memfault
+            app-workspace/nordic-wifi-audio
+          key: west-${{ needs.set-version.outputs.NCS_VERSION }}-${{ hashFiles('app-workspace/nordic-wifi-webdash/west.yml') }}
+
       - name: Prepare west workspace
         working-directory: app-workspace
         run: |
