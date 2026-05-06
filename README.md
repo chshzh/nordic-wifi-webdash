@@ -2,9 +2,6 @@
 
 [![Build](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml)
 
-
-Browser-hosted Wi-Fi dashboard for Nordic nRF7x development kits — monitor buttons, control LEDs, and inspect device state from any browser. No cloud required.
-
 ---
 
 ## Project Overview
@@ -209,8 +206,8 @@ Connect at **115200 baud**. The device prints its IP address, Wi-Fi mode, and co
 
 | Document | Description |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | Product Requirements — features, behavior, acceptance criteria, changelog |
-| [docs/specs/overview.md](docs/specs/overview.md) | **Start here** — spec index, PRD-to-spec mapping, architecture summary, design decisions |
+| [docs/PRD.md](docs/PRD.md) | Product Requirements — user perspective features, behavior, acceptance criteria, changelog |
+| [docs/specs/overview.md](docs/specs/overview.md) | **Start here** — technical spec index, PRD-to-spec mapping, architecture summary, design decisions |
 | [docs/specs/architecture.md](docs/specs/architecture.md) | System architecture — module map, Zbus channels, SYS_INIT boot sequence, memory budget |
 | [docs/specs/network-module.md](docs/specs/network-module.md) | Network module — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
 | [docs/specs/mode-selector.md](docs/specs/mode-selector.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
