@@ -219,7 +219,7 @@ The full design documentation lives under `docs/`. Start with [docs/dev-specs/ov
 
 ## Methodology
 
-This project was developed using the [chsh-ncs-workflow](https://github.com/chshzh/charlie-skills) — a four-phase lifecycle for NCS/Zephyr IoT projects where each phase has a dedicated AI skill:
+This project was developed using the [chsh-ncs-workflow skill](https://github.com/chshzh/claude/blob/main/skills/chsh-sk-ncs-workflow/SKILL.md) — a four-phase lifecycle for NCS/Zephyr IoT projects where each phase has a dedicated AI skill:
 
 | Phase | Focus | Skill | Output |
 |-------|-------|-------|--------|
