@@ -1,7 +1,7 @@
 # Nordic Wi-Fi WebDash
 
 [![Build](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml)
-
+[![Latest Release](https://img.shields.io/github/v/release/chshzh/nordic-wifi-webdash?label=Release&color=skyblue)](https://github.com/chshzh/nordic-wifi-webdash/releases/latest)
 ---
 
 ## Project Overview
@@ -73,7 +73,7 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 
 | Board | Buttons | Function |
 |-------|---------|----------|
-| nRF7002DK | SW1, SW2 | State and press count shown in dashboard and reported via `/api/buttons` |
+| nRF7002DK | Button 1, Button 2 | State and press count shown in dashboard and reported via `/api/buttons` |
 | nRF54LM20DK + nRF7002EBII | BUTTON0, BUTTON1, BUTTON2 | Same (BUTTON3 unavailable — shield pin conflict) |
 
 ### LEDs
