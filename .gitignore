@@ -78,7 +78,6 @@ local_config.conf
 local_overlay.conf
 overlay-production.conf
 overlay-wifi-credentials.conf
-.gitnexus
 .claude
 AGENTS.md
 CLAUDE.md
