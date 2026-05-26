@@ -35,5 +35,10 @@ manifest:
       revision: main
       remote: chshzh
 
+    # - name: claude
+    #   path: .claude
+    #   revision: main
+    #   remote: chshzh
+
   self:
     path: nordic-wifi-webdash
