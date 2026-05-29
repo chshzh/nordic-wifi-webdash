@@ -33,7 +33,7 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 ### Target Users
 
 - **Evaluator** — grab a pre-built `.hex` from the [Releases](https://github.com/chshzh/nordic-wifi-webdash/releases) page, flash it, and follow the [Evaluator Quick Start](#evaluator-quick-start) guide to reach the dashboard in under 5 minutes.
-- **Developer** — clone the workspace, build from source, and customise the firmware; see [Developer Info](#developer-info) for build setup and [Documentation](#documentation) for product requirements, architecture, and per-module specs.
+- **Developer** — clone the workspace, build from source, and customise the firmware; see [Developer Guide](#developer-guide) for build setup and [Documentation](#documentation) for product requirements, architecture, and per-module specs.
 
 ---
 
@@ -85,7 +85,7 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 
 ---
 
-## Developer Info
+## Developer Guide
 
 ### Project Structure
 
