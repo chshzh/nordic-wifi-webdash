@@ -94,64 +94,6 @@ struct wifi_mode_msg {
 };
 
 /* ============================================================================
- * BUTTON MESSAGES
- * ============================================================================
- */
-
-/**
- * @brief Button message types
- */
-enum button_msg_type {
-	BUTTON_PRESSED,  /**< Button pressed */
-	BUTTON_RELEASED, /**< Button released */
-};
-
-/**
- * @brief Button message structure
- */
-struct button_msg {
-	enum button_msg_type type;
-	uint8_t button_number;
-	uint32_t press_count; /**< Total number of presses */
-	uint32_t timestamp;
-};
-
-/* ============================================================================
- * LED MESSAGES
- * ============================================================================
- */
-
-/**
- * @brief LED message types
- */
-enum led_msg_type {
-	LED_COMMAND_ON,     /**< Turn LED on */
-	LED_COMMAND_OFF,    /**< Turn LED off */
-	LED_COMMAND_TOGGLE, /**< Toggle LED */
-};
-
-/**
- * @brief LED message structure
- */
-struct led_msg {
-	enum led_msg_type type;
-	uint8_t led_number;
-};
-
-/* ============================================================================
- * LED STATE MESSAGES (for status reporting)
- * ============================================================================
- */
-
-/**
- * @brief LED state message structure
- */
-struct led_state_msg {
-	uint8_t led_number;
-	bool is_on;
-};
-
-/* ============================================================================
  * DK WIFI INFO MESSAGES
  * ============================================================================
  */

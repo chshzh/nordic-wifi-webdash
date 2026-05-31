@@ -30,8 +30,7 @@ config APP_HTTP_PORT
 
 rsource "src/modules/mode_selector/Kconfig.mode_selector"
 rsource "src/modules/network/Kconfig.network"
-rsource "src/modules/button/Kconfig.button"
-rsource "src/modules/led/Kconfig.led"
+# button and led Kconfig registered via EXTRA_ZEPHYR_MODULES (zego/button, zego/led)
 rsource "src/modules/webserver/Kconfig.webserver"
 rsource "src/modules/memory/Kconfig.memory"
 

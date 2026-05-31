@@ -6,6 +6,11 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
+# Register zego button and led modules.
+get_filename_component(ZEGO_BUTTON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/button REALPATH)
+get_filename_component(ZEGO_LED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/led REALPATH)
+list(APPEND EXTRA_ZEPHYR_MODULES ${ZEGO_BUTTON_DIR} ${ZEGO_LED_DIR})
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(nordic_wifi_webdash)
 
@@ -39,8 +44,7 @@ endforeach()
 # Add subdirectories for modules
 add_subdirectory(src/modules/mode_selector)
 add_subdirectory(src/modules/network)
-add_subdirectory(src/modules/button)
-add_subdirectory(src/modules/led)
+# button and led now provided by zego/button and zego/led (EXTRA_ZEPHYR_MODULES above)
 add_subdirectory(src/modules/webserver)
 add_subdirectory(src/modules/memory)
 

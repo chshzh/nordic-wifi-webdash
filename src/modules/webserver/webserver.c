@@ -5,8 +5,8 @@
  */
 
 #include "webserver.h"
-#include "../button/button.h"
-#include "../led/led.h"
+#include "button.h"
+#include "led.h"
 #include "../messages.h"
 
 #include <zephyr/logging/log.h>
@@ -412,6 +412,44 @@ HTTP_RESOURCE_DEFINE(button_api_resource, webserver_service, "/api/buttons", &bu
  * GET /api/leds
  * ============================================================================
  */
+
+static int led_get_all_states_json(char *buf, size_t buf_len)
+{
+	if (!buf || buf_len == 0) {
+		return -EINVAL;
+	}
+	int offset = 0;
+	int remaining = (int)buf_len;
+	int written = snprintf(buf, remaining, "{\"leds\":[");
+
+	if (written < 0 || written >= remaining) {
+		return -ENOMEM;
+	}
+	offset += written;
+	remaining -= written;
+	for (int i = 0; i < NUM_LEDS; i++) {
+		bool is_on = false;
+
+		led_get_state(i, &is_on);
+		const char *name = app_led_label(i);
+		bool is_last = (i == NUM_LEDS - 1);
+
+		written = snprintf(buf + offset, remaining,
+				   "{\"number\":%d,\"name\":\"%s\",\"is_on\":%s}%s",
+				   i, name ? name : "", is_on ? "true" : "false",
+				   is_last ? "" : ",");
+		if (written < 0 || written >= remaining) {
+			return -ENOMEM;
+		}
+		offset += written;
+		remaining -= written;
+	}
+	written = snprintf(buf + offset, remaining, "]}");
+	if (written < 0 || written >= remaining) {
+		return -ENOMEM;
+	}
+	return offset + written;
+}
 
 static uint8_t led_get_api_buf[512];
 
