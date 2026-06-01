@@ -550,9 +550,7 @@ static int led_post_api_handler(struct http_client_ctx *client, enum http_transa
 		return 0;
 	}
 
-	struct led_msg msg;
-
-	msg.led_number = cmd.led;
+	struct led_msg msg = {.led_number = cmd.led, .period_ms = 0};
 
 	if (strcmp(cmd.action, "on") == 0) {
 		msg.type = LED_COMMAND_ON;
