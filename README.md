@@ -91,10 +91,11 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 
 ```text
 nordic-wifi-webdash/
-├── CMakeLists.txt
+├── CMakeLists.txt          ← registers zego/button + zego/led via EXTRA_ZEPHYR_MODULES
 ├── Kconfig
 ├── prj.conf
 ├── west.yml
+├── boards/                 ← per-board Kconfig fragments (button count, LED count)
 ├── docs/
 │   ├── pm-prd/
 │   │   └── PRD.md                 ← product requirements, features, acceptance criteria
@@ -103,21 +104,20 @@ nordic-wifi-webdash/
 │   │   ├── architecture.md        ← module map, Zbus channels, SYS_INIT boot order
 │   │   ├── network-module.md      ← SoftAP / STA / P2P_GO / P2P_CLIENT paths
 │   │   ├── mode-selector.md       ← app_wifi_mode shell command, NVS persistence
-│   │   ├── webserver-module.md    ← HTTP server, REST API, DNS-SD, web UI
-│   │   ├── button-module.md       ← GPIO button monitoring, SMF events
-│   │   └── led-module.md          ← LED control, Zbus-commanded
+│   │   └── webserver-module.md    ← HTTP server, REST API, DNS-SD, web UI
 │   └── qa-test/
 │       └── QA-*.md               ← dated test + QA reports
 ├── src/
 │   ├── main.c
 │   └── modules/
-│       ├── button/
-│       ├── led/
 │       ├── memory/
 │       ├── mode_selector/
 │       ├── network/
 │       ├── webserver/
 │       └── messages.h
+└── ../zego/                ← sibling repo — external Zephyr modules
+    ├── button/             ← zego/button: gesture detection, BUTTON_CHAN
+    └── led/                ← zego/led: static/blink/breathe/marquee, LED_CMD_CHAN
 ```
 
 
@@ -131,6 +131,8 @@ West workspace is driven by [west.yml](west.yml). Which contains the ncs version
       import: true
       remote: ncs
 ```
+
+Release versions follow the NCS version with a build counter suffix: `v<ncs-version>.<build>` (e.g. `v3.3.0.1`, `v3.3.0.2`). The major/minor/patch components always match the NCS version the firmware is based on, making it easy to identify which SDK a given release targets.
 
 Use nRF Connect for VS Code or a shell initialized with the NCS toolchain.
 
@@ -172,20 +174,22 @@ See the Nordic guide on [Workspace Application Setup](https://docs.nordicsemi.co
 
 ```bash
 # nRF7002DK
-west build -p -b nrf7002dk/nrf5340/cpuapp -- -DSNIPPET=wifi-p2p
+west build -p -b nrf7002dk/nrf5340/cpuapp -d build_nrf7002dk  -- -DSNIPPET=wifi-p2p
 
 # nRF54LM20DK + nRF7002EBII
-west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -- -DSNIPPET=wifi-p2p -DSHIELD=nrf7002eb2
+west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -d build_nrf54lm20dk  -- -DSNIPPET=wifi-p2p -DSHIELD=nrf7002eb2
 ```
 
 ### Flash
 
+**First-time flash** (erases all flash including NVS — Wi-Fi credentials will need to be re-provisioned):
+
 ```bash
 # nRF7002DK
-west flash --erase
+west flash -d build_nrf7002dk --erase
 
 # nRF54LM20DK
-west flash --recover
+west flash -d build_nrf54lm20dk --recover
 ```
 
 ### Serial Monitor
@@ -214,8 +218,8 @@ The full design documentation lives under `docs/`. Start with [docs/dev-specs/ov
 | [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md) | Network module — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
 | [docs/dev-specs/mode-selector.md](docs/dev-specs/mode-selector.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
 | [docs/dev-specs/webserver-module.md](docs/dev-specs/webserver-module.md) | Webserver module — HTTP server, REST API endpoints, DNS-SD, web UI |
-| [docs/dev-specs/button-module.md](docs/dev-specs/button-module.md) | Button module — GPIO monitoring, SMF press/release events, board differences |
-| [docs/dev-specs/led-module.md](docs/dev-specs/led-module.md) | LED module — per-LED state machine, Zbus-commanded via `LED_CMD_CHAN` |
+| [zego/button — button-spec.md](https://github.com/chshzh/zego/blob/main/button/docs/button-spec.md) | Button module — gesture detection (click, double-click, long press), Zbus `BUTTON_CHAN`; provided by **zego/button** |
+| [zego/led — led-spec.md](https://github.com/chshzh/zego/blob/main/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, marquee), Zbus `LED_CMD_CHAN`; provided by **zego/led** |
 
 ## Methodology
 
