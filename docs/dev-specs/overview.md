@@ -45,8 +45,6 @@ For the product requirements that drive this design, see [`docs/pm-prd/PRD.md`](
 | [network-module.md](network-module.md) | SoftAP / STA / P2P paths, net event handling, WPA supplicant integration | FR-001, FR-002, FR-003, FR-101, FR-102, FR-201 |
 | [mode-selector.md](mode-selector.md) | `app_wifi_mode` shell command, NVS persistence, factory default | FR-004, FR-005 |
 | [webserver-module.md](webserver-module.md) | HTTP server, REST API endpoints, DNS-SD `_http._tcp.local`, mode banner, web UI | FR-006, FR-007, FR-101, FR-104 |
-| [button-module.md](button-module.md) | GPIO button monitoring, SMF press/release events, board differences | FR-006 |
-| [led-module.md](led-module.md) | LED control, SMF 2-state per LED, REST-commanded via LED_CMD_CHAN | FR-006 |
 
 ---
 
@@ -82,7 +80,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 | FR-003 P2P / Wi-Fi Direct — P2P_CLIENT role | [network-module.md](network-module.md) | Specified |
 | FR-004 `app_wifi_mode` shell command | [mode-selector.md](mode-selector.md) | Specified |
 | FR-005 Mode persisted in NVS | [mode-selector.md](mode-selector.md) | Specified |
-| FR-006 Buttons & LEDs in browser | [webserver-module.md](webserver-module.md), [button-module.md](button-module.md), [led-module.md](led-module.md) | Specified |
+| FR-006 Buttons & LEDs in browser | [webserver-module.md](webserver-module.md) (button events from zego/button via BUTTON_CHAN; LED commands to zego/led via LED_CMD_CHAN) | Specified |
 | FR-007 Mode banner + IP in dashboard | [webserver-module.md](webserver-module.md) | Specified |
 | FR-101 REST API | [webserver-module.md](webserver-module.md) | Specified |
 | FR-102 Shell commands for diagnostics | [network-module.md](network-module.md), [mode-selector.md](mode-selector.md) | Specified |

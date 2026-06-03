@@ -334,4 +334,4 @@ curl http://192.168.7.1/api/system
 
 - [architecture.md](architecture.md) — Zbus channels overview
 - [network-module.md](network-module.md) — WIFI_CHAN events that trigger server start
-- [button-module.md](button-module.md) — BUTTON_CHAN events cached by webserver
+- zego/button (external module) — BUTTON_CHAN events cached by webserver (see [button-spec.md](https://github.com/chshzh/zego/blob/main/button/docs/button-spec.md))

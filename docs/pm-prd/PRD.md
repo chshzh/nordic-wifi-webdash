@@ -303,7 +303,6 @@ All P0 requirements (FR-001 to FR-007) must pass on all supported boards before 
 | [architecture.md](../dev-specs/architecture.md) | System design, Zbus channels, module map, boot sequence, SYS_INIT priorities |
 | [network-module.md](../dev-specs/network-module.md) | Unified network module: SoftAP / STA / P2P paths, net event handling |
 | [mode-selector.md](../dev-specs/mode-selector.md) | Boot window, NVS persistence, shell menu |
-| [button-module.md](../dev-specs/button-module.md) | GPIO button monitoring, press/release events, board differences |
 | [webserver-module.md](../dev-specs/webserver-module.md) | REST API, DNS-SD `_http._tcp.local`, mode banner, web UI |
 
 ---

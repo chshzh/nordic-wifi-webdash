@@ -258,5 +258,5 @@ uart:~$ app_wifi_mode STA
 ## Related Specs
 
 - [architecture.md](architecture.md) — SYS_INIT priority ordering
-- [button-module.md](button-module.md) — runtime button monitoring (separate from boot GPIO poll)
+- zego/button (external module) — runtime button monitoring (separate from boot GPIO poll)
 - [network-module.md](network-module.md) — reads WIFI_MODE_CHAN to select path

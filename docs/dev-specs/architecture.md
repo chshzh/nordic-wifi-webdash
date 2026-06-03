@@ -30,8 +30,6 @@ src/
 └── modules/
     ├── messages.h                ← all Zbus message structs (shared)
     ├── mode_selector/            ← app_wifi_mode shell command + NVS persistence
-    ├── button/                   ← GPIO button monitoring
-    ├── led/                      ← LED output control
     ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P_GO/P2P_CLIENT)
     ├── webserver/                ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
     └── memory/                   ← heap monitor
@@ -44,9 +42,9 @@ src/
 | Channel | Message Type | Publisher | Subscribers | Direction |
 |---------|-------------|-----------|-------------|-----------|
 | `WIFI_MODE_CHAN` | `struct wifi_mode_msg` | mode_selector | network | boot-time, once |
-| `BUTTON_CHAN` | `struct button_msg` | button | webserver | runtime |
-| `LED_CMD_CHAN` | `struct led_msg` | webserver | led | runtime |
-| `LED_STATE_CHAN` | `struct led_state_msg` | led | webserver | runtime |
+| `BUTTON_CHAN` | `struct button_msg` | zego/button (external) | webserver | runtime |
+| `LED_CMD_CHAN` | `struct led_msg` | webserver | zego/led (external) | runtime |
+| `LED_STATE_CHAN` | `struct led_state_msg` | zego/led (external) | webserver | runtime |
 | `CLIENT_CONNECTED_CHAN` | `struct dk_wifi_info_msg` | network | webserver | runtime, on connectivity ready |
 
 ### Message Definitions (`src/modules/messages.h`)
@@ -64,34 +62,43 @@ struct wifi_mode_msg {
     enum app_wifi_mode mode;
 };
 
-/* Button events */
+/* Button events (defined in zego/button/src/button.h) */
 enum button_msg_type {
-    BUTTON_PRESSED,
-    BUTTON_RELEASED,
+    BUTTON_PRESSED,       /* raw press — duration_ms = 0 */
+    BUTTON_RELEASED,      /* raw release — duration_ms = hold time in ms */
+    BUTTON_SINGLE_CLICK,  /* confirmed single press (after double-click window) */
+    BUTTON_DOUBLE_CLICK,  /* two presses within DOUBLE_CLICK_WINDOW_MS */
+    BUTTON_LONG_PRESS,    /* held >= LONG_PRESS_MS (published while still held) */
 };
 
 struct button_msg {
     enum button_msg_type type;
     uint8_t  button_number;   /* 0-based DK index */
-    uint32_t press_count;     /* total presses since boot */
+    uint32_t duration_ms;     /* hold time; semantics depend on type */
+    uint32_t press_count;     /* cumulative physical presses for this button */
     uint32_t timestamp;       /* k_uptime_get_32() */
 };
 
-/* LED commands */
+/* LED commands (defined in zego/led/src/led.h) */
 enum led_msg_type {
     LED_COMMAND_ON,
     LED_COMMAND_OFF,
     LED_COMMAND_TOGGLE,
+    LED_COMMAND_BLINK,    /* equal on/off at period_ms each */
+    LED_COMMAND_BREATHE,  /* linear fade, full cycle = 2 × period_ms */
+    LED_COMMAND_MARQUEE,  /* cycle all LEDs in sequence; led_number ignored */
 };
 
 struct led_msg {
     enum led_msg_type type;
-    uint8_t led_number;  /* 0-based DK index */
+    uint8_t  led_number; /* 0-based DK index; ignored for MARQUEE */
+    uint16_t period_ms;  /* effect period; 0 = use Kconfig default */
 };
 
 struct led_state_msg {
-    uint8_t led_number;
-    bool    is_on;
+    uint8_t           led_number; /* 0-based (for MARQUEE: first lit LED) */
+    bool              is_on;      /* true = on/effect running, false = off */
+    enum led_msg_type command;    /* command that triggered this notification */
 };
 
 /* DK Wi-Fi connectivity info — published by network module when connection is ready */
@@ -103,38 +110,6 @@ struct dk_wifi_info_msg {
     int  error_code;
 };
 ```
-    LED_COMMAND_OFF,
-    LED_COMMAND_TOGGLE,
-};
-
-struct led_msg {
-    enum led_msg_type type;
-    uint8_t led_number;  /* 0-based DK index */
-};
-
-struct led_state_msg {
-    uint8_t led_number;
-    bool    is_on;
-};
-
-/* Wi-Fi connectivity status */
-enum wifi_msg_type {
-    WIFI_SOFTAP_STARTED,
-    WIFI_STA_CONNECTED,
-    WIFI_STA_DISCONNECTED,
-    WIFI_P2P_CONNECTED,
-    WIFI_P2P_DISCONNECTED,
-    WIFI_ERROR,
-};
-
-struct wifi_msg {
-    enum wifi_msg_type type;
-    enum app_wifi_mode     active_mode;  /* NEW v2.0 */
-    char               ip_addr[16];  /* NEW v2.0: dotted-decimal */
-    char               ssid[33];     /* NEW v2.0 */
-    int                error_code;
-};
-```
 
 ---
 
@@ -144,8 +119,8 @@ struct wifi_msg {
 |----------|--------|----------|-------|
 | 0 | mode_selector | `mode_selector_init` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `app_wifi_mode` shell command |
 | 5 | network | `network_module_init` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; starts Wi-Fi thread |
-| 90 | button | `button_module_init` | GPIO IRQ setup via dk_buttons_and_leds |
-| 90 | led | `led_module_init` | LED GPIO setup via dk_buttons_and_leds |
+| 90 | zego/button (external) | `zego_button_init` (SYS_INIT) | GPIO IRQ + gesture FSM setup |
+| 90 | zego/led (external) | `zego_led_init` (SYS_INIT) | LED GPIO/PWM setup |
 | 90 | webserver | `webserver_module_init` | HTTP service registration (server starts on CLIENT_CONNECTED_CHAN event) |
 | default | memory | `app_heap_monitor_init` | Heap high-water logging (`CONFIG_KERNEL_INIT_PRIORITY_DEFAULT`) |
 
@@ -175,8 +150,8 @@ graph TB
 
     subgraph modules [Application Modules]
         ModeSel[Mode Selector\nboot-time NVS + shell menu]
-        ButtonMod[Button Module\nSMF 3-state]
-        LEDMod[LED Module\nSMF 2-state per LED]
+        ButtonMod[zego/button\nGesture FSM — external]
+        LEDMod[zego/led\nEffect FSM — external]
         NetMod[Network Module\nevent-driven, 4 modes]
         WebMod[Webserver Module\nHTTP handlers]
         MemMon[Memory Monitor\nheap stats]
@@ -321,7 +296,7 @@ Available budget (nRF5340 app core): 1 MB Flash, 448 KB RAM — margins are comf
 ## Related Specs
 
 - [network-module.md](network-module.md) — SoftAP/STA/P2P paths, event flows, Kconfig
-- [led-module.md](led-module.md) — LED control, SMF 2-state, LED_CMD_CHAN / LED_STATE_CHAN
+- zego/led (external module) — LED control, Effect FSM, LED_CMD_CHAN / LED_STATE_CHAN (see [led-spec.md](https://github.com/chshzh/zego/blob/main/led/docs/led-spec.md))
 - [mode-selector.md](mode-selector.md) — boot window logic, NVS, shell menu
-- [button-module.md](button-module.md) — GPIO button monitoring, board differences
+- zego/button (external module) — GPIO button monitoring, gesture FSM, BUTTON_CHAN (see [button-spec.md](https://github.com/chshzh/zego/blob/main/button/docs/button-spec.md))
 - [webserver-module.md](webserver-module.md) — mode-aware HTTP server, `/api/system`
