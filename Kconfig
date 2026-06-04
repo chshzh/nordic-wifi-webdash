@@ -28,8 +28,8 @@ config APP_HTTP_PORT
 	help
 	  HTTP server port number
 
-rsource "src/modules/mode_selector/Kconfig.mode_selector"
-rsource "src/modules/network/Kconfig.network"
+# mode_selector and network Kconfig now provided by zego/wifi_app_main and
+# zego/network (EXTRA_ZEPHYR_MODULES) — no rsource needed here.
 # button and led Kconfig registered via EXTRA_ZEPHYR_MODULES (zego/button, zego/led)
 rsource "src/modules/webserver/Kconfig.webserver"
 rsource "src/modules/memory/Kconfig.memory"

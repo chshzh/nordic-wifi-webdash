@@ -6,10 +6,13 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
-# Register zego button and led modules.
-get_filename_component(ZEGO_BUTTON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/button REALPATH)
-get_filename_component(ZEGO_LED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/led REALPATH)
-list(APPEND EXTRA_ZEPHYR_MODULES ${ZEGO_BUTTON_DIR} ${ZEGO_LED_DIR})
+# Register zego modules: button, led, wifi, network, wifi_ble_prov.
+get_filename_component(ZEGO_BUTTON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/modules/button REALPATH)
+get_filename_component(ZEGO_LED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/modules/led REALPATH)
+get_filename_component(ZEGO_WIFI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/modules/wifi REALPATH)
+get_filename_component(ZEGO_NETWORK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/modules/network REALPATH)
+get_filename_component(ZEGO_WIFI_BLE_PROV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/modules/wifi_ble_prov REALPATH)
+list(APPEND EXTRA_ZEPHYR_MODULES ${ZEGO_BUTTON_DIR} ${ZEGO_LED_DIR} ${ZEGO_WIFI_DIR} ${ZEGO_NETWORK_DIR} ${ZEGO_WIFI_BLE_PROV_DIR})
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(nordic_wifi_webdash)
@@ -42,24 +45,13 @@ foreach(web_resource
 endforeach()
 
 # Add subdirectories for modules
-add_subdirectory(src/modules/mode_selector)
+# mode_selector now provided by zego/wifi (EXTRA_ZEPHYR_MODULES above)
+# Shared network module provided by zego/network (EXTRA_ZEPHYR_MODULES above);
+# app shim (net_event_app.c) defines CLIENT_CONNECTED_CHAN and overrides weak callbacks.
 add_subdirectory(src/modules/network)
 # button and led now provided by zego/button and zego/led (EXTRA_ZEPHYR_MODULES above)
 add_subdirectory(src/modules/webserver)
 add_subdirectory(src/modules/memory)
 
-# Firmware version string shown in the startup log.
-# - Release CI:    pass -DAPP_VERSION_STRING=<git-tag>  (e.g. v1.2.3)
-# - Local builds:  automatically constructed as v<NCS_VERSION_STRING>-dev
-#                  (NCS_VERSION_STRING is set by NCS cmake, e.g. "3.3.0-rc1")
-if(DEFINED APP_VERSION_STRING)
-	target_compile_definitions(app PRIVATE APP_VERSION_STRING="${APP_VERSION_STRING}")
-elseif(DEFINED NCS_VERSION)
-	target_compile_definitions(app PRIVATE APP_VERSION_STRING="v${NCS_VERSION}-dev")
-else()
-	target_compile_definitions(app PRIVATE APP_VERSION_STRING="dev")
-endif()
-
-target_sources(app PRIVATE
-	src/main.c
-)
+# APP_VERSION_STRING, PRD_VERSION, SPECS_VERSION set by zego/wifi/CMakeLists.txt
+target_sources(app PRIVATE src/main.c)

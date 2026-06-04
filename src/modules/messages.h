@@ -72,25 +72,21 @@ static inline const char *app_led_label(size_t index)
 }
 
 /* ============================================================================
- * WI-FI MODE
+ * WI-FI MODE  (types now owned by zego/wifi)
  * ============================================================================
  */
 
-/**
- * @brief Wi-Fi operating mode (application-specific enum to avoid conflicts with Zephyr)
+#include <wifi.h>
+
+/* Backward-compat enum for existing network / webserver code.
+ * Values match enum zego_wifi_mode exactly — interchangeable by integer value.
+ * struct wifi_mode_msg is defined in wifi.h.
  */
 enum app_wifi_mode {
-	APP_WIFI_MODE_SOFTAP = 0,     /**< Device creates its own SoftAP */
-	APP_WIFI_MODE_STA = 1,        /**< Device connects to existing SoftAP */
-	APP_WIFI_MODE_P2P_GO = 2,     /**< Wi-Fi Direct — device is Group Owner */
-	APP_WIFI_MODE_P2P_CLIENT = 3, /**< Wi-Fi Direct — device joins phone's group */
-};
-
-/**
- * @brief Wi-Fi mode message (published once at boot by mode_selector)
- */
-struct wifi_mode_msg {
-	enum app_wifi_mode mode;
+	APP_WIFI_MODE_STA = 0,        /**< == ZEGO_WIFI_MODE_STA        */
+	APP_WIFI_MODE_SOFTAP = 1,     /**< == ZEGO_WIFI_MODE_SOFTAP     */
+	APP_WIFI_MODE_P2P_GO = 2,     /**< == ZEGO_WIFI_MODE_P2P_GO     */
+	APP_WIFI_MODE_P2P_CLIENT = 3, /**< == ZEGO_WIFI_MODE_P2P_CLIENT */
 };
 
 /* ============================================================================
