@@ -5,13 +5,10 @@
 | Field | Value |
 |---|---|
 | Product Name | Nordic Wi-Fi WebDash |
-| Product ID | nordic-wifi-webdash |
-| Version | 2026-04-14-15-00 |
-| Previous Version | 2026-04-14-11-00 |
-| Status | Draft |
-| Product Manager | Charlie Shao |
+| Version | 2026-06-04-23-14 |
+| Status | Implemented |
 | NCS Version | v3.3.0 |
-| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EBII |
+| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
 
 ---
 
@@ -20,6 +17,7 @@
 | Version | Summary of changes |
 |---|---|
 | 2026-05-06-12-00 | Fix section 6.1 UX description: default on fresh flash is P2P_GO (not SoftAP); update `app_wifi_mode P2P` to `app_wifi_mode p2p_go` / `p2p_client` |
+| 2026-06-04-23-14 | Formatted Document Information (removed non-template fields). FR-004/FR-005: spec link updated to zego/wifi GitHub. FR-102: spec link updated. Target board corrected to nRF7002EB2. |
 | 2026-04-17-10-00 | Add FR-105: dark mode for web UI — auto-detect via `prefers-color-scheme`, manual toggle override, no persistence |
 | 2026-04-14-15-00 | Startup improvements: firmware version string printed at boot (git tag on CI / v&lt;NCS&gt;-dev locally); startup banner with aligned labels and module boot sequence (SYS_INIT priorities); SoftAP periodic reminder — SSID/password/IP logged every 300 s until first client connects (mirrors P2P_GO WPS re-arm pattern) |
 | 2026-04-14-11-00 | P2P_GO auto-start: firmware automatically runs group_add and sets WPS PIN at boot; waits up to 5 min for first client (same pattern as SoftAP); no manual shell commands needed to start a P2P_GO session |
@@ -123,8 +121,8 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | FR-001 | user | power on in SoftAP mode and open the dashboard | I can demo the device with no network infrastructure | - `WebDash_AP` SSID visible<br>- Dashboard loads at `http://192.168.7.1`<br>- Max 2 client stations enforced | [network-module.md](../dev-specs/network-module.md) |
 | FR-002 | user | connect the device to an existing Wi-Fi network (STA) and access the dashboard | I can demo while staying on my office network | - Run `wifi connect -s <SSID> -p <password> -k 1` in shell<br>- Dashboard at DHCP IP or `http://nrfwebdash.local`<br>- `[network] STA CONNECTED IP: <x>` logged | [network-module.md](../dev-specs/network-module.md) |
 | FR-003 | user | connect my phone directly to the device via Wi-Fi Direct (P2P) and access the dashboard | I can demo where no Wi-Fi router is available | - **P2P_GO**: device auto-creates the P2P group and activates WPS PIN at boot; WPS PIN logged to serial console; device waits up to 5 min for first client; phone joins via Wi-Fi Direct → PIN method; dashboard at P2P IP after client connects<br>- **P2P_CLIENT**: auto P2P find at boot; `wifi p2p connect <MAC> pbc` connects to phone’s group<br>- Supported on both boards | [network-module.md](../dev-specs/network-module.md) |
-| FR-004 | user | switch the Wi-Fi mode with a shell command and have it persist | I can change modes on the fly without reflashing | - `uart:~$ app_wifi_mode [SoftAP\|STA\|P2P_GO\|P2P_CLIENT]` saves mode to NVS<br>- Mode takes effect after reboot<br>- Factory default (fresh flash): P2P_GO | [mode-selector.md](../dev-specs/mode-selector.md) |
-| FR-005 | user | have the selected Wi-Fi mode remembered after power-off | I don’t have to reconfigure after every power cycle | - Mode stored in NVS<br>- Factory default (fresh flash): P2P_GO<br>- No button press needed on subsequent boots | [mode-selector.md](../dev-specs/mode-selector.md) |
+| FR-004 | user | switch the Wi-Fi mode with a shell command and have it persist | I can change modes on the fly without reflashing | - `uart:~$ app_wifi_mode [SoftAP\|STA\|P2P_GO\|P2P_CLIENT]` saves mode to NVS<br>- Mode takes effect after reboot<br>- Factory default (fresh flash): P2P_GO | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) |
+| FR-005 | user | have the selected Wi-Fi mode remembered after power-off | I don't have to reconfigure after every power cycle | - Mode stored in NVS<br>- Factory default (fresh flash): P2P_GO<br>- No button press needed on subsequent boots | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) |
 | FR-006 | user | see button states and control LEDs in the browser | I can verify GPIO is working during demos | - Buttons show correct count per board (2 or 3)<br>- LEDs show correct count per board (2 or 4)<br>- ON / OFF / Toggle responds in < 100 ms | [webserver-module.md](../dev-specs/webserver-module.md) |
 | FR-007 | user | see the active Wi-Fi mode and device IP address in the dashboard | I know at a glance which mode is active | - Mode banner shows SoftAP / STA / P2P_GO / P2P_CLIENT<br>- Current IP address displayed<br>- `/api/system` returns `{mode, device_ip, device_mac, client_ip, ssid, uptime_s, board}` | [webserver-module.md](../dev-specs/webserver-module.md) |
 
@@ -133,7 +131,7 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | ID | As a… | I want to… | So that… | Acceptance Criteria | Engineering Spec |
 |---|---|---|---|---|---|
 | FR-101 | developer | call a REST API to read device state | I can integrate the device into custom tooling | - `GET /api/buttons` → JSON<br>- `GET /api/leds` → JSON<br>- `POST /api/led` → LED control<br>- `GET /api/system` → mode + IP | [webserver-module.md](../dev-specs/webserver-module.md) |
-| FR-102 | developer | use shell commands over UART for Wi-Fi diagnostics and mode changes | I can inspect and test connectivity without a browser | - `app_wifi_mode [SoftAP\|STA\|P2P_GO\|P2P_CLIENT]` switches and persists mode<br>- `wifi connect -s <SSID> -p <pwd> -k 1` joins a network (STA)<br>- `wifi scan`, `wifi status` work<br>- P2P_CLIENT: `wifi p2p find / peer / connect` work<br>- P2P_GO: group and WPS PIN auto-start at boot; no manual shell commands required | [network-module.md](../dev-specs/network-module.md) |
+| FR-102 | developer | use shell commands over UART for Wi-Fi diagnostics and mode changes | I can inspect and test connectivity without a browser | - `app_wifi_mode [SoftAP\|STA\|P2P_GO\|P2P_CLIENT]` switches and persists mode<br>- `wifi connect -s <SSID> -p <pwd> -k 1` joins a network (STA)<br>- `wifi scan`, `wifi status` work<br>- P2P_CLIENT: `wifi p2p find / peer / connect` work<br>- P2P_GO: group and WPS PIN auto-start at boot; no manual shell commands required | [network-module.md](../dev-specs/network-module.md), [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) |
 | FR-103 | developer | see board name, MAC, mode, and IP in the startup log | I can confirm firmware state without opening a browser | - Board ID, MAC, build date logged at boot<br>- Active mode logged<br>- IP logged when connected | [architecture.md](../dev-specs/architecture.md) |
 | FR-104 | user | discover the device automatically without knowing its IP | I can open the dashboard just by name | - Device registers `_http._tcp.local` via DNS-SD<br>- Device reachable at `http://nrfwebdash.local` via mDNS | [webserver-module.md](../dev-specs/webserver-module.md) |
 | FR-105 | user | switch between light and dark mode in the dashboard | I can comfortably view it in any lighting condition | - Dashboard auto-applies dark mode when the browser/OS is set to dark (`prefers-color-scheme: dark`)<br>- A toggle button in the header lets the user override to light or dark independently of system setting<br>- Override resets on page reload (no persistence)<br>- All UI elements (buttons, LEDs, status panel, text) are legible in both modes | [webserver-module.md](../dev-specs/webserver-module.md) |
@@ -187,14 +185,14 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | Board | Wi-Fi chip | Buttons | LEDs | Supported modes |
 |---|---|---|---|---|
 | nRF7002DK | nRF7002 (built in) | 2 | 2 | SoftAP, STA, P2P |
-| nRF54LM20DK + nRF7002EBII shield | nRF7002 (shield) | 3 | 4 | SoftAP, STA, P2P |
+| nRF54LM20DK + nRF7002EB2 shield | nRF7002 (shield) | 3 | 4 | SoftAP, STA, P2P |
 
 *Note: BUTTON 3 on nRF54LM20DK is unavailable when the nRF7002EBII shield is attached.*
 
 ### 5.2 Board-specific notes
 
 - Both boards support SoftAP, STA, and P2P modes. Build with `-DSNIPPET=wifi-p2p` to enable P2P.
-- BUTTON 3 on nRF54LM20DK is unavailable when the nRF7002EBII shield is attached; BUTTON 0–2 remain usable.
+- BUTTON 3 on nRF54LM20DK is unavailable when the nRF7002EB2 shield is attached; BUTTON 0–2 remain usable.
 
 ---
 
@@ -294,18 +292,6 @@ All P0 requirements (FR-001 to FR-007) must pass on all supported boards before 
 | 1 | Should the web UI display a signal quality indicator (RSSI) in STA mode? | PM | TBD |
 | 2 | Should Button 2 have a dedicated function (e.g. trigger reconnect in STA mode)? | PM | TBD |
 
----
-
-## 9. Engineering Spec References
-
-| Spec file | Covers |
-|---|---|
-| [architecture.md](../dev-specs/architecture.md) | System design, Zbus channels, module map, boot sequence, SYS_INIT priorities |
-| [network-module.md](../dev-specs/network-module.md) | Unified network module: SoftAP / STA / P2P paths, net event handling |
-| [mode-selector.md](../dev-specs/mode-selector.md) | Boot window, NVS persistence, shell menu |
-| [webserver-module.md](../dev-specs/webserver-module.md) | REST API, DNS-SD `_http._tcp.local`, mode banner, web UI |
-
----
 
 *Document ID: PRD-nordic-wifi-webdash-2026-04-09 | Classification: Public / Open Source*
 

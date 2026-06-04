@@ -1,12 +1,22 @@
 # Webserver Module Specification
 
-> **PRD Version**: 2026-04-17-10-00
+## Document Information
+
+| Field | Value |
+|---|---|
+| Project | nordic-wifi-webdash |
+| Version | 2026-06-04-23-30 |
+| PRD Version | 2026-06-04-23-14 |
+| NCS Version | v3.3.0 |
+| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
+| Status | Implemented |
 
 ## Changelog
 
 | Version | Summary |
 |---|---|
 | 2026-04-17-10-00 | Add dark mode (FR-105): CSS `prefers-color-scheme` auto-detect + manual toggle button; no persistence; all UI elements legible in both modes |
+| 2026-06-04-23-30 | Added proper Document Information table; PRD Version aligned to 2026-06-04-23-14. |
 | 2026-04-14-10-00 | Code sync: subscribes to CLIENT_CONNECTED_CHAN (not WIFI_CHAN); /api/system fields updated (device_ip, device_mac, client_ip, board); client IP tracked in all modes via zsock_getpeername(); MAX_WEB_CLIENTS=4; mode values include P2P_GO/P2P_CLIENT |
 | 2026-04-09-14-00 | Code alignment: fix DNS-SD macro to `DNS_SD_REGISTER_SERVICE` (not `DNS_SD_REGISTER_TCP_SERVICE`) |
 | 2026-04-09-12-00 | Add DNS-SD `_http._tcp.local` service registration (FR-104) |

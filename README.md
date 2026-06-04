@@ -17,7 +17,7 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 | Board | Build target |
 |-------|--------------|
 | nRF7002DK | `nrf7002dk/nrf5340/cpuapp` |
-| nRF54LM20DK + nRF7002EBII | `nrf54lm20dk/nrf54lm20a/cpuapp` + `-DSHIELD=nrf7002eb2` |
+| nRF54LM20DK + nRF7002EB2 | `nrf54lm20dk/nrf54lm20a/cpuapp` + `-DSHIELD=nrf7002eb2` |
 
 ### Features
 
@@ -27,7 +27,7 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 - REST API for `/api/system`, `/api/buttons`, `/api/leds`, and `/api/led`
 - Gzip-compressed static web assets served from flash
 - mDNS hostname support via `http://nrfwebdash.local`
-- Modular architecture based on SMF + Zbus
+- Modular architecture based on Zbus; button, LED, Wi-Fi mode-selector, and network event handling provided by standalone **[zego](../zego)** library modules (`zego/button`, `zego/led`, `zego/wifi`, `zego/network`)
 - Startup banner with firmware version string (git tag on CI / `v<NCS>-dev` locally), module boot sequence with SYS_INIT priorities, and periodic reminders (SSID/PIN) until a client connects
 
 ### Target Users
@@ -48,7 +48,7 @@ Download the pre-built `.hex` for your board from the [Releases](https://github.
 | Board | Release page |
 |-------|--------------|
 | nRF7002DK | [Latest release](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
-| nRF54LM20DK + nRF7002EBII | [Latest release](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
+| nRF54LM20DK + nRF7002EB2 | [Latest release](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
 
 ### Step 2 — Connect and open the dashboard
 
@@ -74,7 +74,7 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 | Board | Buttons | Function |
 |-------|---------|----------|
 | nRF7002DK | Button 1, Button 2 | State and press count shown in dashboard and reported via `/api/buttons` |
-| nRF54LM20DK + nRF7002EBII | BUTTON0, BUTTON1, BUTTON2 | Same (BUTTON3 unavailable — shield pin conflict) |
+| nRF54LM20DK + nRF7002EB2 | BUTTON0, BUTTON1, BUTTON2 | Same (BUTTON3 unavailable — shield pin conflict) |
 
 ### LEDs
 
@@ -91,7 +91,7 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 
 ```text
 nordic-wifi-webdash/
-├── CMakeLists.txt          ← registers zego/button + zego/led via EXTRA_ZEPHYR_MODULES
+├── CMakeLists.txt          ← registers zego/button + zego/led + zego/wifi via EXTRA_ZEPHYR_MODULES
 ├── Kconfig
 ├── prj.conf
 ├── west.yml
@@ -102,8 +102,7 @@ nordic-wifi-webdash/
 │   ├── dev-specs/
 │   │   ├── overview.md            ← spec index, PRD-to-spec mapping, architecture summary
 │   │   ├── architecture.md        ← module map, Zbus channels, SYS_INIT boot order
-│   │   ├── network-module.md      ← SoftAP / STA / P2P_GO / P2P_CLIENT paths
-│   │   ├── mode-selector.md       ← app_wifi_mode shell command, NVS persistence
+│   │   ├── network-module.md      ← net_event_app.c shim — weak-hook overrides of zego/network
 │   │   └── webserver-module.md    ← HTTP server, REST API, DNS-SD, web UI
 │   └── qa-test/
 │       └── QA-*.md               ← dated test + QA reports
@@ -111,13 +110,14 @@ nordic-wifi-webdash/
 │   ├── main.c
 │   └── modules/
 │       ├── memory/
-│       ├── mode_selector/
-│       ├── network/
+│       ├── network/              ← net_event_app.c only (zego/network provides the backbone)
 │       ├── webserver/
 │       └── messages.h
 └── ../zego/                ← sibling repo — external Zephyr modules
     ├── button/             ← zego/button: gesture detection, BUTTON_CHAN
-    └── led/                ← zego/led: static/blink/breathe/marquee, LED_CMD_CHAN
+    ├── led/                ← zego/led: static/blink/breathe/marquee, LED_CMD_CHAN
+    ├── wifi/               ← zego/wifi: mode selector, NVS, app_wifi_mode shell cmd
+    └── network/            ← zego/network: Wi-Fi event management, weak-hook API
 ```
 
 
@@ -174,10 +174,10 @@ See the Nordic guide on [Workspace Application Setup](https://docs.nordicsemi.co
 
 ```bash
 # nRF7002DK
-west build -p -b nrf7002dk/nrf5340/cpuapp -d build_nrf7002dk  -- -DSNIPPET=wifi-p2p
+west build -p -b nrf7002dk/nrf5340/cpuapp -d build_nrf7002dk  -- -Dnordic-wifi-webdash_SNIPPET=wifi-p2p
 
-# nRF54LM20DK + nRF7002EBII
-west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -d build_nrf54lm20dk  -- -DSNIPPET=wifi-p2p -DSHIELD=nrf7002eb2
+# nRF54LM20DK + nRF7002EB2
+west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -d build_nrf54lm20dk  -- -Dnordic-wifi-webdash_SNIPPET=wifi-p2p -DSHIELD=nrf7002eb2
 ```
 
 ### Flash
@@ -198,12 +198,12 @@ Connect at **115200 baud**. The device prints its IP address, Wi-Fi mode, and co
 
 ### Developer Notes
 
-- nRF54LM20DK + nRF7002EBII loses one button because of shield pin conflicts; BUTTON0–BUTTON2 remain available
+- nRF54LM20DK + nRF7002EB2 loses one button because of shield pin conflicts; BUTTON0–BUTTON2 remain available
 - STA connections are intentionally session-based to avoid unwanted reconnects when returning to other modes
 - Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `app_wifi_mode` if preferred
 - The startup banner prints firmware version (`Version: <tag>` on CI / `v<NCS>-dev` locally), aligned board/MAC/mode labels, and a module list with SYS_INIT boot priorities — useful for orientation when reading serial logs
 - SoftAP and P2P_GO both log connectivity instructions every 300 s until the first client connects; the reminders stop automatically on first connection
-- mDNS behavior and module responsibilities are in [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md); mode handling is in [docs/dev-specs/mode-selector.md](docs/dev-specs/mode-selector.md)
+- mDNS behavior and network event details are in [zego/network ↗](https://github.com/chshzh/zego/blob/main/modules/network/docs/network-spec.md) and [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md); mode handling is in [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md)
 
 
 ## Documentation
@@ -215,11 +215,12 @@ The full design documentation lives under `docs/`. Start with [docs/dev-specs/ov
 | [docs/pm-prd/PRD.md](docs/pm-prd/PRD.md) | Product Requirements — user perspective features, behavior, acceptance criteria, changelog |
 | [docs/dev-specs/overview.md](docs/dev-specs/overview.md) | **Start here** — technical spec index, PRD-to-spec mapping, architecture summary, design decisions |
 | [docs/dev-specs/architecture.md](docs/dev-specs/architecture.md) | System architecture — module map, Zbus channels, SYS_INIT boot sequence, memory budget |
-| [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md) | Network module — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
-| [docs/dev-specs/mode-selector.md](docs/dev-specs/mode-selector.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
+| [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md) | Network module — `net_event_app.c` shim, `CLIENT_CONNECTED_CHAN`, weak-hook overrides of zego/network |
 | [docs/dev-specs/webserver-module.md](docs/dev-specs/webserver-module.md) | Webserver module — HTTP server, REST API endpoints, DNS-SD, web UI |
-| [zego/button — button-spec.md](https://github.com/chshzh/zego/blob/main/button/docs/button-spec.md) | Button module — gesture detection (click, double-click, long press), Zbus `BUTTON_CHAN`; provided by **zego/button** |
-| [zego/led — led-spec.md](https://github.com/chshzh/zego/blob/main/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, marquee), Zbus `LED_CMD_CHAN`; provided by **zego/led** |
+| [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
+| [zego/network ↗](https://github.com/chshzh/zego/blob/main/modules/network/docs/network-spec.md) | Network backbone — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
+| [zego/button ↗](https://github.com/chshzh/zego/blob/main/modules/button/docs/button-spec.md) | Button module — gesture detection (click, double-click, long press), Zbus `BUTTON_CHAN`; provided by **zego/button** |
+| [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, marquee), Zbus `LED_CMD_CHAN`; provided by **zego/led** |
 
 ## Methodology
 

@@ -1,12 +1,24 @@
 # System Architecture Specification — nordic-wifi-webdash
 
-> **PRD Version**: 2026-04-17-10-00
+## Document Information
+
+| Field | Value |
+|---|---|
+| Project | nordic-wifi-webdash |
+| Version | 2026-06-04-23-30 |
+| PRD Version | 2026-06-04-23-14 |
+| NCS Version | v3.3.0 |
+| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
+| Status | Implemented |
 
 ## Changelog
 
 | Version | Summary |
 |---|---|
 | 2026-05-06-12-00 | Add `SPECS_VERSION` macro in `src/main.c`; printed in startup banner after `Version:` line |
+| 2026-06-04-23-00 | Update module map: button, led, mode-selector now shown as external zego modules; remove stale local `mode_selector/` entry |
+| 2026-06-04-23-14 | SYS_INIT priorities aligned to zego standard (wifi→41, network→42, button/led→45); renamed ModeSel→ZegoWifi in all diagrams; boot sequence updated for net_event_app.c shim pattern |
+| 2026-06-04-23-30 | Added proper Document Information table. |
 | 2026-04-14-10-00 | Code sync: enum app_wifi_mode (4 values, P2P_GO/P2P_CLIENT); WIFI_CHAN → CLIENT_CONNECTED_CHAN; wifi_msg → dk_wifi_info_msg; default mode → P2P_GO; duplicate mode_selector row in module map fixed |
 | 2026-04-09-14-00 | Code alignment: fix module map (wifi/ → network/); SYS_INIT priorities (button/led/webserver=90, network=5); button_msg struct (remove duration_ms); boot sequence diagram |
 | 2026-04-09-12-00 | Mode selector: remove Button-1 long-press; STA: session-based (no wifi_credentials); P2P: both boards; pbc connect method; updated memory budget |
@@ -25,14 +37,22 @@ v2.0 adds a **Mode Selector** module (NVS-backed, shell-command driven) and exte
 ## Module Map
 
 ```
+# App-owned modules (src/modules/)
 src/
-├── main.c                        ← startup banner, SPECS_VERSION macro, SYS_INIT trigger
+├── main.c              ← startup banner, SPECS_VERSION macro
 └── modules/
-    ├── messages.h                ← all Zbus message structs (shared)
-    ├── mode_selector/            ← app_wifi_mode shell command + NVS persistence
-    ├── network/                  ← unified Wi-Fi + net-event module (SoftAP/STA/P2P_GO/P2P_CLIENT)
-    ├── webserver/                ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
-    └── memory/                   ← heap monitor
+    ├── messages.h      ← app-local Zbus message types (dk_wifi_info_msg, app_wifi_mode)
+    ├── network/        ← net_event_app.c: defines CLIENT_CONNECTED_CHAN, overrides __weak hooks
+    ├── webserver/      ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
+    └── memory/         ← heap monitor
+
+# External zego modules (registered via EXTRA_ZEPHYR_MODULES in CMakeLists.txt)
+../zego/modules/
+    ├── button/         ← publishes BUTTON_CHAN (CONFIG_ZEGO_BUTTON=y)
+    ├── led/            ← consumes LED_CMD_CHAN, publishes LED_STATE_CHAN (CONFIG_ZEGO_LED=y)
+    ├── wifi/           ← app_wifi_mode shell command, NVS persistence, startup banner
+    ├── network/        ← Wi-Fi event management backbone (zego_network_on_* weak hooks)
+    └── wifi_ble_prov/  ← BLE Wi-Fi credential provisioning (optional)
 ```
 
 ---
@@ -117,14 +137,14 @@ struct dk_wifi_info_msg {
 
 | Priority | Module | Function | Notes |
 |----------|--------|----------|-------|
-| 0 | mode_selector | `mode_selector_init` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `app_wifi_mode` shell command |
-| 5 | network | `network_module_init` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; starts Wi-Fi thread |
-| 90 | zego/button (external) | `zego_button_init` (SYS_INIT) | GPIO IRQ + gesture FSM setup |
-| 90 | zego/led (external) | `zego_led_init` (SYS_INIT) | LED GPIO/PWM setup |
+| 41 | zego/wifi | (SYS_INIT) | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `app_wifi_mode` shell command |
+| 42 | zego/network | (SYS_INIT) | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; calls `net_event_app.c` weak hooks |
+| 45 | zego/button | (SYS_INIT) | GPIO IRQ + gesture FSM setup |
+| 45 | zego/led | (SYS_INIT) | LED GPIO/PWM setup |
 | 90 | webserver | `webserver_module_init` | HTTP service registration (server starts on CLIENT_CONNECTED_CHAN event) |
 | default | memory | `app_heap_monitor_init` | Heap high-water logging (`CONFIG_KERNEL_INIT_PRIORITY_DEFAULT`) |
 
-Mode selector **must** run before network (priority 0 < 5) because the network module reads the published mode at init time.
+zego/wifi **must** run before zego/network (priority 41 < 42) because the network module reads the published mode at init time.
 
 ---
 
@@ -149,7 +169,7 @@ graph TB
     end
 
     subgraph modules [Application Modules]
-        ModeSel[Mode Selector\nboot-time NVS + shell menu]
+        ZegoWifi[zego/wifi\nNVS + mode selector]
         ButtonMod[zego/button\nGesture FSM — external]
         LEDMod[zego/led\nEffect FSM — external]
         NetMod[Network Module\nevent-driven, 4 modes]
@@ -158,10 +178,10 @@ graph TB
     end
 
     HW_BTN -->|GPIO IRQ| ButtonMod
-    HW_FLASH <-->|NVS read/write| ModeSel
-    HW_UART <-->|app_wifi_mode shell cmd| ModeSel
+    HW_FLASH <-->|NVS read/write| ZegoWifi
+    HW_UART <-->|app_wifi_mode shell cmd| ZegoWifi
 
-    ModeSel -->|publish once| WIFI_MODE_CHAN
+    ZegoWifi -->|publish once| WIFI_MODE_CHAN
     WIFI_MODE_CHAN -->|subscribe| NetMod
 
     ButtonMod -->|publish| BUTTON_CHAN
@@ -187,33 +207,33 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant HW as Hardware Boot
-    participant ModeSel as Mode Selector
+    participant ZegoWifi as zego/wifi
     participant NVS as NVS Storage
-    participant Net as Network Module
+    participant Net as zego/network
     participant Web as Webserver
-    participant Btn as Button Module
+    participant Btn as zego/button
 
-    HW->>ModeSel: SYS_INIT APPLICATION priority 0
-    ModeSel->>NVS: Read "app/app_wifi_mode"
+    HW->>ZegoWifi: SYS_INIT APPLICATION priority 41
+    ZegoWifi->>NVS: Read "app/app_wifi_mode"
     alt First boot (no NVS entry)
-        NVS-->>ModeSel: -ENOENT → use P2P_GO default
+        NVS-->>ZegoWifi: -ENOENT → use P2P_GO default
     else NVS entry exists
-        NVS-->>ModeSel: Stored wifi mode (0/1/2)
+        NVS-->>ZegoWifi: Stored wifi mode (0/1/2)
     end
 
-    ModeSel->>WIFI_MODE_CHAN: Publish wifi_mode_msg
+    ZegoWifi->>WIFI_MODE_CHAN: Publish wifi_mode_msg
 
-    HW->>Net: SYS_INIT APPLICATION priority 5
+    HW->>Net: SYS_INIT APPLICATION priority 42
     Net->>WIFI_MODE_CHAN: Read mode
-    Net->>Net: Registers net_mgmt event callbacks
-    Net->>Net: Spawns wifi_thread_fn (waits iface_up → supplicant_ready → start mode)
+    Net->>Net: Registers net_mgmt event callbacks; starts Wi-Fi path
+    Net->>Net: Calls net_event_app.c hooks on connectivity events
 
-    HW->>Btn: SYS_INIT APPLICATION priority 90
+    HW->>Btn: SYS_INIT APPLICATION priority 45
     Btn->>Btn: Setup GPIO IRQs (dk_buttons_init)
 
     HW->>Web: SYS_INIT APPLICATION priority 90
     Web->>Web: Register HTTP routes + DNS-SD service
-    Note over Net,Web: Web server starts when WIFI_CHAN reports SOFTAP_STARTED / STA_CONNECTED / P2P_CONNECTED
+    Note over Net,Web: Web server starts when CLIENT_CONNECTED_CHAN is published
 ```
 
 ---
@@ -296,7 +316,7 @@ Available budget (nRF5340 app core): 1 MB Flash, 448 KB RAM — margins are comf
 ## Related Specs
 
 - [network-module.md](network-module.md) — SoftAP/STA/P2P paths, event flows, Kconfig
-- zego/led (external module) — LED control, Effect FSM, LED_CMD_CHAN / LED_STATE_CHAN (see [led-spec.md](https://github.com/chshzh/zego/blob/main/led/docs/led-spec.md))
-- [mode-selector.md](mode-selector.md) — boot window logic, NVS, shell menu
-- zego/button (external module) — GPIO button monitoring, gesture FSM, BUTTON_CHAN (see [button-spec.md](https://github.com/chshzh/zego/blob/main/button/docs/button-spec.md))
+- [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md) — LED control, Effect FSM, LED_CMD_CHAN / LED_STATE_CHAN
+- [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) — boot window logic, NVS, shell menu
+- [zego/button ↗](https://github.com/chshzh/zego/blob/main/modules/button/docs/button-spec.md) — GPIO button monitoring, gesture FSM, BUTTON_CHAN
 - [webserver-module.md](webserver-module.md) — mode-aware HTTP server, `/api/system`
