@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-04-23-30 |
+| Version | 2026-06-05-10-15 |
 | PRD Version | 2026-06-04-23-14 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
@@ -19,6 +19,7 @@
 | 2026-06-04-23-00 | Update module map: button, led, mode-selector now shown as external zego modules; remove stale local `mode_selector/` entry |
 | 2026-06-04-23-14 | SYS_INIT priorities aligned to zego standard (wifi→41, network→42, button/led→45); renamed ModeSel→ZegoWifi in all diagrams; boot sequence updated for net_event_app.c shim pattern |
 | 2026-06-04-23-30 | Added proper Document Information table. |
+| 2026-06-05-10-15 | Fix SYS_INIT priority table: correct wifi→0, network→5, button→90, led→91 (the 2026-06-04-23-14 entry incorrectly documented 41/42/45); fix webserver init description — no SYS_INIT, uses static `ZBUS_LISTENER_DEFINE` + `ZBUS_CHAN_ADD_OBS` on `CLIENT_CONNECTED_CHAN` |
 | 2026-04-14-10-00 | Code sync: enum app_wifi_mode (4 values, P2P_GO/P2P_CLIENT); WIFI_CHAN → CLIENT_CONNECTED_CHAN; wifi_msg → dk_wifi_info_msg; default mode → P2P_GO; duplicate mode_selector row in module map fixed |
 | 2026-04-09-14-00 | Code alignment: fix module map (wifi/ → network/); SYS_INIT priorities (button/led/webserver=90, network=5); button_msg struct (remove duration_ms); boot sequence diagram |
 | 2026-04-09-12-00 | Mode selector: remove Button-1 long-press; STA: session-based (no wifi_credentials); P2P: both boards; pbc connect method; updated memory budget |
@@ -106,17 +107,17 @@ enum led_msg_type {
     LED_COMMAND_TOGGLE,
     LED_COMMAND_BLINK,    /* equal on/off at period_ms each */
     LED_COMMAND_BREATHE,  /* linear fade, full cycle = 2 × period_ms */
-    LED_COMMAND_MARQUEE,  /* cycle all LEDs in sequence; led_number ignored */
+    LED_COMMAND_ROTATE,  /* cycle all LEDs in sequence; led_number ignored */
 };
 
 struct led_msg {
     enum led_msg_type type;
-    uint8_t  led_number; /* 0-based DK index; ignored for MARQUEE */
+    uint8_t  led_number; /* 0-based DK index; ignored for ROTATE */
     uint16_t period_ms;  /* effect period; 0 = use Kconfig default */
 };
 
 struct led_state_msg {
-    uint8_t           led_number; /* 0-based (for MARQUEE: first lit LED) */
+    uint8_t           led_number; /* 0-based (for ROTATE: first lit LED) */
     bool              is_on;      /* true = on/effect running, false = off */
     enum led_msg_type command;    /* command that triggered this notification */
 };
@@ -135,16 +136,16 @@ struct dk_wifi_info_msg {
 
 ## SYS_INIT Priority Order
 
-| Priority | Module | Function | Notes |
-|----------|--------|----------|-------|
-| 41 | zego/wifi | (SYS_INIT) | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `app_wifi_mode` shell command |
-| 42 | zego/network | (SYS_INIT) | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; calls `net_event_app.c` weak hooks |
-| 45 | zego/button | (SYS_INIT) | GPIO IRQ + gesture FSM setup |
-| 45 | zego/led | (SYS_INIT) | LED GPIO/PWM setup |
-| 90 | webserver | `webserver_module_init` | HTTP service registration (server starts on CLIENT_CONNECTED_CHAN event) |
-| default | memory | `app_heap_monitor_init` | Heap high-water logging (`CONFIG_KERNEL_INIT_PRIORITY_DEFAULT`) |
+| Priority | Module | Init mechanism | Notes |
+|----------|--------|----------------|-------|
+| 0 | zego/wifi | `SYS_INIT(mode_selector_init, APPLICATION, 0)` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `app_wifi_mode` shell command |
+| 5 | zego/network | `SYS_INIT(network_module_init, APPLICATION, 5)` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; calls `net_event_app.c` weak hooks |
+| 90 | zego/button | `SYS_INIT(button_module_init, APPLICATION, CONFIG_ZEGO_BUTTON_INIT_PRIORITY)` | GPIO IRQ + gesture FSM setup (default priority 90) |
+| 91 | zego/led | `SYS_INIT(led_module_init, APPLICATION, CONFIG_ZEGO_LED_INIT_PRIORITY)` | LED GPIO/PWM setup (default priority 91) |
+| static | webserver | `ZBUS_LISTENER_DEFINE` + `ZBUS_CHAN_ADD_OBS(CLIENT_CONNECTED_CHAN)` | No SYS_INIT — registers a static Zbus listener at link time; starts HTTP server via `k_work_schedule` when the first `CLIENT_CONNECTED_CHAN` event arrives |
+| default | memory | `SYS_INIT(app_heap_monitor_init, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT)` | Heap high-water logging |
 
-zego/wifi **must** run before zego/network (priority 41 < 42) because the network module reads the published mode at init time.
+zego/wifi **must** run before zego/network (priority 0 < 5) because the network module reads the published mode at init time.
 
 ---
 
@@ -213,7 +214,7 @@ sequenceDiagram
     participant Web as Webserver
     participant Btn as zego/button
 
-    HW->>ZegoWifi: SYS_INIT APPLICATION priority 41
+    HW->>ZegoWifi: SYS_INIT APPLICATION priority 0
     ZegoWifi->>NVS: Read "app/app_wifi_mode"
     alt First boot (no NVS entry)
         NVS-->>ZegoWifi: -ENOENT → use P2P_GO default
@@ -223,17 +224,16 @@ sequenceDiagram
 
     ZegoWifi->>WIFI_MODE_CHAN: Publish wifi_mode_msg
 
-    HW->>Net: SYS_INIT APPLICATION priority 42
+    HW->>Net: SYS_INIT APPLICATION priority 5
     Net->>WIFI_MODE_CHAN: Read mode
     Net->>Net: Registers net_mgmt event callbacks; starts Wi-Fi path
     Net->>Net: Calls net_event_app.c hooks on connectivity events
 
-    HW->>Btn: SYS_INIT APPLICATION priority 45
+    HW->>Btn: SYS_INIT APPLICATION priority 90
     Btn->>Btn: Setup GPIO IRQs (dk_buttons_init)
 
-    HW->>Web: SYS_INIT APPLICATION priority 90
-    Web->>Web: Register HTTP routes + DNS-SD service
-    Note over Net,Web: Web server starts when CLIENT_CONNECTED_CHAN is published
+    Note over Web: Webserver: static ZBUS_LISTENER_DEFINE registered at link time
+    Note over Net,Web: Web server starts (via k_work_schedule) when CLIENT_CONNECTED_CHAN is published
 ```
 
 ---

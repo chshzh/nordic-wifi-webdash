@@ -28,6 +28,7 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 - Gzip-compressed static web assets served from flash
 - mDNS hostname support via `http://nrfwebdash.local`
 - Modular architecture based on Zbus; button, LED, Wi-Fi mode-selector, and network event handling provided by standalone **[zego](../zego)** library modules (`zego/button`, `zego/led`, `zego/wifi`, `zego/network`)
+- Light/dark mode: auto-detects `prefers-color-scheme` with a manual toggle in the header (resets on reload, no persistence)
 - Startup banner with firmware version string (git tag on CI / `v<NCS>-dev` locally), module boot sequence with SYS_INIT priorities, and periodic reminders (SSID/PIN) until a client connects
 
 ### Target Users
@@ -115,7 +116,7 @@ nordic-wifi-webdash/
 │       └── messages.h
 └── ../zego/                ← sibling repo — external Zephyr modules
     ├── button/             ← zego/button: gesture detection, BUTTON_CHAN
-    ├── led/                ← zego/led: static/blink/breathe/marquee, LED_CMD_CHAN
+    ├── led/                ← zego/led: static/blink/breathe/rotate, LED_CMD_CHAN
     ├── wifi/               ← zego/wifi: mode selector, NVS, app_wifi_mode shell cmd
     └── network/            ← zego/network: Wi-Fi event management, weak-hook API
 ```
@@ -220,7 +221,7 @@ The full design documentation lives under `docs/`. Start with [docs/dev-specs/ov
 | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
 | [zego/network ↗](https://github.com/chshzh/zego/blob/main/modules/network/docs/network-spec.md) | Network backbone — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
 | [zego/button ↗](https://github.com/chshzh/zego/blob/main/modules/button/docs/button-spec.md) | Button module — gesture detection (click, double-click, long press), Zbus `BUTTON_CHAN`; provided by **zego/button** |
-| [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, marquee), Zbus `LED_CMD_CHAN`; provided by **zego/led** |
+| [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, rotate), Zbus `LED_CMD_CHAN`; provided by **zego/led** |
 
 ## Methodology
 

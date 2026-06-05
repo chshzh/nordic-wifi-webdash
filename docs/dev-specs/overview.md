@@ -5,8 +5,8 @@
 | Field | Value |
 |-------|-------|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-04-23-30 |
-| PRD Version | 2026-06-04-23-14 |
+| Version | 2026-06-05-10-15 |
+| PRD Version | 2026-06-05-09-36 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
 | Status | Implemented |
@@ -21,6 +21,7 @@
 | 2026-06-04-23-00 | Align with zego library: button, led, mode-selector are now zego modules; updated module map in architecture.md; doc stubs for button-module.md, led-module.md, mode-selector.md updated to redirect to zego specs |
 | 2026-06-04-23-14 | Spec Index: added GitHub links column for zego modules. PRD-to-Spec mapping: added zego GitHub links for FR-004/005/006/102/NFR. Module dependency map: replaced mode_selector with zego/wifi. architecture.md SYS_INIT priorities aligned (41/42/45). |
 | 2026-06-04-23-30 | Format Document Information: removed Author field; corrected Target Board nRF7002EBII → nRF7002EB2. Architecture summary: same correction. All spec files converted to proper DI tables. |
+| 2026-06-05-10-15 | Bump PRD Version to 2026-06-05-09-36 (PRD added FR-203/204/205 as P2 exploration features; no spec changes required — spec links remain TBD for P2 items). Fix architecture.md SYS_INIT priorities (V-01, V-02). |
 | 2026-04-17-10-00 | Add FR-105 dark mode to webserver-module.md: CSS tokens, `prefers-color-scheme` auto-detect, manual toggle, TC-WEB-006; PRD Version bumped |
 | 2026-04-14-15-00 | Startup: APP_VERSION_STRING injected at build time (git tag / v<NCS>-dev); banner aligned labels + module boot sequence; SoftAP periodic reminder timer (300 s, sysworkq, cancelled on first client); PRD Version bumped |
 | 2026-04-14-11-00 | P2P_GO auto-start feature: group_add + wps_pin run automatically at boot; 5-min client wait timer; PRD Version bumped |
