@@ -41,7 +41,11 @@ void zego_network_on_wifi_connected(enum zego_wifi_mode mode, const char *ip_add
 
 	LOG_INF("CLIENT_CONNECTED_CHAN: mode=%d ip=%s ssid=%s", (int)mode, msg.dk_ip_addr,
 		msg.ssid);
-	zbus_chan_pub(&CLIENT_CONNECTED_CHAN, &msg, K_NO_WAIT);
+	int ret = zbus_chan_pub(&CLIENT_CONNECTED_CHAN, &msg, K_NO_WAIT);
+
+	if (ret) {
+		LOG_WRN("Failed to publish CLIENT_CONNECTED_CHAN: %d", ret);
+	}
 
 #if CONFIG_ZEGO_WIFI_BLE_PROV
 	struct wifi_msg wmsg = {
