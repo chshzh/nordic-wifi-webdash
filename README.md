@@ -181,6 +181,37 @@ west build -p -b nrf7002dk/nrf5340/cpuapp -d build_nrf7002dk  -- -Dnordic-wifi-w
 west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -d build_nrf54lm20dk  -- -Dnordic-wifi-webdash_SNIPPET=wifi-p2p -DSHIELD=nrf7002eb2
 ```
 
+### Feature Overlay Builds
+
+Two optional overlay conf files are provided for minimal / STA-only builds:
+
+| Overlay | Purpose |
+|---------|---------|
+| `overlay-sta-webserver.conf` | STA-only mode, HTTP server enabled. Disables SoftAP driver and DHCP server — use when you only need STA + browser dashboard. |
+| `overlay-sta-no-webserver.conf` | STA-only mode, HTTP server **disabled**. Strips the entire HTTP stack, mDNS, and DNS-SD from the binary. Use for headless STA applications or memory comparison builds. |
+
+Pass a single overlay:
+```bash
+# nRF7002DK — STA-only with webserver
+west build -p -b nrf7002dk/nrf5340/cpuapp -d build_sta_webserver -- \
+  -DEXTRA_CONF_FILE="overlay-sta-webserver.conf"
+
+# nRF7002DK — STA-only, no webserver
+west build -p -b nrf7002dk/nrf5340/cpuapp -d build_sta_no_webserver -- \
+  -DEXTRA_CONF_FILE="overlay-sta-no-webserver.conf"
+```
+
+Measured memory delta on nRF7002DK (NCS v3.3.0, `arm-zephyr-eabi-size`):
+
+| Config | Flash | RAM (448 KB app core) |
+|--------|-------|-----------------------|
+| STA + webserver | 687 KB (67.1%) | 381 KB (85.0%) |
+| STA, no webserver | 642 KB (62.6%) | 362 KB (80.9%) |
+| **Webserver cost** | **+44.5 KB** | **+18.6 KB** |
+
+> The `CONFIG_WEBSERVER_MODULE=n` Kconfig now properly gates `webserver.c` compilation and
+> all HTTP linker sections, so setting it to `n` results in zero HTTP overhead.
+
 ### Flash
 
 **First-time flash** (erases all flash including NVS — Wi-Fi credentials will need to be re-provisioned):
