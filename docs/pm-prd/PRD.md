@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Product Name | Nordic Wi-Fi WebDash |
-| Version | 2026-06-04-23-14 |
+| Version | 2026-06-05-09-36 |
 | Status | Implemented |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
@@ -17,6 +17,7 @@
 | Version | Summary of changes |
 |---|---|
 | 2026-05-06-12-00 | Fix section 6.1 UX description: default on fresh flash is P2P_GO (not SoftAP); update `app_wifi_mode P2P` to `app_wifi_mode p2p_go` / `p2p_client` |
+| 2026-06-05-09-36 | Add FR-203 (event-driven dashboard updates), FR-204 (embedded web terminal), FR-205 (companion dashboard + in-browser configuration) as P2 exploration features |
 | 2026-06-04-23-14 | Formatted Document Information (removed non-template fields). FR-004/FR-005: spec link updated to zego/wifi GitHub. FR-102: spec link updated. Target board corrected to nRF7002EB2. |
 | 2026-04-17-10-00 | Add FR-105: dark mode for web UI — auto-detect via `prefers-color-scheme`, manual toggle override, no persistence |
 | 2026-04-14-15-00 | Startup improvements: firmware version string printed at boot (git tag on CI / v&lt;NCS&gt;-dev locally); startup banner with aligned labels and module boot sequence (SYS_INIT priorities); SoftAP periodic reminder — SSID/password/IP logged every 300 s until first client connects (mirrors P2P_GO WPS re-arm pattern) |
@@ -142,6 +143,9 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 |---|---|---|---|---|---|
 | FR-201 | user | customise SoftAP credentials without rebuilding | I can use my own SSID/password on the hotspot | - `overlay-wifi-credentials.conf` supported<br>- Template file tracked in git, actual overlay gitignored | [network-module.md](../dev-specs/network-module.md) |
 | FR-202 | developer | see heap usage logged periodically | I can detect memory growth during long-running tests | - Heap high-water mark logged every N minutes<br>- Warning at configurable threshold | [architecture.md](../dev-specs/architecture.md) |
+| FR-203 | user | see the dashboard update instantly when device state changes | I don't experience the 500 ms polling lag or see stale readings | - Button press and LED toggle visible in browser within < 100 ms of the hardware event<br>- Dashboard does not send HTTP requests when no state has changed (idle network quiet)<br>- State events are delivered via a persistent connection (SSE or WebSocket) from the device<br>- Falls back to polling gracefully if the browser connection is lost | TBD |
+| FR-204 | developer | type Zephyr shell commands directly in the web dashboard | I can switch Wi-Fi mode, run diagnostics, and inspect device state without opening a separate serial terminal | - A collapsible terminal panel appears at the bottom of the dashboard<br>- Commands are submitted with Enter and output is shown inline (scrollable, monospace font)<br>- At minimum these commands work: `app_wifi_mode`, `wifi connect`, `wifi scan`, `wifi status`<br>- Terminal session is delivered over WebSocket (bidirectional) | TBD |
+| FR-205 | application developer | use the webdash as a companion UI panel inside another NCS application | I can expose app-specific data and configuration in the browser without building a separate web server | - The webdash module can be integrated into another NCS project (e.g. `nordic-wifi-memfault`) alongside its own modules<br>- Other application modules can register custom data panels (e.g. device health, MQTT status, sensor readings) via a documented interface (zbus message or REST registration)<br>- Wi-Fi mode, SoftAP SSID/password, and STA credentials are configurable from the browser UI (no serial shell required)<br>- Configuration changes are persisted and take effect after a reboot triggered from the UI<br>- No changes needed to the webdash core to add a new panel from another module | TBD |
 
 ---
 
@@ -152,7 +156,7 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | Behaviour | Target |
 |---|---|
 | Dashboard page load | < 2 seconds |
-| Button state auto-refresh interval | 500 ms |
+| Button state auto-refresh interval | 500 ms (current polling); < 100 ms target with event-driven push (FR-203) |
 | LED control response (web → device) | < 100 ms |
 | SoftAP client connection | < 10 seconds |
 | STA connection (after `wifi connect` command) | < 30 seconds |
