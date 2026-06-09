@@ -8,7 +8,7 @@
 | Version | 2026-06-05-10-15 |
 | PRD Version | 2026-06-05-09-36 |
 | NCS Version | v3.3.0 |
-| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
+| Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
 
 ---
@@ -73,7 +73,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 | Architecture pattern | SMF + Zbus | Decoupled modules; clear publish/subscribe ownership; Zbus is the only inter-module channel |
 | Mode selection UX | `app_wifi_mode` shell command (runtime, any time) | Removes boot-time button dependency; works without physical access to the board |
 | STA credentials | Session-based (`wifi connect` shell command) | Credentials never stored in NVS or source control; no data-at-rest credential exposure |
-| P2P availability | Both boards with `-DSNIPPET=wifi-p2p` | nRF7002 P2P works on nRF7002DK and nRF54LM20DK + nRF7002EB2 via the same snippet |
+| P2P availability | Both boards with `-DSNIPPET=wifi-p2p` | nRF7002 P2P works on nRF54LM20DK + nRF7002EB2 and nRF7002DK via the same snippet |
 | P2P roles | P2P_GO (device is Group Owner) and P2P_CLIENT (device joins phone group) | Two distinct modes allow full flexibility: host your own group or join the phone's group |
 | P2P pairing method | PBC (`wifi p2p connect <MAC> pbc`) or WPS PIN (`wifi wps_pin`) | WPS PIN adds a second connection method; PBC remains the simpler demo path |
 | Default mode on fresh flash | P2P_GO | Enables out-of-box P2P demo without requiring SoftAP or STA credential setup |

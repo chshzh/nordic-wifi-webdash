@@ -49,14 +49,14 @@ jobs:
     strategy:
       matrix:
         config:
-          - name: "nRF7002DK"
-            build_dir: "build_nrf7002dk"
-            board: "nrf7002dk/nrf5340/cpuapp"
-            cmake_args: "-DSNIPPET=wifi-p2p"
           - name: "nRF54LM20DK + nRF7002EBII"
             build_dir: "build_nrf54lm20dk"
             board: "nrf54lm20dk/nrf54lm20a/cpuapp"
             cmake_args: "-DSNIPPET=wifi-p2p -DSHIELD=nrf7002eb2"
+          - name: "nRF7002DK"
+            build_dir: "build_nrf7002dk"
+            board: "nrf7002dk/nrf5340/cpuapp"
+            cmake_args: "-DSNIPPET=wifi-p2p"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -296,8 +296,8 @@ jobs:
 
           | Board | File | Description | ROM Usage | RAM Usage |
           |-------|------|-------------|-----------|-----------|
-          | nRF7002DK | [nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex](https://github.com/chshzh/nordic-wifi-webdash/releases/download/${{ github.ref_name }}/nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex) | nRF7002DK (nrf7002dk/nrf5340/cpuapp) | ${NRF7002DK_ROM} | ${NRF7002DK_RAM} |
           | nRF54LM20DK + nRF7002EBII | [nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex](https://github.com/chshzh/nordic-wifi-webdash/releases/download/${{ github.ref_name }}/nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex) | nRF54LM20DK with nRF7002EBII shield | ${NRF54LM20_ROM} | ${NRF54LM20_RAM} |
+          | nRF7002DK | [nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex](https://github.com/chshzh/nordic-wifi-webdash/releases/download/${{ github.ref_name }}/nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex) | nRF7002DK (nrf7002dk/nrf5340/cpuapp) | ${NRF7002DK_ROM} | ${NRF7002DK_RAM} |
 
           For flashing and connection instructions, see the [Evaluator Quick Start guide](https://github.com/chshzh/nordic-wifi-webdash/blob/main/README.md#evaluator-quick-start) in the README.
 
@@ -317,14 +317,14 @@ jobs:
           mkdir -p release-package
 
           # Copy and rename hex files
-          if [ -f "artifacts/build-build_nrf7002dk/merged.hex" ]; then
-            cp "artifacts/build-build_nrf7002dk/merged.hex" \
-               "release-package/nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex"
-          fi
-
           if [ -f "artifacts/build-build_nrf54lm20dk/merged.hex" ]; then
             cp "artifacts/build-build_nrf54lm20dk/merged.hex" \
                "release-package/nordic-wifi-webdash-nrf54lm20dk-nrf7002ebii-${{ github.ref_name }}.hex"
+          fi
+
+          if [ -f "artifacts/build-build_nrf7002dk/merged.hex" ]; then
+            cp "artifacts/build-build_nrf7002dk/merged.hex" \
+               "release-package/nordic-wifi-webdash-nrf7002dk-${{ github.ref_name }}.hex"
           fi
 
           # Create zip archive (only if hex files were found)

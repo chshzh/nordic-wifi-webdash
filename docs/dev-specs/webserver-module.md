@@ -8,7 +8,7 @@
 | Version | 2026-06-04-23-30 |
 | PRD Version | 2026-06-04-23-14 |
 | NCS Version | v3.3.0 |
-| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
+| Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
 
 ## Changelog
@@ -123,7 +123,7 @@ Returns current state of all buttons.
 }
 ```
 
-Board-adaptive: nRF7002DK returns 2 entries; nRF54LM20DK returns 3 entries.
+Board-adaptive: nRF54LM20DK returns 3 entries; nRF7002DK returns 2 entries.
 
 ---
 
@@ -141,7 +141,7 @@ Returns current state of all LEDs.
 }
 ```
 
-Board-adaptive: nRF7002DK returns 2 entries; nRF54LM20DK returns 4 entries.
+Board-adaptive: nRF54LM20DK returns 4 entries; nRF7002DK returns 2 entries.
 
 ---
 

@@ -8,7 +8,7 @@
 | Version | 2026-06-04-23-45 |
 | PRD Version | 2026-06-04-23-14 |
 | NCS Version | v3.3.0 |
-| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
+| Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
 
 > **Note**: Wi-Fi event handling is provided by `zego/modules/network` (registered via `EXTRA_ZEPHYR_MODULES`).

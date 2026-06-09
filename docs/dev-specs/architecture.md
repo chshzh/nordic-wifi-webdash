@@ -8,7 +8,7 @@
 | Version | 2026-06-05-10-15 |
 | PRD Version | 2026-06-04-23-14 |
 | NCS Version | v3.3.0 |
-| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
+| Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
 
 ## Changelog
@@ -274,10 +274,10 @@ sequenceDiagram
 
 ## Board Capability Matrix
 
-| Capability | nRF7002DK | nRF54LM20DK + nRF7002EBII |
-|------------|-----------|---------------------------|
-| Total buttons | 2 | 3 (BUTTON 3 unavailable due to shield) |
-| LEDs | 2 | 4 |
+| Capability | nRF54LM20DK + nRF7002EBII | nRF7002DK |
+|------------|---------------------------|-----------|
+| Total buttons | 3 (BUTTON 3 unavailable due to shield) | 2 |
+| LEDs | 4 | 2 |
 | SoftAP mode | Yes | Yes |
 | STA mode | Yes | Yes |
 | P2P mode | Yes (with -DSNIPPET=wifi-p2p) | Yes (with -DSNIPPET=wifi-p2p) |

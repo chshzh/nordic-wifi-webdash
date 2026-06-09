@@ -16,8 +16,8 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 
 | Board | Build target |
 |-------|--------------|
-| nRF7002DK | `nrf7002dk/nrf5340/cpuapp` |
 | nRF54LM20DK + nRF7002EB2 | `nrf54lm20dk/nrf54lm20a/cpuapp` + `-DSHIELD=nrf7002eb2` |
+| nRF7002DK | `nrf7002dk/nrf5340/cpuapp` |
 
 ### Features
 
@@ -48,8 +48,8 @@ Download the pre-built `.hex` for your board from the [Releases](https://github.
 
 | Board | Release page |
 |-------|--------------|
-| nRF7002DK | [Latest release](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
 | nRF54LM20DK + nRF7002EB2 | [Latest release](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
+| nRF7002DK | [Latest release](https://github.com/chshzh/nordic-wifi-webdash/releases/latest) |
 
 ### Step 2 — Connect and open the dashboard
 
@@ -74,15 +74,15 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 
 | Board | Buttons | Function |
 |-------|---------|----------|
-| nRF7002DK | Button 1, Button 2 | State and press count shown in dashboard and reported via `/api/buttons` |
 | nRF54LM20DK + nRF7002EB2 | BUTTON0, BUTTON1, BUTTON2 | Same (BUTTON3 unavailable — shield pin conflict) |
+| nRF7002DK | Button 1, Button 2 | State and press count shown in dashboard and reported via `/api/buttons` |
 
 ### LEDs
 
 | Board | LEDs | Control |
 |-------|------|---------|
-| nRF7002DK | LED1, LED2 | Controlled via dashboard (`on` / `off` / `toggle`) or `/api/led` |
 | nRF54LM20DK | LED0, LED1, LED2, LED3 | Same |
+| nRF7002DK | LED1, LED2 | Controlled via dashboard (`on` / `off` / `toggle`) or `/api/led` |
 
 ---
 
@@ -174,11 +174,11 @@ See the Nordic guide on [Workspace Application Setup](https://docs.nordicsemi.co
 ### Build
 
 ```bash
-# nRF7002DK
-west build -p -b nrf7002dk/nrf5340/cpuapp -d build_nrf7002dk  -- -Dnordic-wifi-webdash_SNIPPET=wifi-p2p
-
 # nRF54LM20DK + nRF7002EB2
 west build -p -b nrf54lm20dk/nrf54lm20a/cpuapp -d build_nrf54lm20dk  -- -Dnordic-wifi-webdash_SNIPPET=wifi-p2p -DSHIELD=nrf7002eb2
+
+# nRF7002DK
+west build -p -b nrf7002dk/nrf5340/cpuapp -d build_nrf7002dk  -- -Dnordic-wifi-webdash_SNIPPET=wifi-p2p
 ```
 
 ### Feature Overlay Builds
@@ -217,16 +217,12 @@ Measured memory delta on nRF7002DK (NCS v3.3.0, `arm-zephyr-eabi-size`):
 **First-time flash** (erases all flash including NVS — Wi-Fi credentials will need to be re-provisioned):
 
 ```bash
-# nRF7002DK
-west flash -d build_nrf7002dk --erase
-
 # nRF54LM20DK
 west flash -d build_nrf54lm20dk --recover
+
+# nRF7002DK
+west flash -d build_nrf7002dk --erase
 ```
-
-### Serial Monitor
-
-Connect at **115200 baud**. The device prints its IP address, Wi-Fi mode, and connection instructions at boot.
 
 ### Developer Notes
 

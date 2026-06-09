@@ -8,7 +8,7 @@
 | Version | 2026-06-05-09-36 |
 | Status | Implemented |
 | NCS Version | v3.3.0 |
-| Target Board(s) | nRF7002DK, nRF54LM20DK + nRF7002EB2 |
+| Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 
 ---
 
@@ -93,10 +93,10 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 
 ### 2.4 Buttons & LEDs
 
-| Hardware | nRF7002DK | nRF54LM20DK + nRF7002EBII |
+| Hardware | nRF54LM20DK + nRF7002EBII | nRF7002DK |
 |---|---|---|
-| Buttons available | 2 | 3 (BUTTON 3 unavailable with shield) |
-| LEDs available | 2 | 4 |
+| Buttons available | 3 (BUTTON 3 unavailable with shield) | 2 |
+| LEDs available | 4 | 2 |
 
 | Button | Behavior |
 |---|---|
@@ -188,8 +188,8 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 
 | Board | Wi-Fi chip | Buttons | LEDs | Supported modes |
 |---|---|---|---|---|
-| nRF7002DK | nRF7002 (built in) | 2 | 2 | SoftAP, STA, P2P |
 | nRF54LM20DK + nRF7002EB2 shield | nRF7002 (shield) | 3 | 4 | SoftAP, STA, P2P |
+| nRF7002DK | nRF7002 (built in) | 2 | 2 | SoftAP, STA, P2P |
 
 *Note: BUTTON 3 on nRF54LM20DK is unavailable when the nRF7002EBII shield is attached.*
 
