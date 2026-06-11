@@ -28,8 +28,8 @@ LOG_MODULE_DECLARE(zego_net_event_mgmt, CONFIG_ZEGO_NETWORK_LOG_LEVEL);
 ZBUS_CHAN_DEFINE(CLIENT_CONNECTED_CHAN, struct dk_wifi_info_msg, NULL, NULL, ZBUS_OBSERVERS_EMPTY,
 		 ZBUS_MSG_INIT(0));
 
-void zego_network_on_wifi_connected(enum zego_wifi_mode mode, const char *ip_addr,
-				    const char *mac_addr, const char *ssid)
+void zego_on_net_event_dhcp_bound(enum zego_wifi_mode mode, const char *ip_addr,
+				  const char *mac_addr, const char *ssid)
 {
 	wifi_print_status();
 
@@ -65,7 +65,7 @@ void zego_network_on_wifi_connected(enum zego_wifi_mode mode, const char *ip_add
 }
 
 #if CONFIG_ZEGO_WIFI_BLE_PROV
-void zego_network_on_wifi_disconnected(void)
+void zego_on_net_event_wifi_disconnect(void)
 {
 	struct wifi_msg wmsg = {
 		.type = WIFI_STA_DISCONNECTED,
