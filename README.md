@@ -231,7 +231,7 @@ west flash -d build_nrf7002dk --erase
 - Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `app_wifi_mode` if preferred
 - The startup banner prints firmware version (`Version: <tag>` on CI / `v<NCS>-dev` locally), aligned board/MAC/mode labels, and a module list with SYS_INIT boot priorities — useful for orientation when reading serial logs
 - SoftAP and P2P_GO both log connectivity instructions every 300 s until the first client connects; the reminders stop automatically on first connection
-- mDNS behavior and network event details are in [zego/network ↗](https://github.com/chshzh/zego/blob/main/modules/network/docs/network-spec.md) and [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md); mode handling is in [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md)
+- mDNS behavior and network event details are in [zego/network ↗](https://github.com/chshzh/zego/blob/main/bricks/network/docs/network-spec.md) and [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md); mode handling is in [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/bricks/wifi/docs/wifi-spec.md)
 
 
 ## Documentation
@@ -245,10 +245,10 @@ The full design documentation lives under `docs/`. Start with [docs/dev-specs/ov
 | [docs/dev-specs/architecture.md](docs/dev-specs/architecture.md) | System architecture — module map, Zbus channels, SYS_INIT boot sequence, memory budget |
 | [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md) | Network module — `net_event_app.c` shim, `CLIENT_CONNECTED_CHAN`, weak-hook overrides of zego/network |
 | [docs/dev-specs/webserver-module.md](docs/dev-specs/webserver-module.md) | Webserver module — HTTP server, REST API endpoints, DNS-SD, web UI |
-| [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
-| [zego/network ↗](https://github.com/chshzh/zego/blob/main/modules/network/docs/network-spec.md) | Network backbone — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
-| [zego/button ↗](https://github.com/chshzh/zego/blob/main/modules/button/docs/button-spec.md) | Button module — gesture detection (click, double-click, long press), Zbus `BUTTON_CHAN`; provided by **zego/button** |
-| [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, rotate), Zbus `LED_CMD_CHAN`; provided by **zego/led** |
+| [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/bricks/wifi/docs/wifi-spec.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
+| [zego/network ↗](https://github.com/chshzh/zego/blob/main/bricks/network/docs/network-spec.md) | Network backbone — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
+| [zego/button ↗](https://github.com/chshzh/zego/blob/main/bricks/button/docs/button-spec.md) | Button module — gesture detection (click, double-click, long press), Zbus `BUTTON_CHAN`; provided by **zego/button** |
+| [zego/led ↗](https://github.com/chshzh/zego/blob/main/bricks/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, rotate), Zbus `LED_CMD_CHAN`; provided by **zego/led** |
 
 ## Methodology
 
