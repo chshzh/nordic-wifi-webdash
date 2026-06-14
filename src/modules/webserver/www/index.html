@@ -7,23 +7,26 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Nordic Wi-Fi WebDash</title>
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
     <div class="container">
         <header>
-            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode"></button>
-            <h1>🌐 Nordic Wi-Fi WebDash</h1>
-            <!-- Mode banner: updated by /api/system polling -->
-            <div class="mode-banner" id="mode-banner">
-                <span class="mode-label" id="mode-label">Loading...</span>
+            <div class="header-left">
+                <h1>Nordic Wi-Fi WebDash</h1>
+                <!-- Mode banner: updated by /api/system polling -->
+                <div class="mode-banner" id="mode-banner">
+                    <div class="mode-dot"></div>
+                    <span class="mode-label" id="mode-label">Loading...</span>
+                </div>
             </div>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode"></button>
         </header>
 
         <main>
             <!-- Button Status Section -->
             <section class="card">
-                <h2>🔘 Button Status</h2>
+                <h2>Button Status</h2>
                 <div class="button-grid" id="button-grid">
                     <p class="empty-state" id="button-placeholder">Waiting for button data...</p>
                 </div>
@@ -31,7 +34,7 @@
 
             <!-- LED Control Section -->
             <section class="card">
-                <h2>💡 LED Control</h2>
+                <h2>LED Control</h2>
                 <div class="led-grid" id="led-grid">
                     <p class="empty-state" id="led-placeholder">Waiting for LED data...</p>
                 </div>
@@ -39,31 +42,31 @@
 
             <!-- System Info Section -->
             <section class="card info-section">
-                <h2>ℹ️ System Information</h2>
+                <h2>System Information</h2>
                 <!-- Row 1: device meta -->
                 <div class="info-grid info-meta">
                     <div class="info-item">
-                        <span class="info-label">Wi-Fi Mode:</span>
+                        <span class="info-label">Wi-Fi Mode</span>
                         <span class="info-value" id="app-wifi-mode">Loading...</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">SSID:</span>
+                        <span class="info-label">SSID</span>
                         <span class="info-value" id="wifi-ssid">--</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Board:</span>
+                        <span class="info-label">Board</span>
                         <span class="info-value" id="board-name">Loading...</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Connection:</span>
+                        <span class="info-label">Connection</span>
                         <span class="info-value status-online" id="connection-status">⬤ Connected</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Uptime:</span>
+                        <span class="info-label">Uptime</span>
                         <span class="info-value" id="uptime">--</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Auto-Refresh:</span>
+                        <span class="info-label">Refresh</span>
                         <span class="info-value">Every 500 ms</span>
                     </div>
                 </div>
