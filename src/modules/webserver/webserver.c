@@ -8,6 +8,7 @@
 #include "button.h"
 #include "led.h"
 #include "../messages.h"
+#include <memonitor.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(webserver_module, CONFIG_WEBSERVER_MODULE_LOG_LEVEL);
@@ -435,9 +436,8 @@ static int led_get_all_states_json(char *buf, size_t buf_len)
 		bool is_last = (i == NUM_LEDS - 1);
 
 		written = snprintf(buf + offset, remaining,
-				   "{\"number\":%d,\"name\":\"%s\",\"is_on\":%s}%s",
-				   i, name ? name : "", is_on ? "true" : "false",
-				   is_last ? "" : ",");
+				   "{\"number\":%d,\"name\":\"%s\",\"is_on\":%s}%s", i,
+				   name ? name : "", is_on ? "true" : "false", is_last ? "" : ",");
 		if (written < 0 || written >= remaining) {
 			return -ENOMEM;
 		}
@@ -590,6 +590,168 @@ static struct http_resource_detail_dynamic led_post_api_detail = {
 };
 
 HTTP_RESOURCE_DEFINE(led_post_api_resource, webserver_service, "/api/led", &led_post_api_detail);
+
+#if defined(CONFIG_ZEGO_MEMONITOR)
+/* ============================================================================
+ * GET /api/threads — Zephyr thread runtime stats (FR-107)
+ * GET /api/heaps   — k_heap runtime stats (FR-108)
+ * Both served from memonitor cache (sampled every ZEGO_MEMONITOR_INTERVAL_MS).
+ * These handlers are compiled only when CONFIG_ZEGO_MEMONITOR=y.
+ * When disabled the endpoints are absent (404) and the webpage hides the
+ * Thread Monitor and Heap Monitor sections automatically.
+ * ============================================================================
+ */
+
+#define THREADS_BUF_SIZE 2048
+
+static uint8_t threads_api_buf[THREADS_BUF_SIZE];
+
+static int threads_api_handler(struct http_client_ctx *client, enum http_transaction_status status,
+			       const struct http_request_ctx *request_ctx,
+			       struct http_response_ctx *response_ctx, void *user_data)
+{
+	ARG_UNUSED(client);
+	ARG_UNUSED(request_ctx);
+	ARG_UNUSED(user_data);
+
+	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
+		return 0;
+	}
+
+	struct memonitor_thread_entry threads[MEMONITOR_MAX_THREADS];
+	uint8_t count = 0;
+
+	memonitor_get_threads(threads, ARRAY_SIZE(threads), &count);
+
+	int off = snprintf((char *)threads_api_buf, sizeof(threads_api_buf),
+			   "{\"interval_ms\":%u,\"threads\":[",
+			   (unsigned)CONFIG_ZEGO_MEMONITOR_INTERVAL_MS);
+
+	if (off <= 0 || off >= (int)sizeof(threads_api_buf)) {
+		return -ENOMEM;
+	}
+
+	for (uint8_t i = 0; i < count; i++) {
+		const struct memonitor_thread_entry *t = &threads[i];
+		int rem = (int)sizeof(threads_api_buf) - off;
+		int w = snprintf((char *)threads_api_buf + off, rem,
+				 "%s{\"name\":\"%s\",\"state\":\"%s\","
+				 "\"stack_hwm\":%zu,\"stack_size\":%zu}",
+				 i == 0 ? "" : ",", t->name, t->state, t->stack_hwm, t->stack_size);
+
+		if (w <= 0 || w >= rem) {
+			break;
+		}
+		off += w;
+	}
+
+	int tail = snprintf((char *)threads_api_buf + off, sizeof(threads_api_buf) - off, "]}");
+
+	if (tail <= 0) {
+		return -ENOMEM;
+	}
+
+	response_ctx->body = threads_api_buf;
+	response_ctx->body_len = off + tail;
+	response_ctx->final_chunk = true;
+	response_ctx->status = HTTP_200_OK;
+
+	return 0;
+}
+static struct http_resource_detail_dynamic threads_api_detail = {
+	/* clang-format off */
+	.common = {
+			.type = HTTP_RESOURCE_TYPE_DYNAMIC,
+			.bitmask_of_supported_http_methods = BIT(HTTP_GET),
+			.content_type = "application/json",
+		},
+	/* clang-format on */
+	.cb = threads_api_handler,
+	.holder = NULL,
+	.user_data = NULL,
+};
+
+HTTP_RESOURCE_DEFINE(threads_api_resource, webserver_service, "/api/threads", &threads_api_detail);
+
+/* ============================================================================
+ * GET /api/heaps — k_heap runtime stats (FR-108)
+ * Snapshot served from memonitor cache (sampled every ZEGO_MEMONITOR_INTERVAL_MS)
+ * ============================================================================
+ */
+
+#define HEAPS_BUF_SIZE 2048
+static uint8_t heap_api_buf[HEAPS_BUF_SIZE];
+
+static int heaps_api_handler(struct http_client_ctx *client, enum http_transaction_status status,
+			     const struct http_request_ctx *request_ctx,
+			     struct http_response_ctx *response_ctx, void *user_data)
+{
+	ARG_UNUSED(client);
+	ARG_UNUSED(request_ctx);
+	ARG_UNUSED(user_data);
+
+	if (status != HTTP_SERVER_REQUEST_DATA_FINAL) {
+		return 0;
+	}
+
+	struct memonitor_heap_entry heaps[MEMONITOR_MAX_HEAPS];
+	uint8_t count = 0;
+
+	memonitor_get_heaps(heaps, ARRAY_SIZE(heaps), &count);
+
+	int off = snprintf((char *)heap_api_buf, sizeof(heap_api_buf),
+			   "{\"interval_ms\":%u,\"heaps\":[",
+			   (unsigned)CONFIG_ZEGO_MEMONITOR_INTERVAL_MS);
+
+	if (off <= 0 || off >= (int)sizeof(heap_api_buf)) {
+		return -ENOMEM;
+	}
+
+	for (uint8_t i = 0; i < count; i++) {
+		const struct memonitor_heap_entry *h = &heaps[i];
+		int rem = (int)sizeof(heap_api_buf) - off;
+		int w = snprintf((char *)heap_api_buf + off, rem,
+				 "%s{\"name\":\"%s\",\"type\":\"k_heap\","
+				 "\"free\":%zu,\"used\":%zu,"
+				 "\"watermark\":%zu,\"total\":%zu}",
+				 i == 0 ? "" : ",", h->name, h->free, h->used, h->watermark,
+				 h->total);
+
+		if (w <= 0 || w >= rem) {
+			break;
+		}
+		off += w;
+	}
+
+	int tail = snprintf((char *)heap_api_buf + off, sizeof(heap_api_buf) - off, "]}");
+
+	if (tail <= 0) {
+		return -ENOMEM;
+	}
+
+	response_ctx->body = heap_api_buf;
+	response_ctx->body_len = off + tail;
+	response_ctx->final_chunk = true;
+	response_ctx->status = HTTP_200_OK;
+
+	return 0;
+}
+static struct http_resource_detail_dynamic heap_api_detail = {
+	/* clang-format off */
+	.common = {
+			.type = HTTP_RESOURCE_TYPE_DYNAMIC,
+			.bitmask_of_supported_http_methods = BIT(HTTP_GET),
+			.content_type = "application/json",
+		},
+	/* clang-format on */
+	.cb = heaps_api_handler,
+	.holder = NULL,
+	.user_data = NULL,
+};
+
+HTTP_RESOURCE_DEFINE(heap_api_resource, webserver_service, "/api/heaps", &heap_api_detail);
+
+#endif /* CONFIG_ZEGO_MEMONITOR */
 
 /* ============================================================================
  * PUBLIC API
