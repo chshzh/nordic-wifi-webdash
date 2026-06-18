@@ -24,22 +24,6 @@
         </header>
 
         <main>
-            <!-- Button Status Section -->
-            <section class="card">
-                <h2>Button Status</h2>
-                <div class="button-grid" id="button-grid">
-                    <p class="empty-state" id="button-placeholder">Waiting for button data...</p>
-                </div>
-            </section>
-
-            <!-- LED Control Section -->
-            <section class="card">
-                <h2>LED Control</h2>
-                <div class="led-grid" id="led-grid">
-                    <p class="empty-state" id="led-placeholder">Waiting for LED data...</p>
-                </div>
-            </section>
-
             <!-- System Info Section -->
             <section class="card info-section">
                 <h2>System Information</h2>
@@ -79,6 +63,68 @@
                     <div class="info-item info-client">
                         <div class="info-endpoint-label">HTTP Client IP:</div>
                         <div class="info-endpoint-ip" id="client-ip">--</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Button Status Section -->
+            <section class="card">
+                <h2>Button Status</h2>
+                <div class="button-grid" id="button-grid">
+                    <p class="empty-state" id="button-placeholder">Waiting for button data...</p>
+                </div>
+            </section>
+
+            <!-- LED Control Section -->
+            <section class="card">
+                <h2>LED Control</h2>
+                <div class="led-grid" id="led-grid">
+                    <p class="empty-state" id="led-placeholder">Waiting for LED data...</p>
+                </div>
+            </section>
+
+            <!-- Thread Monitor Section -->
+            <section class="card sysmon-section" id="threads-section">
+                <h2 class="sysmon-title" id="threads-toggle">Thread Monitor <span class="sysmon-interval">&#x21bb; <span id="threads-interval">--</span></span> <span class="collapse-icon">&#x25bc;</span></h2>
+                <div id="threads-panel">
+                    <div class="sysmon-table-wrap">
+                        <table class="sysmon-table" id="threads-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>State</th>
+                                    <th>Watermark</th>
+                                    <th>Stack Size</th>
+                                    <th>Watermark %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="threads-tbody">
+                                <tr><td colspan="5" class="sysmon-empty">Waiting for data…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Heap Monitor Section -->
+            <section class="card sysmon-section" id="heap-section">
+                <h2 class="sysmon-title" id="heap-toggle">Heap Monitor <span class="sysmon-interval">&#x21bb; <span id="heap-interval">--</span></span> <span class="collapse-icon">&#x25bc;</span></h2>
+                <div id="heap-panel">
+                    <div class="sysmon-table-wrap">
+                        <table class="sysmon-table" id="heap-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Used</th>
+                                    <th>Free</th>
+                                    <th>Watermark</th>
+                                    <th>Used %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="heap-tbody">
+                                <tr><td colspan="5" class="sysmon-empty">Waiting for data…</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>

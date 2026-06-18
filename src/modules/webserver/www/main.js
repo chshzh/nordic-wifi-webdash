@@ -4,7 +4,9 @@
 
 // Configuration
 const API_BASE = '';
-const REFRESH_INTERVAL = 500; // ms
+const REFRESH_INTERVAL        = 500;    // ms — buttons + leds
+const SYSTEM_REFRESH_INTERVAL = 30000;  // ms — system info re-sync (mode/IP/board)
+const SYSMON_INTERVAL         = 5000;   // ms — threads + heap polling (matches CONFIG_ZEGO_MEMONITOR_INTERVAL_MS)
 
 const BUTTON_PRESSED_COLOR  = '#4caf50';
 const BUTTON_RELEASED_COLOR = '#757575';
@@ -31,7 +33,13 @@ const MODE_COLORS = {
 
 // State
 let updateInterval    = null;
+let systemInterval    = null;
+let sysmonInterval    = null;
 let refreshInFlight   = false;
+
+// System info — local uptime ticker
+let localUptimeSec    = 0;
+let uptimeTicker      = null;
 let buttonGrid        = null;
 let buttonTemplate    = null;
 let buttonPlaceholder = null;
@@ -55,39 +63,42 @@ document.addEventListener('DOMContentLoaded', function () {
     ledPlaceholder    = document.getElementById('led-placeholder');
 
     initThemeToggle();
-    startAutoUpdate();
+    initSysmonToggles();
+    startAutoUpdate();    // buttons + leds at 500 ms
+    startSystemUpdate();  // system info once + every 30 s
+    startSysmonUpdate();  // threads + heap
 });
 
-// Start automatic updates
+// 500 ms loop — buttons and LEDs only
 function startAutoUpdate() {
-    if (updateInterval) {
-        clearInterval(updateInterval);
-    }
+    if (updateInterval) { clearInterval(updateInterval); }
 
     refreshAllSections();
 
     updateInterval = setInterval(function () {
         refreshAllSections();
     }, REFRESH_INTERVAL);
-
-    console.log('Auto-update started');
 }
 
 async function refreshAllSections() {
-    if (refreshInFlight) {
-        return;
-    }
+    if (refreshInFlight) { return; }
 
     refreshInFlight = true;
     try {
         await Promise.allSettled([
             updateButtonStates(),
             updateLEDStates(),
-            updateSystemInfo(),
         ]);
     } finally {
         refreshInFlight = false;
     }
+}
+
+// System info — fetch once + every 30 s; uptime ticked locally every 1 s
+function startSystemUpdate() {
+    if (systemInterval) { clearInterval(systemInterval); }
+    updateSystemInfo();
+    systemInterval = setInterval(updateSystemInfo, SYSTEM_REFRESH_INTERVAL);
 }
 
 // ============================================================================
@@ -112,24 +123,31 @@ async function updateSystemInfo() {
             label.textContent = modeLabel(data.mode, data.device_ip);
         }
 
-        // Meta row
-        const modeElem   = document.getElementById('app-wifi-mode');
-        const boardElem  = document.getElementById('board-name');
-        const ssidElem   = document.getElementById('wifi-ssid');
-        const uptimeElem = document.getElementById('uptime');
-        if (modeElem)   { modeElem.textContent   = data.mode || '--'; }
-        if (boardElem)  { boardElem.textContent  = boardLabel(data.board || ''); }
-        if (ssidElem)   { ssidElem.textContent   = data.ssid || '--'; }
-        if (uptimeElem) { uptimeElem.textContent = formatUptime(data.uptime_s); }
-
-        // Network row — endpoint IPs only
+        // Static fields — written every 30 s
+        const modeElem    = document.getElementById('app-wifi-mode');
+        const boardElem   = document.getElementById('board-name');
+        const ssidElem    = document.getElementById('wifi-ssid');
         const deviceIpElem = document.getElementById('device-ip');
         const clientIpElem = document.getElementById('client-ip');
         const clientMacElem = document.getElementById('client-mac');
 
-        if (deviceIpElem) { deviceIpElem.textContent = data.device_ip || '--'; }
-        if (clientIpElem) { clientIpElem.textContent = data.client_ip || '--'; }
-        if (clientMacElem) { clientMacElem.textContent = data.client_mac || '--'; }
+        if (modeElem)     { modeElem.textContent     = data.mode       || '--'; }
+        if (boardElem)    { boardElem.textContent    = boardLabel(data.board || ''); }
+        if (ssidElem)     { ssidElem.textContent     = data.ssid       || '--'; }
+        if (deviceIpElem) { deviceIpElem.textContent = data.device_ip  || '--'; }
+        if (clientIpElem) { clientIpElem.textContent = data.client_ip  || '--'; }
+        if (clientMacElem){ clientMacElem.textContent = data.client_mac || '--'; }
+
+        // Sync local uptime counter from server, then tick locally every 1 s
+        localUptimeSec = typeof data.uptime_s === 'number' ? data.uptime_s : 0;
+        if (uptimeTicker) { clearInterval(uptimeTicker); }
+        const uptimeElem = document.getElementById('uptime');
+        if (uptimeElem) { uptimeElem.textContent = formatUptime(localUptimeSec); }
+        uptimeTicker = setInterval(function () {
+            localUptimeSec++;
+            const el = document.getElementById('uptime');
+            if (el) { el.textContent = formatUptime(localUptimeSec); }
+        }, 1000);
 
         updateConnectionStatus(true);
 
@@ -261,9 +279,10 @@ function updateConnectionStatus(isConnected) {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', function () {
-    if (updateInterval) {
-        clearInterval(updateInterval);
-    }
+    if (updateInterval)  { clearInterval(updateInterval);  }
+    if (systemInterval)  { clearInterval(systemInterval);  }
+    if (uptimeTicker)    { clearInterval(uptimeTicker);    }
+    if (sysmonInterval)  { clearInterval(sysmonInterval);  }
 });
 
 // ============================================================================
@@ -442,4 +461,167 @@ function initThemeToggle() {
     });
 
     syncLabel();
+}
+
+// ============================================================================
+// Sysmon — Thread Monitor (FR-107) + Heap Monitor (FR-108)
+// ============================================================================
+
+function startSysmonUpdate() {
+    if (sysmonInterval) { clearInterval(sysmonInterval); }
+    sysmonInterval = setInterval(updateSysmon, SYSMON_INTERVAL);
+}
+
+async function updateSysmon() {
+    await Promise.allSettled([updateThreads(), updateHeap()]);
+}
+
+// ── Thread monitor ──────────────────────────────────────────────────────────
+
+async function updateThreads() {
+    try {
+        const res = await fetch(`${API_BASE}/api/threads`);
+        if (res.status === 404) {
+            setSysmonSectionVisible('threads-section', false);
+            return;
+        }
+        if (!res.ok) { return; }
+        const data = await res.json();
+        setSysmonSectionVisible('threads-section', true);
+        if (data.interval_ms) {
+            setSysmonInterval('threads-interval', data.interval_ms);
+        }
+        if (Array.isArray(data.threads)) { renderThreads(data.threads); }
+    } catch (e) {
+        console.error('threads poll:', e);
+    }
+}
+
+function renderThreads(threads) {
+    const tbody = document.getElementById('threads-tbody');
+    if (!tbody) { return; }
+
+    if (threads.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="sysmon-empty">No threads</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = threads.map(t => {
+        const hwm   = t.stack_hwm  || 0;
+        const total = t.stack_size || 0;
+        const pct   = total > 0 ? Math.round((hwm / total) * 100) : 0;
+        // Warn at 80%; for large stacks (>2048 B) the practical threshold is 90%
+        const warn  = pct >= (total > 2048 ? 90 : 80);
+        const bar   = total > 0
+            ? `<div class="stack-bar-track"><div class="stack-bar-fill ${warn ? 'stack-bar-warn' : ''}" style="width:${pct}%"></div></div> <span class="stack-bar-pct">${pct}%</span>`
+            : '--';
+        return `<tr>
+            <td class="thread-name">${esc(t.name)}</td>
+            <td class="thread-state ${t.state}">${esc(t.state)}</td>
+            <td>${formatBytes(hwm)}</td>
+            <td>${formatBytes(total)}</td>
+            <td class="stack-bar-cell">${bar}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Heap monitor ────────────────────────────────────────────────────────────
+
+async function updateHeap() {
+    try {
+        const res = await fetch(`${API_BASE}/api/heaps`);
+        if (res.status === 404) {
+            setSysmonSectionVisible('heap-section', false);
+            return;
+        }
+        if (!res.ok) { return; }
+        const d = await res.json();
+        setSysmonSectionVisible('heap-section', true);
+        if (d.interval_ms) {
+            setSysmonInterval('heap-interval', d.interval_ms);
+        }
+        renderHeap(d);
+    } catch (e) {
+        console.error('heap poll:', e);
+    }
+}
+
+function setSysmonSectionVisible(sectionId, visible) {
+    const el = document.getElementById(sectionId);
+    if (el) { el.style.display = visible ? '' : 'none'; }
+}
+
+function setSysmonInterval(spanId, ms) {
+    const el = document.getElementById(spanId);
+    if (el) { el.textContent = `${Math.round(ms / 1000)}s`; }
+}
+
+
+
+function renderHeap(d) {
+    const heaps = Array.isArray(d.heaps) ? d.heaps : [];
+    const tbody = document.getElementById('heap-tbody');
+    if (!tbody) { return; }
+
+    if (heaps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="sysmon-empty">No data</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = heaps.map(h => {
+        const used  = h.used  || 0;
+        const free  = h.free  || 0;
+        const hwm   = h.watermark || 0;
+        const total = h.total || (used + free);
+        const usedPct = total > 0 ? Math.round((used  / total) * 100) : 0;
+        const hwmPct  = total > 0 ? Math.round((hwm   / total) * 100) : 0;
+        const warn = usedPct >= 70 && usedPct < 90;
+        const crit = usedPct >= 90;
+        const bar = total > 0
+            ? `<div class="heap-bar-track"><div class="heap-bar-fill ${crit ? 'heap-bar-crit' : warn ? 'heap-bar-warn' : ''}" style="width:${usedPct}%"></div></div> <span class="stack-bar-pct">${usedPct}%</span>`
+            : '--';
+        return `<tr>
+            <td class="thread-name">${esc(h.name)}</td>
+            <td>${formatBytes(used)}</td>
+            <td>${formatBytes(free)}</td>
+            <td>${formatBytes(hwm)} (${hwmPct}%)</td>
+            <td class="stack-bar-cell">${bar}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Sysmon collapse toggles ──────────────────────────────────────────────────
+
+function initSysmonToggles() {
+    [['threads-toggle', 'threads-panel'], ['heap-toggle', 'heap-panel']].forEach(([btnId, panelId]) => {
+        const btn   = document.getElementById(btnId);
+        const panel = document.getElementById(panelId);
+        if (!btn || !panel) { return; }
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', function () {
+            const collapsed = panel.style.display === 'none';
+            panel.style.display = collapsed ? '' : 'none';
+            const icon = btn.querySelector('.collapse-icon');
+            if (icon) { icon.textContent = collapsed ? '▼' : '▶'; }
+        });
+    });
+}
+
+// ── Utilities ───────────────────────────────────────────────────────────────
+
+function formatBytes(n) {
+    if (!Number.isFinite(n) || n < 0) { return '--'; }
+    return `${n} B`;
+}
+
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = val; }
+}
+
+function esc(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }

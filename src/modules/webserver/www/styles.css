@@ -464,3 +464,171 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================================================
+ * Sysmon panels — Thread Monitor (FR-107) + Heap Monitor (FR-108)
+ * ============================================================================ */
+
+.sysmon-section { padding: 1.25rem 1.5rem; }
+
+.sysmon-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.collapse-icon {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.sysmon-interval {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    opacity: 0.75;
+}
+
+/* ── Thread table ── */
+.sysmon-table-wrap { overflow-x: auto; }
+
+.sysmon-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+}
+
+.sysmon-table th {
+    text-align: left;
+    padding: 0.35rem 0.6rem;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.sysmon-table td {
+    padding: 0.3rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.sysmon-table tr:last-child td { border-bottom: none; }
+
+.sysmon-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 0.75rem;
+}
+
+.thread-name { font-family: monospace; font-size: 0.78rem; }
+
+.thread-state { font-size: 0.75rem; }
+.thread-state.running   { color: var(--status-ok); font-weight: 600; }
+.thread-state.dead      { color: var(--text-secondary); }
+.thread-state.suspended { color: var(--status-err); }
+
+/* Stack bar */
+.stack-bar-cell { min-width: 120px; white-space: nowrap; }
+
+.stack-bar-track {
+    display: inline-block;
+    width: 80px;
+    height: 8px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+.stack-bar-fill {
+    height: 100%;
+    background: var(--nordic-blue);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.stack-bar-fill.stack-bar-warn { background: #f59e0b; }
+
+.stack-bar-pct {
+    display: inline-block;
+    margin-left: 0.3rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+/* ── Heap bar ── */
+.heap-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.heap-bar-track {
+    flex: 1;
+    height: 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.heap-bar-fill {
+    height: 100%;
+    background: var(--nordic-blue);
+    border-radius: 7px;
+    transition: width 0.5s ease, background 0.3s;
+}
+
+.heap-bar-fill.heap-bar-warn { background: #f59e0b; }
+.heap-bar-fill.heap-bar-crit { background: var(--status-err); }
+
+.heap-bar-pct {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 3rem;
+    text-align: right;
+}
+
+.heap-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.5rem;
+}
+
+.heap-stat-item {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.heap-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.heap-stat-value {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: monospace;
+}
