@@ -32,7 +32,8 @@ config APP_HTTP_PORT
 # zego/network (EXTRA_ZEPHYR_MODULES) — no rsource needed here.
 # button and led Kconfig registered via EXTRA_ZEPHYR_MODULES (zego/button, zego/led)
 rsource "src/modules/webserver/Kconfig.webserver"
-rsource "src/modules/memory/Kconfig.memory"
+# memonitor Kconfig now provided by zego/bricks/memonitor (EXTRA_ZEPHYR_MODULES)
+rsource "src/modules/ux/Kconfig"
 
 # Silence the v3.3.0 "Deprecated symbol MBEDTLS_LEGACY_CRYPTO_C" Kconfig
 # warning. The application enables MBEDTLS_LEGACY_CRYPTO_C in prj.conf to
