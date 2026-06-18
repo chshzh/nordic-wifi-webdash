@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-05-10-15 |
-| PRD Version | 2026-06-04-23-14 |
+| Version | 2026-06-17-14-22 |
+| PRD Version | 2026-06-17-14-22 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -15,6 +15,8 @@
 
 | Version | Summary |
 |---|---|
+| 2026-06-18-13-30 | Migrate `memory/` heap monitor to `zego/bricks/memonitor` brick (`CONFIG_ZEGO_MEMONITOR`, `k_work_delayable`); remove `memory/` from src tree; add `zego/bricks/memonitor` to external modules; replace `app_heap_monitor_init` SYS_INIT row with memonitor entry |
+| 2026-06-17-14-22 | Add `ux/` module to module map (from template `app_ux`); add `APP_WIFI_STATE_CHAN` to Zbus channel table; add ux SYS_INIT entry (priority 95); `net_event_app.c` now publishes both `CLIENT_CONNECTED_CHAN` and `APP_WIFI_STATE_CHAN` |
 | 2026-05-06-12-00 | Add `SPECS_VERSION` macro in `src/main.c`; printed in startup banner after `Version:` line |
 | 2026-06-04-23-00 | Update module map: button, led, mode-selector now shown as external zego modules; remove stale local `mode_selector/` entry |
 | 2026-06-04-23-14 | SYS_INIT priorities aligned to zego standard (wifi→41, network→42, button/led→45); renamed ModeSel→ZegoWifi in all diagrams; boot sequence updated for net_event_app.c shim pattern |
@@ -42,10 +44,11 @@ v2.0 adds a **Mode Selector** module (NVS-backed, shell-command driven) and exte
 src/
 ├── main.c              ← startup banner, SPECS_VERSION macro
 └── modules/
-    ├── messages.h      ← app-local Zbus message types (dk_wifi_info_msg, app_wifi_mode)
-    ├── network/        ← net_event_app.c: defines CLIENT_CONNECTED_CHAN, overrides __weak hooks
+    ├── messages.h      ← app-local Zbus message types (dk_wifi_info_msg, app_wifi_mode, app_wifi_state_msg)
+    ├── network/        ← net_event_app.c: defines CLIENT_CONNECTED_CHAN + APP_WIFI_STATE_CHAN, overrides __weak hooks
     ├── webserver/      ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
-    └── memory/         ← heap monitor
+    ├── ux/             ← ux.c: Button 0 gestures + LED 0 Wi-Fi state machine (ported from template)
+    └── webserver/      ← HTTP server, REST API, web assets
 
 # External zego modules (registered via EXTRA_ZEPHYR_MODULES in CMakeLists.txt)
 ../zego/modules/
@@ -54,6 +57,9 @@ src/
     ├── wifi/           ← app_wifi_mode shell command, NVS persistence, startup banner
     ├── network/        ← Wi-Fi event management backbone (zego_network_on_* weak hooks)
     └── wifi_ble_prov/  ← BLE Wi-Fi credential provisioning (optional)
+
+../zego/bricks/
+    └── memonitor/      ← periodic thread + heap watermark sampler (CONFIG_ZEGO_MEMONITOR=y)
 ```
 
 ---
@@ -63,10 +69,11 @@ src/
 | Channel | Message Type | Publisher | Subscribers | Direction |
 |---------|-------------|-----------|-------------|-----------|
 | `WIFI_MODE_CHAN` | `struct wifi_mode_msg` | mode_selector | network | boot-time, once |
-| `BUTTON_CHAN` | `struct button_msg` | zego/button (external) | webserver | runtime |
-| `LED_CMD_CHAN` | `struct led_msg` | webserver | zego/led (external) | runtime |
+| `BUTTON_CHAN` | `struct button_msg` | zego/button (external) | webserver, ux | runtime |
+| `LED_CMD_CHAN` | `struct led_msg` | webserver, ux | zego/led (external) | runtime |
 | `LED_STATE_CHAN` | `struct led_state_msg` | zego/led (external) | webserver | runtime |
 | `CLIENT_CONNECTED_CHAN` | `struct dk_wifi_info_msg` | network | webserver | runtime, on connectivity ready |
+| `APP_WIFI_STATE_CHAN` | `struct app_wifi_state_msg` | network | ux | runtime, on connectivity change |
 
 ### Message Definitions (`src/modules/messages.h`)
 
@@ -142,8 +149,9 @@ struct dk_wifi_info_msg {
 | 5 | zego/network | `SYS_INIT(network_module_init, APPLICATION, 5)` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; calls `net_event_app.c` weak hooks |
 | 90 | zego/button | `SYS_INIT(button_module_init, APPLICATION, CONFIG_ZEGO_BUTTON_INIT_PRIORITY)` | GPIO IRQ + gesture FSM setup (default priority 90) |
 | 91 | zego/led | `SYS_INIT(led_module_init, APPLICATION, CONFIG_ZEGO_LED_INIT_PRIORITY)` | LED GPIO/PWM setup (default priority 91) |
+| 95 | app_ux | `SYS_INIT(app_ux_init, APPLICATION, CONFIG_APP_UX_INIT_PRIORITY)` | Subscribes to BUTTON_CHAN + APP_WIFI_STATE_CHAN; starts LED ROTATE at boot |
 | static | webserver | `ZBUS_LISTENER_DEFINE` + `ZBUS_CHAN_ADD_OBS(CLIENT_CONNECTED_CHAN)` | No SYS_INIT — registers a static Zbus listener at link time; starts HTTP server via `k_work_schedule` when the first `CLIENT_CONNECTED_CHAN` event arrives |
-| default | memory | `SYS_INIT(app_heap_monitor_init, APPLICATION, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT)` | Heap high-water logging |
+| default | zego/memonitor | `SYS_INIT(memonitor_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY)` | Starts `k_work_delayable` that samples thread + heap watermarks every `CONFIG_ZEGO_MEMONITOR_INTERVAL_MS` (default 5 000 ms) |
 
 zego/wifi **must** run before zego/network (priority 0 < 5) because the network module reads the published mode at init time.
 

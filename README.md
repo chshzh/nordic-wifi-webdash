@@ -233,6 +233,45 @@ west flash -d build_nrf7002dk --erase
 - SoftAP and P2P_GO both log connectivity instructions every 300 s until the first client connects; the reminders stop automatically on first connection
 - mDNS behavior and network event details are in [zego/network ↗](https://github.com/chshzh/zego/blob/main/bricks/network/docs/network-spec.md) and [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md); mode handling is in [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/bricks/wifi/docs/wifi-spec.md)
 
+### Live Memory and Thread Monitoring with ZView
+
+Run ZView from the project root while the board is connected over J-Link. Replace the `-s` serial with your board's J-Link serial number (`nrfjprog --ids`).
+
+**nRF54LM20DK + nRF7002EB2:**
+```bash
+west zview live \
+  -e build_nrf54lm20dk/nordic-wifi-webdash/zephyr/zephyr.elf \
+  -r jlink \
+  -t nRF54LM20A_M33 \
+  -s 1051869687(replace with target <jlink-serial>)
+```
+
+**nRF7002DK:**
+```bash
+west zview live \
+  -e build_nrf7002dk/nordic-wifi-webdash/zephyr/zephyr.elf \
+  -r jlink \
+  -t nRF5340_xxAA \
+  -s 1050787962(replace with target <jlink-serial>)
+```
+
+The in-browser Thread Monitor and Heap Monitor panels update the same data at 2 s intervals using `/api/threads` and `/api/heaps`.
+
+#### Memory Sizing Rules
+
+All watermarks (HWM) are **peak values** accumulated since boot — read them after exercising all four Wi-Fi modes in one session for worst-case coverage.
+
+**Thread stacks:**
+- Resize if HWM > **80%** of allocated stack size.
+- For large, well-characterised stacks (> 2048 B), the practical threshold is **90%** — `hostap_handler`, `hostap_iface_wq`, and `nrf70_bh_wq` routinely sit at 85–90 % and are stable.
+- Sizing formula: `CONFIG_<THREAD>_STACK_SIZE = HWM / 0.9` (gives ≈ 10 % headroom).
+
+**System heap:**
+- Resize if heap HWM > **80%** of total heap size.
+- Sizing formula: `CONFIG_HEAP_MEM_POOL_SIZE = HWM / 0.8` (gives ≈ 20 % headroom).
+
+The in-browser HWM % bars turn amber at 80 % and red at 90 % (large stacks only) to flag threads that need attention.
+
 
 ## Documentation
 

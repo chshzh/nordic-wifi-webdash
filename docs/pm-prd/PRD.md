@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Product Name | Nordic Wi-Fi WebDash |
-| Version | 2026-06-05-09-36 |
+| Version | 2026-06-18-13-36 |
 | Status | Implemented |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
@@ -16,6 +16,9 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-06-18-13-36 | Change FR-107/FR-108 sysmon dashboard refresh from 2 s to 5 s — matches firmware memonitor sample interval (`CONFIG_ZEGO_MEMONITOR_INTERVAL_MS=5000`) |
+| 2026-06-18-13-33 | Fix FR-108 acceptance criteria: endpoint renamed `GET /api/heap` → `GET /api/heaps`; clarify §4.1 performance: system info panel re-syncs every 30 s (uptime increments locally every 1 s between fetches), buttons/LEDs remain 500 ms |
+| 2026-06-17-14-22 | Refactor onto template: add FR-106 (Button 0 UX gestures via `ux` module — single-click mode print, double-click BLE LED toggle, long-press mode cycle), FR-107 (thread monitor web panel — live table of thread name/state/CPU%/stack), FR-108 (heap monitor web panel — live: allocated/free/peak/max alloc) |
 | 2026-05-06-12-00 | Fix section 6.1 UX description: default on fresh flash is P2P_GO (not SoftAP); update `app_wifi_mode P2P` to `app_wifi_mode p2p_go` / `p2p_client` |
 | 2026-06-05-09-36 | Add FR-203 (event-driven dashboard updates), FR-204 (embedded web terminal), FR-205 (companion dashboard + in-browser configuration) as P2 exploration features |
 | 2026-06-04-23-14 | Formatted Document Information (removed non-template fields). FR-004/FR-005: spec link updated to zego/wifi GitHub. FR-102: spec link updated. Target board corrected to nRF7002EB2. |
@@ -101,6 +104,7 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | Button | Behavior |
 |---|---|
 | All buttons | Monitored and displayed in real time on the WebDash |
+| **Button 0** | Single-click: print current Wi-Fi mode to UART log; Double-click: toggle BLE provisioning LED; Long-press: cycle Wi-Fi mode STA → SoftAP → P2P_GO → P2P_CLIENT, save to NVS, reboot |
 
 | LED | Meaning |
 |---|---|
@@ -136,6 +140,9 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | FR-103 | developer | see board name, MAC, mode, and IP in the startup log | I can confirm firmware state without opening a browser | - Board ID, MAC, build date logged at boot<br>- Active mode logged<br>- IP logged when connected | [architecture.md](../dev-specs/architecture.md) |
 | FR-104 | user | discover the device automatically without knowing its IP | I can open the dashboard just by name | - Device registers `_http._tcp.local` via DNS-SD<br>- Device reachable at `http://nrfwebdash.local` via mDNS | [webserver-module.md](../dev-specs/webserver-module.md) |
 | FR-105 | user | switch between light and dark mode in the dashboard | I can comfortably view it in any lighting condition | - Dashboard auto-applies dark mode when the browser/OS is set to dark (`prefers-color-scheme: dark`)<br>- A toggle button in the header lets the user override to light or dark independently of system setting<br>- Override resets on page reload (no persistence)<br>- All UI elements (buttons, LEDs, status panel, text) are legible in both modes | [webserver-module.md](../dev-specs/webserver-module.md) |
+| FR-106 | developer | have Button 0 gestures control Wi-Fi mode and LEDs | I can cycle modes and trigger BLE provisioning without a serial terminal | - Single-click: prints current Wi-Fi mode to UART log<br>- Double-click: toggles BLE provisioning LED (BREATHE ↔ last Wi-Fi state)<br>- Long-press: cycles mode STA → SoftAP → P2P_GO → P2P_CLIENT → STA, saves to NVS, reboots | [ux-module.md](../dev-specs/ux-module.md) |
+| FR-107 | developer | see live Zephyr thread status in the dashboard | I can monitor firmware health without connecting ZView or a debugger | - `GET /api/threads` returns JSON array: thread name, state string, CPU%, stack used bytes, stack size bytes<br>- Dashboard shows a table updated every 5 s<br>- Stack bar turns amber when usage exceeds 80% of stack size | [webserver-module.md](../dev-specs/webserver-module.md) |
+| FR-108 | developer | see live heap usage in the dashboard | I can detect memory growth during long-running demos | - `GET /api/heaps` returns JSON: allocated_bytes, free_bytes, peak_allocated_bytes, max_allocated_bytes<br>- Dashboard shows a progress bar (used/total) and numeric values updated every 5 s<br>- Bar turns amber at ≥ 70%, red at ≥ 90% of total heap | [webserver-module.md](../dev-specs/webserver-module.md) |
 
 ### P2 — Nice to Have
 
@@ -156,7 +163,8 @@ The active mode is changed at runtime with `uart:~$ app_wifi_mode [softap|sta|p2
 | Behaviour | Target |
 |---|---|
 | Dashboard page load | < 2 seconds |
-| Button state auto-refresh interval | 500 ms (current polling); < 100 ms target with event-driven push (FR-203) |
+| Button state auto-refresh interval | 500 ms |
+| System info panel re-sync interval | 30 s from device; uptime counter increments locally every 1 s between fetches |
 | LED control response (web → device) | < 100 ms |
 | SoftAP client connection | < 10 seconds |
 | STA connection (after `wifi connect` command) | < 30 seconds |

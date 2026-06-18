@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-04-23-30 |
-| PRD Version | 2026-06-04-23-14 |
+| Version | 2026-06-17-14-22 |
+| PRD Version | 2026-06-17-14-22 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -15,6 +15,9 @@
 
 | Version | Summary |
 |---|---|
+| 2026-06-18-13-36 | Change `SYSMON_INTERVAL` from 2 000 ms to 5 000 ms to match `CONFIG_ZEGO_MEMONITOR_INTERVAL_MS` (no benefit polling faster than firmware samples) |
+| 2026-06-18-13-30 | Migrate sysmon backend to `zego/bricks/memonitor` (`CONFIG_ZEGO_MEMONITOR`, `<memonitor.h>`); fix endpoint name `/api/heap` → `/api/heaps`; remove stale `src/modules/memory/heap_monitor.c` reference; update auto-refresh: `/api/system` now fetched once at load + every 30 s (local uptime incremented every 1 s between fetches), buttons/LEDs remain 500 ms |
+| 2026-06-17-14-22 | Add FR-107 `GET /api/threads` (k_thread_foreach + k_thread_runtime_stats_get) and FR-108 `GET /api/heap` (sys_heap_runtime_stats_get on _system_heap); add Thread and Heap panels to web UI (2 s poll); Kconfig: THREAD_RUNTIME_STATS + SYS_HEAP_RUNTIME_STATS |
 | 2026-04-17-10-00 | Add dark mode (FR-105): CSS `prefers-color-scheme` auto-detect + manual toggle button; no persistence; all UI elements legible in both modes |
 | 2026-06-04-23-30 | Added proper Document Information table; PRD Version aligned to 2026-06-04-23-14. |
 | 2026-04-14-10-00 | Code sync: subscribes to CLIENT_CONNECTED_CHAN (not WIFI_CHAN); /api/system fields updated (device_ip, device_mac, client_ip, board); client IP tracked in all modes via zsock_getpeername(); MAX_WEB_CLIENTS=4; mode values include P2P_GO/P2P_CLIENT |
@@ -160,7 +163,50 @@ Controls a specific LED.
 
 ---
 
-## Web UI Updates 
+### GET /api/threads
+
+Returns runtime stats for all live Zephyr threads (FR-107).
+
+**Implementation**: `k_thread_foreach()` iterates all threads; `k_thread_runtime_stats_get()` provides CPU cycle counts; CPU% is derived by comparing `execution_cycles` delta between calls (not implemented in first version — returns 0 until a background accumulation mechanism is added; field reserved).
+
+**Kconfig required**: `CONFIG_THREAD_RUNTIME_STATS=y`, `CONFIG_THREAD_RUNTIME_STATS_USE_TIMING_FUNCTIONS=y`
+
+**Response**:
+```json
+{
+  "threads": [
+    {"name": "shell_uart", "state": "pending", "cpu_pct": 0, "stack_used": 1024, "stack_size": 2048},
+    {"name": "net_mgmt",   "state": "pending", "cpu_pct": 0, "stack_used": 768,  "stack_size": 1024}
+  ]
+}
+```
+
+`state` values: `"running"`, `"ready"`, `"pending"`, `"dead"`, `"suspended"`
+
+Stack bar in the UI turns amber when `stack_used / stack_size >= 0.80`.
+
+---
+
+### GET /api/heaps
+
+Returns system heap usage statistics (FR-108).
+
+**Implementation**: `sys_heap_runtime_stats_get()` on the kernel `_system_heap`.
+Backend sampling provided by `zego/bricks/memonitor` (`CONFIG_ZEGO_MEMONITOR=y`, include `<memonitor.h>`).
+
+**Kconfig required**: `CONFIG_SYS_HEAP_RUNTIME_STATS=y`, `CONFIG_ZEGO_MEMONITOR=y`
+
+**Response**:
+```json
+{
+  "allocated_bytes": 8192,
+  "free_bytes": 24576,
+  "peak_allocated_bytes": 10240,
+  "max_allocated_bytes": 4096
+}
+```
+
+Progress bar in the UI: used / total. Turns amber at ≥ 70%, red at ≥ 90%. 
 
 ### Mode Banner
 
@@ -179,9 +225,30 @@ A new header banner shows the active Wi-Fi mode with color coding:
 - LED Control Panel: ON/OFF/Toggle per LED
 - System Information: SSID, IP, refresh rate
 
+### Thread Monitor Panel (FR-107)
+
+A collapsible card below the System Information panel titled **"Thread Monitor"**.
+
+- Polls `GET /api/threads` every 5 000 ms via `setInterval`.
+- Renders a table: `Name | State | CPU% | Stack Used | Stack Size | Bar`.
+- Stack bar is a `<progress>`-like element; turns amber (CSS `--warn`) when `stack_used / stack_size ≥ 0.80`.
+- Poll uses a separate interval from the 500 ms system/button/LED poll to avoid overloading the HTTP server.
+
+### Heap Monitor Panel (FR-108)
+
+A collapsible card below the Thread Monitor panel titled **"Heap Monitor"**.
+
+- Polls `GET /api/heaps` every 5 000 ms (shared interval with Thread Monitor).
+- Renders: allocated / total bar, and a text row of `allocated | free | peak | max_alloc` values.
+- Bar turns amber at ≥ 70% used, red at ≥ 90% used.
+
 ### Auto-Refresh
 
-The web UI polls `/api/system`, `/api/buttons`, and `/api/leds` every 500 ms (unchanged from v1.0).
+| Resource | Interval | Notes |
+|----------|----------|-------|
+| `/api/buttons`, `/api/leds` | 500 ms | `setInterval` loop |
+| `/api/system` | Once at load, then every 30 s | `startSystemUpdate()`; uptime incremented locally every 1 s between fetches |
+| `/api/threads`, `/api/heaps` | 5 000 ms | `setInterval(updateSysmon, SYSMON_INTERVAL)` — matches `CONFIG_ZEGO_MEMONITOR_INTERVAL_MS` (default 5 000 ms) |
 
 ### Dark Mode (FR-105)
 
