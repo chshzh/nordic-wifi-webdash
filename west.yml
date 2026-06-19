@@ -21,7 +21,7 @@ manifest:
     # Common app modules and libraries
     - name: zego
       path: zego
-      revision: main
+      revision: v3.3.0.1
       remote: chshzh
 
     # Add more sibling projects as needed:
@@ -40,11 +40,11 @@ manifest:
     #   revision: main
     #   remote: chshzh
 
-    # - name: zview
-    #   url: https://github.com/wkhadgar/zview
-    #   revision: main
-    #   path: modules/tools/zview
-    #   west-commands: scripts/west-commands.yml
+    - name: zview
+      url: https://github.com/wkhadgar/zview
+      revision: main
+      path: modules/tools/zview
+      west-commands: scripts/west-commands.yml
     
   self:
     path: nordic-wifi-webdash
