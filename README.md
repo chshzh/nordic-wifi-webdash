@@ -1,7 +1,8 @@
 # Nordic Wi-Fi WebDash
 
-[![Build](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/chshzh/nordic-wifi-webdash?label=Release&color=skyblue)](https://github.com/chshzh/nordic-wifi-webdash/releases/latest)
+[![Validation](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/validation.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/validation.yml)
+[![Release](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/release.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/chshzh/nordic-wifi-webdash?label=Latest%20Release&color=skyblue)](https://github.com/chshzh/nordic-wifi-webdash/releases/latest)
 ---
 
 ## Project Overview
@@ -10,7 +11,7 @@
 
 Nordic Wi-Fi WebDash is a browser-based demo and reference application for Nordic nRF7x Wi-Fi development kits. The device hosts the dashboard itself, so users can monitor buttons, control LEDs, and inspect system state directly from a browser without relying on cloud services.
 
-The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `app_wifi_mode` shell command. **Default on fresh flash is P2P_GO.**
+The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `app_wifi_mode` shell command. **Default on fresh flash is STA.**
 
 ### Supported hardware
 
