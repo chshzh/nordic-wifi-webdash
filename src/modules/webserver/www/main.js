@@ -36,6 +36,7 @@ let updateInterval    = null;
 let systemInterval    = null;
 let sysmonInterval    = null;
 let refreshInFlight   = false;
+let sysmonInFlight    = false;
 
 // System info — local uptime ticker
 let localUptimeSec    = 0;
@@ -67,6 +68,16 @@ document.addEventListener('DOMContentLoaded', function () {
     startAutoUpdate();    // buttons + leds at 500 ms
     startSystemUpdate();  // system info once + every 30 s
     startSysmonUpdate();  // threads + heap
+
+    // Pause sysmon polling when tab is hidden; restart (with immediate fetch)
+    // when it becomes visible again to avoid interval pileup.
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            if (sysmonInterval) { clearInterval(sysmonInterval); sysmonInterval = null; }
+        } else {
+            startSysmonUpdate();
+        }
+    });
 });
 
 // 500 ms loop — buttons and LEDs only
@@ -469,11 +480,18 @@ function initThemeToggle() {
 
 function startSysmonUpdate() {
     if (sysmonInterval) { clearInterval(sysmonInterval); }
+    updateSysmon();  // immediate fetch on start/resume
     sysmonInterval = setInterval(updateSysmon, SYSMON_INTERVAL);
 }
 
 async function updateSysmon() {
-    await Promise.allSettled([updateThreads(), updateHeap()]);
+    if (sysmonInFlight) { return; }  // skip if previous poll hasn't finished
+    sysmonInFlight = true;
+    try {
+        await Promise.allSettled([updateThreads(), updateHeap()]);
+    } finally {
+        sysmonInFlight = false;
+    }
 }
 
 // ── Thread monitor ──────────────────────────────────────────────────────────
