@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-17-14-22 |
-| PRD Version | 2026-06-17-14-22 |
+| Version | 2026-06-19-13-12 |
+| PRD Version | 2026-06-19-13-12 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -15,6 +15,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. |
 | 2026-06-18-13-30 | Migrate `memory/` heap monitor to `zego/bricks/memonitor` brick (`CONFIG_ZEGO_MEMONITOR`, `k_work_delayable`); remove `memory/` from src tree; add `zego/bricks/memonitor` to external modules; replace `app_heap_monitor_init` SYS_INIT row with memonitor entry |
 | 2026-06-17-14-22 | Add `ux/` module to module map (from template `app_ux`); add `APP_WIFI_STATE_CHAN` to Zbus channel table; add ux SYS_INIT entry (priority 95); `net_event_app.c` now publishes both `CLIENT_CONNECTED_CHAN` and `APP_WIFI_STATE_CHAN` |
 | 2026-05-06-12-00 | Add `SPECS_VERSION` macro in `src/main.c`; printed in startup banner after `Version:` line |

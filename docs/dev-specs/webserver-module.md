@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-17-14-22 |
-| PRD Version | 2026-06-17-14-22 |
+| Version | 2026-06-19-13-12 |
+| PRD Version | 2026-06-19-13-12 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -15,6 +15,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. Sysmon polling: add `sysmonInFlight` concurrency guard; sysmon pauses when browser tab is hidden (Page Visibility API) and resumes with immediate fetch on visibility. |
 | 2026-06-18-13-36 | Change `SYSMON_INTERVAL` from 2 000 ms to 5 000 ms to match `CONFIG_ZEGO_MEMONITOR_INTERVAL_MS` (no benefit polling faster than firmware samples) |
 | 2026-06-18-13-30 | Migrate sysmon backend to `zego/bricks/memonitor` (`CONFIG_ZEGO_MEMONITOR`, `<memonitor.h>`); fix endpoint name `/api/heap` → `/api/heaps`; remove stale `src/modules/memory/heap_monitor.c` reference; update auto-refresh: `/api/system` now fetched once at load + every 30 s (local uptime incremented every 1 s between fetches), buttons/LEDs remain 500 ms |
 | 2026-06-17-14-22 | Add FR-107 `GET /api/threads` (k_thread_foreach + k_thread_runtime_stats_get) and FR-108 `GET /api/heap` (sys_heap_runtime_stats_get on _system_heap); add Thread and Heap panels to web UI (2 s poll); Kconfig: THREAD_RUNTIME_STATS + SYS_HEAP_RUNTIME_STATS |

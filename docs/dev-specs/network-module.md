@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-04-23-45 |
-| PRD Version | 2026-06-04-23-14 |
+| Version | 2026-06-19-13-12 |
+| PRD Version | 2026-06-19-13-12 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -19,6 +19,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. Default Wi-Fi mode changed to STA (`CONFIG_ZEGO_WIFI_DEFAULT_MODE_STA`). |
 | 2026-06-04-23-14 | Updated Location section: old `net_event_mgmt.c/h`, `wifi_utils.c/h` removed; replaced by `net_event_app.c` (zego/network weak-hook overrides). Added zego/network canonical spec reference. |
 | 2026-06-04-23-45 | Trimmed to app-layer shim only (`net_event_app.c`): replaced full SoftAP/STA/P2P content with Channel Definitions and Weak Hook Overrides; all Wi-Fi mode/protocol details belong in zego/network canonical spec. |
 | 2026-06-04-23-30 | Added proper Document Information table. |

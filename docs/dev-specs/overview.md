@@ -5,8 +5,8 @@
 | Field | Value |
 |-------|-------|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-17-14-22 |
-| PRD Version | 2026-06-17-14-22 |
+| Version | 2026-06-19-13-12 |
+| PRD Version | 2026-06-19-13-12 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -17,6 +17,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. FR-004/FR-005 factory default mode updated to STA; FR-107/FR-108 sysmon tab-visibility polling behavior documented. |
 | 2026-06-18-13-30 | Migrate `memory/` heap monitor to `zego/bricks/memonitor` brick; add memonitor to zego modules table; update FR-107/FR-108 mapping to reference `zego/bricks/memonitor` |
 | 2026-06-17-14-22 | Refactor onto template: add `ux` module (Button 0 gestures + LED 0 Wi-Fi state, from template); add `APP_WIFI_STATE_CHAN` to Zbus channel table; add FR-106 → ux-module.md, FR-107/FR-108 → webserver-module.md to PRD-to-spec mapping; add `/api/threads` + `/api/heap` to webserver spec |
 | 2026-05-06-12-00 | Add `SPECS_VERSION` macro to architecture.md and main.c; version string printed in startup banner |

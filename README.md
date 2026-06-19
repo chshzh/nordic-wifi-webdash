@@ -255,7 +255,7 @@ west zview live \
   -s 1050787962(replace with target <jlink-serial>)
 ```
 
-The in-browser Thread Monitor and Heap Monitor panels update the same data at 2 s intervals using `/api/threads` and `/api/heaps`.
+The in-browser Thread Monitor and Heap Monitor panels update at the same interval as `CONFIG_ZEGO_MEMONITOR_INTERVAL_MS` (default 5 s) using `/api/threads` and `/api/heaps`.
 
 #### Memory Sizing Rules
 

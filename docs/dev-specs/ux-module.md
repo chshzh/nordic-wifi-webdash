@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-17-14-22 |
-| PRD Version | 2026-06-17-14-22 |
+| Version | 2026-06-19-13-12 |
+| PRD Version | 2026-06-19-13-12 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Specified |
@@ -15,6 +15,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. |
 | 2026-06-17-14-22 | Initial spec — ported from `zego/nordic-wifi-app-template/src/modules/ux/ux.c`; covers FR-106 (Button 0 gestures + LED 0 Wi-Fi state machine) |
 
 ---
