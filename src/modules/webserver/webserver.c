@@ -622,6 +622,7 @@ static int threads_api_handler(struct http_client_ctx *client, enum http_transac
 	uint8_t count = 0;
 
 	memonitor_get_threads(threads, ARRAY_SIZE(threads), &count);
+	LOG_INF("GET /api/threads -> %u threads", count);
 
 	int off = snprintf((char *)threads_api_buf, sizeof(threads_api_buf),
 			   "{\"interval_ms\":%u,\"threads\":[",
@@ -698,6 +699,7 @@ static int heaps_api_handler(struct http_client_ctx *client, enum http_transacti
 	uint8_t count = 0;
 
 	memonitor_get_heaps(heaps, ARRAY_SIZE(heaps), &count);
+	LOG_INF("GET /api/heaps -> %u heaps", count);
 
 	int off = snprintf((char *)heap_api_buf, sizeof(heap_api_buf),
 			   "{\"interval_ms\":%u,\"heaps\":[",
