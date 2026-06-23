@@ -1,7 +1,6 @@
 # Nordic Wi-Fi WebDash
 
 [![Validation](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/validation.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/validation.yml)
-[![Release](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/release.yml/badge.svg)](https://github.com/chshzh/nordic-wifi-webdash/actions/workflows/release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/chshzh/nordic-wifi-webdash?label=Latest%20Release&color=skyblue)](https://github.com/chshzh/nordic-wifi-webdash/releases/latest)
 ---
 
