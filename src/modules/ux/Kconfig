@@ -12,7 +12,7 @@ config APP_UX_MODULE
 	    Single click  — print current Wi-Fi mode to UART log
 	    Double-click  — toggle BLE provisioning LED (nRF54LM20DK only;
 	                    full BLE prov toggle requires CONFIG_ZEGO_WIFI_BLE_PROV=y)
-	    Long press    — cycle Wi-Fi mode (STA → SoftAP → P2P_GO → P2P_CLIENT → STA),
+	    Long press    — cycle Wi-Fi mode (STA → SoftAP → P2P_GO → P2P_GC → STA),
 	                    save to NVS, reboot
 
 	  LED 0 Wi-Fi state:

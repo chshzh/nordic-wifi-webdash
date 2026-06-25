@@ -11,7 +11,7 @@
  * hooks from zego/network to publish on both channels.
  *
  * Connectivity paths:
- *   STA / P2P_CLIENT  → zego_on_net_event_dhcp_bound()
+ *   STA / P2P_GC  → zego_on_net_event_dhcp_bound()
  *   SoftAP / P2P_GO   → zego_on_net_event_wifi_ap_enabled() (AP up, no clients)
  *                        zego_on_net_event_wifi_ap_sta_connected() (first client joins)
  *   Disconnect        → zego_on_net_event_wifi_disconnect()
@@ -41,13 +41,13 @@ static char cached_ap_ip[16];
 static char cached_ap_ssid[33];
 static enum zego_wifi_mode cached_ap_mode;
 
-/* ── STA / P2P_CLIENT path ─────────────────────────────────────────────── */
+/* ── STA / P2P_GC path ─────────────────────────────────────────────── */
 
 void zego_on_net_event_dhcp_bound(enum zego_wifi_mode mode, const char *ip_addr,
 				  const char *mac_addr, const char *ssid)
 {
 	struct dk_wifi_info_msg msg = {
-		.active_mode = (enum app_wifi_mode)mode,
+		.active_mode = (enum zego_wifi_mode)mode,
 		.error_code = 0,
 	};
 
@@ -116,7 +116,7 @@ void zego_on_net_event_wifi_ap_sta_connected(int sta_count)
 {
 	/* First client joined the SoftAP/P2P_GO — start the HTTP server. */
 	struct dk_wifi_info_msg msg = {
-		.active_mode = (enum app_wifi_mode)cached_ap_mode,
+		.active_mode = (enum zego_wifi_mode)cached_ap_mode,
 		.error_code = 0,
 	};
 

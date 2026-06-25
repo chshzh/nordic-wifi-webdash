@@ -28,7 +28,7 @@ const MODE_COLORS = {
     'SoftAP':     '#1565c0', // blue
     'STA':        '#2e7d32', // green
     'P2P_GO':     '#6a1b9a', // purple
-    'P2P_CLIENT': '#e65100', // orange
+    'P2P_GC': '#e65100', // orange
 };
 
 // State
@@ -173,7 +173,7 @@ function modeLabel(mode, serverIp) {
     case 'SoftAP':     return `SoftAP Mode \u2014 ${serverIp || '192.168.7.1'}`;
     case 'STA':        return `Station Mode \u2014 ${serverIp || '...'}`;
     case 'P2P_GO':     return `P2P GO \u2014 ${serverIp || '192.168.7.1'}`;
-    case 'P2P_CLIENT': return `P2P Client \u2014 ${serverIp || '...'}`;
+    case 'P2P_GC': return `P2P GC \u2014 ${serverIp || '...'}`;
     default:           return mode;
     }
 }

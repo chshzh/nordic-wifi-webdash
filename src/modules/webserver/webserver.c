@@ -145,17 +145,17 @@ static void http_client_event_listener(const struct zbus_channel *chan)
 
 	/* Determine server IP and mode string from the active mode */
 	switch (msg->active_mode) {
-	case APP_WIFI_MODE_SOFTAP:
+	case ZEGO_WIFI_MODE_SOFTAP:
 		snprintf(cached_mode_str, sizeof(cached_mode_str), "SoftAP");
 		break;
-	case APP_WIFI_MODE_STA:
+	case ZEGO_WIFI_MODE_STA:
 		snprintf(cached_mode_str, sizeof(cached_mode_str), "STA");
 		break;
-	case APP_WIFI_MODE_P2P_GO:
+	case ZEGO_WIFI_MODE_P2P_GO:
 		snprintf(cached_mode_str, sizeof(cached_mode_str), "P2P_GO");
 		break;
-	case APP_WIFI_MODE_P2P_CLIENT:
-		snprintf(cached_mode_str, sizeof(cached_mode_str), "P2P_CLIENT");
+	case ZEGO_WIFI_MODE_P2P_GC:
+		snprintf(cached_mode_str, sizeof(cached_mode_str), "P2P_GC");
 		break;
 	default:
 		return;

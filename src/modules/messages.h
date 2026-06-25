@@ -78,16 +78,8 @@ static inline const char *app_led_label(size_t index)
 
 #include <wifi.h>
 
-/* Backward-compat enum for existing network / webserver code.
- * Values match enum zego_wifi_mode exactly — interchangeable by integer value.
- * struct wifi_mode_msg is defined in wifi.h.
- */
-enum app_wifi_mode {
-	APP_WIFI_MODE_STA = 0,        /**< == ZEGO_WIFI_MODE_STA        */
-	APP_WIFI_MODE_SOFTAP = 1,     /**< == ZEGO_WIFI_MODE_SOFTAP     */
-	APP_WIFI_MODE_P2P_GO = 2,     /**< == ZEGO_WIFI_MODE_P2P_GO     */
-	APP_WIFI_MODE_P2P_CLIENT = 3, /**< == ZEGO_WIFI_MODE_P2P_CLIENT */
-};
+/* enum zego_wifi_mode is defined in zego/bricks/wifi/src/wifi.h (included above).
+ * Use ZEGO_WIFI_MODE_STA / SOFTAP / P2P_GO / P2P_GC directly. */
 
 /* ============================================================================
  * DK WIFI INFO MESSAGES
@@ -98,7 +90,7 @@ enum app_wifi_mode {
  * @brief Message published by net_event_mgmt when DK Wi-Fi connection is ready.
  */
 struct dk_wifi_info_msg {
-	enum app_wifi_mode active_mode; /**< Mode that produced this event */
+	enum zego_wifi_mode active_mode; /**< Mode that produced this event */
 	char dk_ip_addr[16];            /**< Device IP */
 	char dk_mac_addr[18];           /**< Device MAC as XX:XX:XX:XX:XX:XX */
 	char ssid[33];                  /**< SoftAP/P2P_GO SSID, or connected AP/GO SSID */
