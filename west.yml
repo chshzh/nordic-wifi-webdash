@@ -41,7 +41,7 @@ manifest:
     #   remote: chshzh
 
     - name: zview
-      url: https://github.com/wkhadgar/zview
+      url: https://github.com/chshzh/zview
       revision: main
       path: modules/tools/zview
       west-commands: scripts/west-commands.yml
