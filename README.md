@@ -10,7 +10,7 @@
 
 Nordic Wi-Fi WebDash is a browser-based demo and reference application for Nordic nRF7x Wi-Fi development kits. The device hosts the dashboard itself, so users can monitor buttons, control LEDs, and inspect system state directly from a browser without relying on cloud services.
 
-The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `app_wifi_mode` shell command. **Default on fresh flash is STA.**
+The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P2P_CLIENT. The selected mode is stored in NVS and can be changed at runtime with the `zego_wifi_mode` shell command. **Default on fresh flash is STA.**
 
 ### Supported hardware
 
@@ -22,7 +22,7 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 ### Features
 
 - Four Wi-Fi modes: SoftAP, STA, P2P_GO (device is Group Owner), and P2P_CLIENT (device joins phone's group)
-- Runtime mode switching with `app_wifi_mode [softap|sta|p2p_go|p2p_client]`
+- Runtime mode switching with `zego_wifi_mode [softap|sta|p2p_go|p2p_client]`
 - Browser dashboard for button status, LED control, and system information
 - REST API for `/api/system`, `/api/buttons`, `/api/leds`, and `/api/led`
 - Gzip-compressed static web assets served from flash
@@ -56,11 +56,11 @@ Download the pre-built `.hex` for your board from the [Releases](https://github.
 Open a serial terminal at `115200` baud and follow the instructions printed by the firmware.
 
 - **P2P_GO** (default on fresh flash): the P2P group and WPS PIN (`12345678`) are auto-started at boot — no shell commands needed; on the phone open Wi-Fi Direct, wait for the DK to appear, select it, enter PIN `12345678`, then open `http://192.168.7.1` or `http://nrfwebdash.local`
-- **P2P_CLIENT**: run `app_wifi_mode P2P_CLIENT`, reboot, the device auto-starts peer discovery; on the phone enable Wi-Fi Direct, then run `wifi p2p connect <MAC> pbc` on the device and accept on the phone; open the IP shown in the terminal
-- **SoftAP**: run `app_wifi_mode SoftAP`, reboot, connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
-- **STA**: run `app_wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
+- **P2P_CLIENT**: run `zego_wifi_mode P2P_CLIENT`, reboot, the device auto-starts peer discovery; on the phone enable Wi-Fi Direct, then run `wifi p2p connect <MAC> pbc` on the device and accept on the phone; open the IP shown in the terminal
+- **SoftAP**: run `zego_wifi_mode SoftAP`, reboot, connect to Wi-Fi `WebDash_AP` with password `12345678`, then open `http://192.168.7.1`
+- **STA**: run `zego_wifi_mode STA`, reboot, then run `wifi connect -s <SSID> -p <password> -k 1` and open the `http://<DHCP-IP>` shown in the terminal
 
-At any time, you can switch modes with `uart:~$ app_wifi_mode [softap|sta|p2p_go|p2p_client]`. The choice is saved to NVS and survives reboot.
+At any time, you can switch modes with `uart:~$ zego_wifi_mode [softap|sta|p2p_go|p2p_client]`. The choice is saved to NVS and survives reboot.
 
 ### Step 3 — Verify
 
@@ -117,7 +117,7 @@ nordic-wifi-webdash/
 └── ../zego/                ← sibling repo — external Zephyr modules
     ├── button/             ← zego/button: gesture detection, BUTTON_CHAN
     ├── led/                ← zego/led: static/blink/breathe/rotate, LED_CMD_CHAN
-    ├── wifi/               ← zego/wifi: mode selector, NVS, app_wifi_mode shell cmd
+    ├── wifi/               ← zego/wifi: mode selector, NVS, zego_wifi_mode shell cmd
     └── network/            ← zego/network: Wi-Fi event management, weak-hook API
 ```
 
@@ -228,7 +228,7 @@ west flash -d build_nrf7002dk --erase
 
 - nRF54LM20DK + nRF7002EB2 loses one button because of shield pin conflicts; BUTTON0–BUTTON2 remain available
 - STA connections are intentionally session-based to avoid unwanted reconnects when returning to other modes
-- Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `app_wifi_mode` if preferred
+- Default mode on fresh flash is P2P_GO — switch to SoftAP or STA with `zego_wifi_mode` if preferred
 - The startup banner prints firmware version (`Version: <tag>` on CI / `v<NCS>-dev` locally), aligned board/MAC/mode labels, and a module list with SYS_INIT boot priorities — useful for orientation when reading serial logs
 - SoftAP and P2P_GO both log connectivity instructions every 300 s until the first client connects; the reminders stop automatically on first connection
 - mDNS behavior and network event details are in [zego/network ↗](https://github.com/chshzh/zego/blob/main/bricks/network/docs/network-spec.md) and [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md); mode handling is in [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/bricks/wifi/docs/wifi-spec.md)
@@ -284,7 +284,7 @@ The full design documentation lives under `docs/`. Start with [docs/dev-specs/ov
 | [docs/dev-specs/architecture.md](docs/dev-specs/architecture.md) | System architecture — module map, Zbus channels, SYS_INIT boot sequence, memory budget |
 | [docs/dev-specs/network-module.md](docs/dev-specs/network-module.md) | Network module — `net_event_app.c` shim, `CLIENT_CONNECTED_CHAN`, weak-hook overrides of zego/network |
 | [docs/dev-specs/webserver-module.md](docs/dev-specs/webserver-module.md) | Webserver module — HTTP server, REST API endpoints, DNS-SD, web UI |
-| [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/bricks/wifi/docs/wifi-spec.md) | Mode selector — `app_wifi_mode` shell command, NVS persistence, factory default |
+| [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/bricks/wifi/docs/wifi-spec.md) | Mode selector — `zego_wifi_mode` shell command, NVS persistence, factory default |
 | [zego/network ↗](https://github.com/chshzh/zego/blob/main/bricks/network/docs/network-spec.md) | Network backbone — SoftAP / STA / P2P_GO / P2P_CLIENT paths, event handling, WPS |
 | [zego/button ↗](https://github.com/chshzh/zego/blob/main/bricks/button/docs/button-spec.md) | Button module — gesture detection (click, double-click, long press), Zbus `BUTTON_CHAN`; provided by **zego/button** |
 | [zego/led ↗](https://github.com/chshzh/zego/blob/main/bricks/led/docs/led-spec.md) | LED module — per-LED state machine (static, blink, breathe, rotate), Zbus `LED_CMD_CHAN`; provided by **zego/led** |

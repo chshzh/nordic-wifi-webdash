@@ -23,7 +23,7 @@
 | 2026-06-04-23-14 | SYS_INIT priorities aligned to zego standard (wifi→41, network→42, button/led→45); renamed ModeSel→ZegoWifi in all diagrams; boot sequence updated for net_event_app.c shim pattern |
 | 2026-06-04-23-30 | Added proper Document Information table. |
 | 2026-06-05-10-15 | Fix SYS_INIT priority table: correct wifi→0, network→5, button→90, led→91 (the 2026-06-04-23-14 entry incorrectly documented 41/42/45); fix webserver init description — no SYS_INIT, uses static `ZBUS_LISTENER_DEFINE` + `ZBUS_CHAN_ADD_OBS` on `CLIENT_CONNECTED_CHAN` |
-| 2026-04-14-10-00 | Code sync: enum app_wifi_mode (4 values, P2P_GO/P2P_CLIENT); WIFI_CHAN → CLIENT_CONNECTED_CHAN; wifi_msg → dk_wifi_info_msg; default mode → P2P_GO; duplicate mode_selector row in module map fixed |
+| 2026-04-14-10-00 | Code sync: enum zego_wifi_mode (4 values, P2P_GO/P2P_CLIENT); WIFI_CHAN → CLIENT_CONNECTED_CHAN; wifi_msg → dk_wifi_info_msg; default mode → P2P_GO; duplicate mode_selector row in module map fixed |
 | 2026-04-09-14-00 | Code alignment: fix module map (wifi/ → network/); SYS_INIT priorities (button/led/webserver=90, network=5); button_msg struct (remove duration_ms); boot sequence diagram |
 | 2026-04-09-12-00 | Mode selector: remove Button-1 long-press; STA: session-based (no wifi_credentials); P2P: both boards; pbc connect method; updated memory budget |
 | 2026-03-31 | v2.0 — multi-mode architecture, Mode Selector module, WIFI_MODE_CHAN |
@@ -45,7 +45,7 @@ v2.0 adds a **Mode Selector** module (NVS-backed, shell-command driven) and exte
 src/
 ├── main.c              ← startup banner, SPECS_VERSION macro
 └── modules/
-    ├── messages.h      ← app-local Zbus message types (dk_wifi_info_msg, app_wifi_mode, app_wifi_state_msg)
+    ├── messages.h      ← app-local Zbus message types (dk_wifi_info_msg, zego_wifi_mode, app_wifi_state_msg)
     ├── network/        ← net_event_app.c: defines CLIENT_CONNECTED_CHAN + APP_WIFI_STATE_CHAN, overrides __weak hooks
     ├── webserver/      ← HTTP server, REST API, web assets (index.html, main.js, styles.css)
     ├── ux/             ← ux.c: Button 0 gestures + LED 0 Wi-Fi state machine (ported from template)
@@ -55,7 +55,7 @@ src/
 ../zego/modules/
     ├── button/         ← publishes BUTTON_CHAN (CONFIG_ZEGO_BUTTON=y)
     ├── led/            ← consumes LED_CMD_CHAN, publishes LED_STATE_CHAN (CONFIG_ZEGO_LED=y)
-    ├── wifi/           ← app_wifi_mode shell command, NVS persistence, startup banner
+    ├── wifi/           ← zego_wifi_mode shell command, NVS persistence, startup banner
     ├── network/        ← Wi-Fi event management backbone (zego_network_on_* weak hooks)
     └── wifi_ble_prov/  ← BLE Wi-Fi credential provisioning (optional)
 
@@ -80,15 +80,15 @@ src/
 
 ```c
 /* Wi-Fi operating mode */
-enum app_wifi_mode {
-    APP_WIFI_MODE_SOFTAP     = 0, /* Device creates own SoftAP */
-    APP_WIFI_MODE_STA        = 1, /* Device connects to existing AP */
-    APP_WIFI_MODE_P2P_GO     = 2, /* Wi-Fi Direct — device is Group Owner */
-    APP_WIFI_MODE_P2P_CLIENT = 3, /* Wi-Fi Direct — device joins phone's group */
+enum zego_wifi_mode {
+    ZEGO_WIFI_MODE_SOFTAP     = 0, /* Device creates own SoftAP */
+    ZEGO_WIFI_MODE_STA        = 1, /* Device connects to existing AP */
+    ZEGO_WIFI_MODE_P2P_GO     = 2, /* Wi-Fi Direct — device is Group Owner */
+    ZEGO_WIFI_MODE_P2P_CLIENT = 3, /* Wi-Fi Direct — device joins phone's group */
 };
 
 struct wifi_mode_msg {
-    enum app_wifi_mode mode;
+    enum zego_wifi_mode mode;
 };
 
 /* Button events (defined in zego/button/src/button.h) */
@@ -132,7 +132,7 @@ struct led_state_msg {
 
 /* DK Wi-Fi connectivity info — published by network module when connection is ready */
 struct dk_wifi_info_msg {
-    enum app_wifi_mode active_mode; /* Mode that produced this event */
+    enum zego_wifi_mode active_mode; /* Mode that produced this event */
     char dk_ip_addr[16];            /* Device IP (dotted-decimal) */
     char dk_mac_addr[18];           /* Device MAC as XX:XX:XX:XX:XX:XX */
     char ssid[33];                  /* SoftAP/P2P_GO SSID, or connected AP/GO SSID */
@@ -146,7 +146,7 @@ struct dk_wifi_info_msg {
 
 | Priority | Module | Init mechanism | Notes |
 |----------|--------|----------------|-------|
-| 0 | zego/wifi | `SYS_INIT(mode_selector_init, APPLICATION, 0)` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `app_wifi_mode` shell command |
+| 0 | zego/wifi | `SYS_INIT(mode_selector_init, APPLICATION, 0)` | Reads NVS mode; publishes WIFI_MODE_CHAN; registers `zego_wifi_mode` shell command |
 | 5 | zego/network | `SYS_INIT(network_module_init, APPLICATION, 5)` | Reads WIFI_MODE_CHAN; registers all net-mgmt event callbacks; calls `net_event_app.c` weak hooks |
 | 90 | zego/button | `SYS_INIT(button_module_init, APPLICATION, CONFIG_ZEGO_BUTTON_INIT_PRIORITY)` | GPIO IRQ + gesture FSM setup (default priority 90) |
 | 91 | zego/led | `SYS_INIT(led_module_init, APPLICATION, CONFIG_ZEGO_LED_INIT_PRIORITY)` | LED GPIO/PWM setup (default priority 91) |
@@ -189,7 +189,7 @@ graph TB
 
     HW_BTN -->|GPIO IRQ| ButtonMod
     HW_FLASH <-->|NVS read/write| ZegoWifi
-    HW_UART <-->|app_wifi_mode shell cmd| ZegoWifi
+    HW_UART <-->|zego_wifi_mode shell cmd| ZegoWifi
 
     ZegoWifi -->|publish once| WIFI_MODE_CHAN
     WIFI_MODE_CHAN -->|subscribe| NetMod
@@ -224,7 +224,7 @@ sequenceDiagram
     participant Btn as zego/button
 
     HW->>ZegoWifi: SYS_INIT APPLICATION priority 0
-    ZegoWifi->>NVS: Read "app/app_wifi_mode"
+    ZegoWifi->>NVS: Read "app/zego_wifi_mode"
     alt First boot (no NVS entry)
         NVS-->>ZegoWifi: -ENOENT → use P2P_GO default
     else NVS entry exists

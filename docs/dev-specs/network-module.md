@@ -55,7 +55,7 @@ Wi-Fi mode selection, the connection state machine, SoftAP/STA/P2P paths, Kconfi
 
 ```c
 struct dk_wifi_info_msg {
-    enum app_wifi_mode active_mode; /* Wi-Fi mode (SoftAP / STA / P2P_GO / P2P_CLIENT) */
+    enum zego_wifi_mode active_mode; /* Wi-Fi mode (SoftAP / STA / P2P_GO / P2P_CLIENT) */
     char dk_ip_addr[16];            /* Device IP (dotted-decimal) */
     char dk_mac_addr[18];           /* Device MAC (XX:XX:XX:XX:XX:XX) */
     char ssid[33];                  /* Connected / hosted SSID */

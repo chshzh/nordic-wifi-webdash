@@ -55,7 +55,7 @@ needed — the module reads `APP_WIFI_STATE_CHAN` (defined in `messages.h` and p
 |---------|--------|
 | `BUTTON_SINGLE_CLICK` | `LOG_INF` current Wi-Fi mode to UART log |
 | `BUTTON_DOUBLE_CLICK` | Toggle LED 0 between BREATHE (BLE prov indicator) and last Wi-Fi state |
-| `BUTTON_LONG_PRESS` | Cycle mode STA → SoftAP → P2P_GO → P2P_CLIENT → STA; save to NVS via `settings_save_one("app/app_wifi_mode", ...)`; `sys_reboot(SYS_REBOOT_COLD)` |
+| `BUTTON_LONG_PRESS` | Cycle mode STA → SoftAP → P2P_GO → P2P_CLIENT → STA; save to NVS via `settings_save_one("app/zego_wifi_mode", ...)`; `sys_reboot(SYS_REBOOT_COLD)` |
 
 Long-press acknowledgement: LED 0 turns OFF for 300 ms before reboot so the user sees a
 visual blink confirming the press was registered.

@@ -60,7 +60,7 @@ For the product requirements that drive this design, see [`docs/pm-prd/PRD.md`](
 |--------|-------------|----------------|
 | Button | `zego/modules/button` | [zego/button ↗](https://github.com/chshzh/zego/blob/main/modules/button/docs/button-spec.md) |
 | LED | `zego/modules/led` | [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md) |
-| Mode selector (`app_wifi_mode`) | `zego/modules/wifi` | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) |
+| Mode selector (`zego_wifi_mode`) | `zego/modules/wifi` | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) |
 | Memory monitor (thread + heap watermarks) | `zego/bricks/memonitor` | [memonitor-spec.md](../../../zego/bricks/memonitor/docs/memonitor-spec.md) |
 
 ---
@@ -76,7 +76,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Architecture pattern | SMF + Zbus | Decoupled modules; clear publish/subscribe ownership; Zbus is the only inter-module channel |
-| Mode selection UX | `app_wifi_mode` shell command (runtime, any time) | Removes boot-time button dependency; works without physical access to the board |
+| Mode selection UX | `zego_wifi_mode` shell command (runtime, any time) | Removes boot-time button dependency; works without physical access to the board |
 | STA credentials | Session-based (`wifi connect` shell command) | Credentials never stored in NVS or source control; no data-at-rest credential exposure |
 | P2P availability | Both boards with `-DSNIPPET=wifi-p2p` | nRF7002 P2P works on nRF54LM20DK + nRF7002EB2 and nRF7002DK via the same snippet |
 | P2P roles | P2P_GO (device is Group Owner) and P2P_CLIENT (device joins phone group) | Two distinct modes allow full flexibility: host your own group or join the phone's group |
@@ -95,7 +95,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 | FR-002 STA mode (session-based) | [network-module.md](network-module.md) | Specified |
 | FR-003 P2P / Wi-Fi Direct — P2P_GO role | [network-module.md](network-module.md) | Specified |
 | FR-003 P2P / Wi-Fi Direct — P2P_CLIENT role | [network-module.md](network-module.md) | Specified |
-| FR-004 `app_wifi_mode` shell command | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) | Specified |
+| FR-004 `zego_wifi_mode` shell command | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) | Specified |
 | FR-005 Mode persisted in NVS | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) | Specified |
 | FR-006 Buttons & LEDs in browser | [webserver-module.md](webserver-module.md) (button: [zego/button ↗](https://github.com/chshzh/zego/blob/main/modules/button/docs/button-spec.md); LED: [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md)) | Specified |
 | FR-007 Mode banner + IP in dashboard | [webserver-module.md](webserver-module.md) | Specified |
@@ -122,7 +122,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
                        └──────────┬──────────────┘
                                   │ read/write
                        ┌──────────▼──────────────┐
-                       │    zego/wifi             │◄── uart: app_wifi_mode command
+                       │    zego/wifi             │◄── uart: zego_wifi_mode command
                        └──────────┬──────────────┘
                                   │ WIFI_MODE_CHAN
                ┌──────────────────▼──────────────────────┐
