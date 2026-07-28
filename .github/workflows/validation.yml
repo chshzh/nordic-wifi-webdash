@@ -58,7 +58,7 @@ jobs:
           - name: "nRF7002DK"
             build_dir: "build_nrf7002dk"
             board: "nrf7002dk/nrf5340/cpuapp"
-            cmake_args: "-DSNIPPET=wifi-p2p"
+            cmake_args: ""
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
