@@ -13,7 +13,8 @@ get_filename_component(ZEGO_WIFI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/bricks/
 get_filename_component(ZEGO_NETWORK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/bricks/network REALPATH)
 get_filename_component(ZEGO_WIFI_BLE_PROV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/bricks/wifi_ble_prov REALPATH)
 get_filename_component(ZEGO_MEMONITOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/bricks/memonitor REALPATH)
-list(APPEND EXTRA_ZEPHYR_MODULES ${ZEGO_BUTTON_DIR} ${ZEGO_LED_DIR} ${ZEGO_WIFI_DIR} ${ZEGO_NETWORK_DIR} ${ZEGO_WIFI_BLE_PROV_DIR} ${ZEGO_MEMONITOR_DIR})
+get_filename_component(ZEGO_UX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../zego/bricks/ux REALPATH)
+list(APPEND EXTRA_ZEPHYR_MODULES ${ZEGO_BUTTON_DIR} ${ZEGO_LED_DIR} ${ZEGO_WIFI_DIR} ${ZEGO_NETWORK_DIR} ${ZEGO_WIFI_BLE_PROV_DIR} ${ZEGO_MEMONITOR_DIR} ${ZEGO_UX_DIR})
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(nordic_wifi_webdash)
@@ -42,7 +43,6 @@ add_subdirectory(src/modules/network)
 # button and led now provided by zego/button and zego/led (EXTRA_ZEPHYR_MODULES above)
 add_subdirectory(src/modules/webserver)
 # memonitor now provided by zego/bricks/memonitor (EXTRA_ZEPHYR_MODULES above)
-add_subdirectory(src/modules/ux)
 
 # APP_VERSION_STRING, PRD_VERSION, SPECS_VERSION set by zego/wifi/CMakeLists.txt
 target_sources(app PRIVATE src/main.c)

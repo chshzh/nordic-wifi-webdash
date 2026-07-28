@@ -5,8 +5,8 @@
 | Field | Value |
 |-------|-------|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-19-13-12 |
-| PRD Version | 2026-06-19-13-12 |
+| Version | 2026-07-28-13-45 |
+| PRD Version | 2026-07-28-13-45 |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -17,6 +17,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-07-28-13-45 | v3.4.0 migration: local `src/modules/ux` deleted, consolidated onto `zego/bricks/ux` (`CONFIG_ZEGO_UX=y`); `ux-module.md` removed, FR-106 now maps to [zego/ux spec](../../../zego/bricks/ux/docs/ux-spec.md); `APP_WIFI_STATE_CHAN` replaced by zego's `ZEGO_UX_WIFI_STATE_CHAN`, republished from `net_event_app.c`'s weak-hook overrides. |
 | 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. FR-004/FR-005 factory default mode updated to STA; FR-107/FR-108 sysmon tab-visibility polling behavior documented. |
 | 2026-06-18-13-30 | Migrate `memory/` heap monitor to `zego/bricks/memonitor` brick; add memonitor to zego modules table; update FR-107/FR-108 mapping to reference `zego/bricks/memonitor` |
 | 2026-06-17-14-22 | Refactor onto template: add `ux` module (Button 0 gestures + LED 0 Wi-Fi state, from template); add `APP_WIFI_STATE_CHAN` to Zbus channel table; add FR-106 → ux-module.md, FR-107/FR-108 → webserver-module.md to PRD-to-spec mapping; add `/api/threads` + `/api/heap` to webserver spec |
@@ -52,7 +53,6 @@ For the product requirements that drive this design, see [`docs/pm-prd/PRD.md`](
 | [architecture.md](architecture.md) | System overview, module map, Zbus channels, SYS_INIT boot sequence, memory budget | All |
 | [network-module.md](network-module.md) | `net_event_app.c` shim, `CLIENT_CONNECTED_CHAN`, weak-hook overrides of `zego/network` | FR-001, FR-002, FR-003, FR-101, FR-102, FR-201 |
 | [webserver-module.md](webserver-module.md) | HTTP server, REST API endpoints, DNS-SD `_http._tcp.local`, mode banner, web UI, `/api/threads`, `/api/heaps` | FR-006, FR-007, FR-101, FR-104, FR-107, FR-108 |
-| [ux-module.md](ux-module.md) | Button 0 gestures (mode cycle, mode print, BLE LED toggle), LED 0 Wi-Fi state machine | FR-106 |
 
 ### Zego library modules (no local src/)
 
@@ -62,6 +62,7 @@ For the product requirements that drive this design, see [`docs/pm-prd/PRD.md`](
 | LED | `zego/modules/led` | [zego/led ↗](https://github.com/chshzh/zego/blob/main/modules/led/docs/led-spec.md) |
 | Mode selector (`zego_wifi_mode`) | `zego/modules/wifi` | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) |
 | Memory monitor (thread + heap watermarks) | `zego/bricks/memonitor` | [memonitor-spec.md](../../../zego/bricks/memonitor/docs/memonitor-spec.md) |
+| UX (Button 0 gestures, LED 0 Wi-Fi state, startup banner) | `zego/bricks/ux` | [ux-spec.md](../../../zego/bricks/ux/docs/ux-spec.md) |
 
 ---
 
@@ -103,7 +104,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 | FR-102 Shell commands for diagnostics | [network-module.md](network-module.md), [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) | Specified |
 | FR-103 Startup log | [architecture.md](architecture.md) | Specified |
 | FR-104 DNS-SD `_http._tcp.local` | [webserver-module.md](webserver-module.md) | Specified |
-| FR-106 Button 0 UX gestures | [ux-module.md](ux-module.md) | Specified |
+| FR-106 Button 0 UX gestures | [ux-spec.md](../../../zego/bricks/ux/docs/ux-spec.md) | Specified |
 | FR-107 Thread monitor web panel | [webserver-module.md](webserver-module.md) + [memonitor-spec.md](../../../zego/bricks/memonitor/docs/memonitor-spec.md) | Specified |
 | FR-108 Heap monitor web panel | [webserver-module.md](webserver-module.md) + [memonitor-spec.md](../../../zego/bricks/memonitor/docs/memonitor-spec.md) | Specified |
 | FR-201 Customisable SoftAP credentials | [network-module.md](network-module.md) | Specified |
@@ -129,9 +130,9 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
                │              zego/network                │
                │  SoftAP path │ STA path │ P2P path       │
                └──┬──────────────────────────────────┬───┘
-                  │ CLIENT_CONNECTED_CHAN             │ APP_WIFI_STATE_CHAN
+                  │ CLIENT_CONNECTED_CHAN             │ ZEGO_UX_WIFI_STATE_CHAN
      ┌────────────▼──────────┐          ┌────────────▼──────────┐
-     │      webserver        │          │    app_ux module       │
+     │      webserver        │          │       zego/ux          │
      │  HTTP + REST + DNS-SD │          │  Button 0 gestures    │
      └────────────┬──────────┘          └────────────┬──────────┘
                   │ LED_CMD_CHAN                       │ LED_CMD_CHAN
@@ -140,7 +141,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
      └────────────────────────────────────────────────────────────┘
 
      button ──BUTTON_CHAN──► webserver
-     button ──BUTTON_CHAN──► app_ux
+     button ──BUTTON_CHAN──► zego/ux
      led    ──LED_STATE_CHAN─► webserver
 ```
 

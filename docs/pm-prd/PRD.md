@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Product Name | Nordic Wi-Fi WebDash |
-| Version | 2026-06-19-13-12 |
+| Version | 2026-07-28-13-45 |
 | Status | Implemented |
 | NCS Version | v3.3.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
@@ -16,6 +16,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-07-28-13-45 | v3.4.0 migration: FR-106 spec link updated — local `ux-module.md` removed, module consolidated onto `zego/bricks/ux` (see [zego/ux ↗ spec](../../../zego/bricks/ux/docs/ux-spec.md)). |
 | 2026-06-19-13-12 | FR-004/FR-005: factory default mode changed to STA (was P2P_GO); FR-107/FR-108: sysmon panel pauses polling when browser tab is hidden, resumes with immediate fetch on visibility. |
 | 2026-06-18-13-36 | Change FR-107/FR-108 sysmon dashboard refresh from 2 s to 5 s — matches firmware memonitor sample interval (`CONFIG_ZEGO_MEMONITOR_INTERVAL_MS=5000`) |
 | 2026-06-18-13-33 | Fix FR-108 acceptance criteria: endpoint renamed `GET /api/heap` → `GET /api/heaps`; clarify §4.1 performance: system info panel re-syncs every 30 s (uptime increments locally every 1 s between fetches), buttons/LEDs remain 500 ms |
@@ -141,7 +142,7 @@ The active mode is changed at runtime with `uart:~$ zego_wifi_mode [softap|sta|p
 | FR-103 | developer | see board name, MAC, mode, and IP in the startup log | I can confirm firmware state without opening a browser | - Board ID, MAC, build date logged at boot<br>- Active mode logged<br>- IP logged when connected | [architecture.md](../dev-specs/architecture.md) |
 | FR-104 | user | discover the device automatically without knowing its IP | I can open the dashboard just by name | - Device registers `_http._tcp.local` via DNS-SD<br>- Device reachable at `http://nrfwebdash.local` via mDNS | [webserver-module.md](../dev-specs/webserver-module.md) |
 | FR-105 | user | switch between light and dark mode in the dashboard | I can comfortably view it in any lighting condition | - Dashboard auto-applies dark mode when the browser/OS is set to dark (`prefers-color-scheme: dark`)<br>- A toggle button in the header lets the user override to light or dark independently of system setting<br>- Override resets on page reload (no persistence)<br>- All UI elements (buttons, LEDs, status panel, text) are legible in both modes | [webserver-module.md](../dev-specs/webserver-module.md) |
-| FR-106 | developer | have Button 0 gestures control Wi-Fi mode and LEDs | I can cycle modes and trigger BLE provisioning without a serial terminal | - Single-click: prints current Wi-Fi mode to UART log<br>- Double-click: toggles BLE provisioning LED (BREATHE ↔ last Wi-Fi state)<br>- Long-press: cycles mode STA → SoftAP → P2P_GO → P2P_CLIENT → STA, saves to NVS, reboots | [ux-module.md](../dev-specs/ux-module.md) |
+| FR-106 | developer | have Button 0 gestures control Wi-Fi mode and LEDs | I can cycle modes and trigger BLE provisioning without a serial terminal | - Single-click: prints current Wi-Fi mode to UART log<br>- Double-click: toggles BLE provisioning LED (BREATHE ↔ last Wi-Fi state)<br>- Long-press: cycles mode STA → SoftAP → P2P_GO → P2P_CLIENT → STA, saves to NVS, reboots | [zego/ux ↗](../../../zego/bricks/ux/docs/ux-spec.md) |
 | FR-107 | developer | see live Zephyr thread status in the dashboard | I can monitor firmware health without connecting ZView or a debugger | - `GET /api/threads` returns JSON array: thread name, state string, CPU%, stack used bytes, stack size bytes<br>- Dashboard shows a table updated every 5 s<br>- Stack bar turns amber when usage exceeds 80% of stack size<br>- Sysmon polling pauses automatically when the browser tab is hidden; resumes with an immediate fetch on tab focus | [webserver-module.md](../dev-specs/webserver-module.md) |
 | FR-108 | developer | see live heap usage in the dashboard | I can detect memory growth during long-running demos | - `GET /api/heaps` returns JSON: allocated_bytes, free_bytes, peak_allocated_bytes, max_allocated_bytes<br>- Dashboard shows a progress bar (used/total) and numeric values updated every 5 s<br>- Bar turns amber at ≥ 70%, red at ≥ 90% of total heap | [webserver-module.md](../dev-specs/webserver-module.md) |
 

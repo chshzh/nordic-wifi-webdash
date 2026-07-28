@@ -33,7 +33,6 @@ config APP_HTTP_PORT
 # button and led Kconfig registered via EXTRA_ZEPHYR_MODULES (zego/button, zego/led)
 rsource "src/modules/webserver/Kconfig.webserver"
 # memonitor Kconfig now provided by zego/bricks/memonitor (EXTRA_ZEPHYR_MODULES)
-rsource "src/modules/ux/Kconfig"
 
 endmenu
 

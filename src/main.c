@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include <wifi.h>
+#include <ux.h>
 
 int main(void)
 {
-	zego_wifi_print_banner();
+	zego_ux_print_banner();
 	return 0;
 }
