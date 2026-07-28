@@ -76,7 +76,11 @@ static void update_cached_client_ip_from_http(const struct http_client_ctx *clie
 	}
 
 	if (peer_ip[0] != '\0') {
-		snprintf(cached_client_ip, sizeof(cached_client_ip), "%s", peer_ip);
+		/* cached_client_ip is sized for IPv4 dotted-quad only; cap the copy
+		 * so gcc can prove no truncation (silences -Wformat-truncation).
+		 * This app has no IPv6 dashboard support, so an IPv6 peer address
+		 * would already be meaningless here beyond this point. */
+		snprintf(cached_client_ip, sizeof(cached_client_ip), "%.15s", peer_ip);
 	}
 }
 
