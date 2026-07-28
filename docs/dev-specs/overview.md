@@ -7,7 +7,7 @@
 | Project | nordic-wifi-webdash |
 | Version | 2026-07-28-13-45 |
 | PRD Version | 2026-07-28-13-45 |
-| NCS Version | v3.3.0 |
+| NCS Version | v3.4.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
 

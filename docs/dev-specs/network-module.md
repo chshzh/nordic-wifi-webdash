@@ -5,9 +5,9 @@
 | Field | Value |
 |---|---|
 | Project | nordic-wifi-webdash |
-| Version | 2026-06-19-13-12 |
-| PRD Version | 2026-06-19-13-12 |
-| NCS Version | v3.3.0 |
+| Version | 2026-07-28-13-45 |
+| PRD Version | 2026-07-28-13-45 |
+| NCS Version | v3.4.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
 
@@ -19,6 +19,7 @@
 
 | Version | Summary |
 |---|---|
+| 2026-07-28-13-45 | v3.4.0 migration: `zego_on_net_event_wifi_disconnect()` gained a `bool will_retry` parameter (new zego/network hook signature). `net_event_app.c` now also republishes Wi-Fi connectivity state to zego/ux's `ZEGO_UX_WIFI_STATE_CHAN` in every overridden hook (replacing the deleted local `APP_WIFI_STATE_CHAN`), since these strong overrides otherwise suppress zego/network's own default `__weak` implementations that would drive zego/ux's LED feedback automatically. Weak Hook Overrides table corrected to match actual hook names (`zego_on_net_event_*`, not the older `zego_network_on_*`). |
 | 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. Default Wi-Fi mode changed to STA (`CONFIG_ZEGO_WIFI_DEFAULT_MODE_STA`). |
 | 2026-06-04-23-14 | Updated Location section: old `net_event_mgmt.c/h`, `wifi_utils.c/h` removed; replaced by `net_event_app.c` (zego/network weak-hook overrides). Added zego/network canonical spec reference. |
 | 2026-06-04-23-45 | Trimmed to app-layer shim only (`net_event_app.c`): replaced full SoftAP/STA/P2P content with Channel Definitions and Weak Hook Overrides; all Wi-Fi mode/protocol details belong in zego/network canonical spec. |
@@ -69,11 +70,12 @@ struct dk_wifi_info_msg {
 
 | Hook | Publishes | Condition |
 |------|-----------|----------|
-| `zego_network_on_wifi_connected(mode, ip, mac, ssid)` | `CLIENT_CONNECTED_CHAN` | Always |
-| `zego_network_on_wifi_connected(...)` | `WIFI_CHAN` (`WIFI_STA_CONNECTED`) | `CONFIG_ZEGO_WIFI_BLE_PROV=y` only |
-| `zego_network_on_wifi_disconnected()` | `WIFI_CHAN` (`WIFI_STA_DISCONNECTED`) | `CONFIG_ZEGO_WIFI_BLE_PROV=y` only |
+| `zego_on_net_event_dhcp_bound(mode, ip, mac, ssid)` | `CLIENT_CONNECTED_CHAN` (always); `ZEGO_UX_WIFI_STATE_CHAN` state=CONNECTED; `WIFI_CHAN` (`WIFI_STA_CONNECTED`) | `WIFI_CHAN` publish only if `CONFIG_ZEGO_WIFI_BLE_PROV=y` |
+| `zego_on_net_event_wifi_ap_enabled(mode, ip, ssid)` | `ZEGO_UX_WIFI_STATE_CHAN` state=SOFTAP | Always |
+| `zego_on_net_event_wifi_ap_sta_connected(sta_count)` | `CLIENT_CONNECTED_CHAN`; `ZEGO_UX_WIFI_STATE_CHAN` state=CONNECTED | Always |
+| `zego_on_net_event_wifi_disconnect(will_retry)` | `ZEGO_UX_WIFI_STATE_CHAN` state=CONNECTING if `will_retry` else ERROR; `WIFI_CHAN` (`WIFI_STA_DISCONNECTED`) | `WIFI_CHAN` publish only if `CONFIG_ZEGO_WIFI_BLE_PROV=y` |
 
-No `CLIENT_CONNECTED_CHAN` publish on disconnect.
+No `CLIENT_CONNECTED_CHAN` publish on disconnect. See [zego/ux spec](../../../zego/bricks/ux/docs/ux-spec.md) for how `ZEGO_UX_WIFI_STATE_CHAN` drives LED 0 feedback.
 
 ---
 
