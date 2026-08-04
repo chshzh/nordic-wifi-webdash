@@ -5,8 +5,8 @@
 | Field | Value |
 |-------|-------|
 | Project | nordic-wifi-webdash |
-| Version | 2026-07-28-13-45 |
-| PRD Version | 2026-07-28-13-45 |
+| Version | 2026-08-04-10-30 |
+| PRD Version | 2026-08-04-10-29 |
 | NCS Version | v3.4.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
 | Status | Implemented |
@@ -17,6 +17,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-08-04-10-30 | Added FR-109 factory reset. `zego` bumped v3.4.0.2→v3.4.0.3 (adds `zego/bricks/factory_reset`). New design decisions: (1) `zego/bricks/factory_reset` registered as an `EXTRA_ZEPHYR_MODULE` (`CONFIG_ZEGO_FACTORY_RESET=y`) — erases stored Wi-Fi credentials, saved Wi-Fi mode, and P2P GO MAC, then reboots; (2) `CONFIG_ZEGO_BUTTON_LONGER_PRESS_MS=10000` enables the button brick's guarded two-tier hold on the Wi-Fi control button, so the existing 3 s mode-cycle gesture (FR-106, unchanged code) now fires at release instead of immediately, and is superseded by factory reset at 10 s; (3) shell trigger (`zego_factory_reset`) and button trigger both work on both boards (`CONFIG_SHELL=y` on both). |
 | 2026-07-28-13-45 | v3.4.0 migration: local `src/modules/ux` deleted, consolidated onto `zego/bricks/ux` (`CONFIG_ZEGO_UX=y`); `ux-module.md` removed, FR-106 now maps to [zego/ux spec](../../../zego/bricks/ux/docs/ux-spec.md); `APP_WIFI_STATE_CHAN` replaced by zego's `ZEGO_UX_WIFI_STATE_CHAN`, republished from `net_event_app.c`'s weak-hook overrides. |
 | 2026-06-19-13-12 | PRD Version updated to 2026-06-19-13-12. FR-004/FR-005 factory default mode updated to STA; FR-107/FR-108 sysmon tab-visibility polling behavior documented. |
 | 2026-06-18-13-30 | Migrate `memory/` heap monitor to `zego/bricks/memonitor` brick; add memonitor to zego modules table; update FR-107/FR-108 mapping to reference `zego/bricks/memonitor` |
@@ -63,6 +64,7 @@ For the product requirements that drive this design, see [`docs/pm-prd/PRD.md`](
 | Mode selector (`zego_wifi_mode`) | `zego/modules/wifi` | [zego/wifi ↗](https://github.com/chshzh/zego/blob/main/modules/wifi/docs/wifi-spec.md) |
 | Memory monitor (thread + heap watermarks) | `zego/bricks/memonitor` | [memonitor-spec.md](../../../zego/bricks/memonitor/docs/memonitor-spec.md) |
 | UX (Button 0 gestures, LED 0 Wi-Fi state, startup banner) | `zego/bricks/ux` | [ux-spec.md](../../../zego/bricks/ux/docs/ux-spec.md) |
+| Factory reset | `zego/bricks/factory_reset` | [zego/factory_reset ↗](https://github.com/chshzh/zego/blob/main/bricks/factory_reset/docs/factory-reset-spec.md) |
 
 ---
 
@@ -107,6 +109,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 | FR-106 Button 0 UX gestures | [ux-spec.md](../../../zego/bricks/ux/docs/ux-spec.md) | Specified |
 | FR-107 Thread monitor web panel | [webserver-module.md](webserver-module.md) + [memonitor-spec.md](../../../zego/bricks/memonitor/docs/memonitor-spec.md) | Specified |
 | FR-108 Heap monitor web panel | [webserver-module.md](webserver-module.md) + [memonitor-spec.md](../../../zego/bricks/memonitor/docs/memonitor-spec.md) | Specified |
+| FR-109 Factory reset (button hold ≥ 10 s or shell command) | [zego/factory_reset ↗](https://github.com/chshzh/zego/blob/main/bricks/factory_reset/docs/factory-reset-spec.md), [zego/button ↗](https://github.com/chshzh/zego/blob/main/bricks/button/docs/button-spec.md) | Specified |
 | FR-201 Customisable SoftAP credentials | [network-module.md](network-module.md) | Specified |
 | FR-202 Heap usage logging | [architecture.md](architecture.md) | Specified |
 | NFR — Performance targets | [architecture.md](architecture.md) | Specified |
@@ -142,6 +145,7 @@ All feature modules live under `src/modules/<name>/`. No module calls another mo
 
      button ──BUTTON_CHAN──► webserver
      button ──BUTTON_CHAN──► zego/ux
+     button ──BUTTON_CHAN (BUTTON_LONGER_PRESS)──► zego/factory_reset
      led    ──LED_STATE_CHAN─► webserver
 ```
 

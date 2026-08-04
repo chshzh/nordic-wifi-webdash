@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Product Name | Nordic Wi-Fi WebDash |
-| Version | 2026-07-28-13-45 |
+| Version | 2026-08-04-10-29 |
 | Status | Implemented |
 | NCS Version | v3.4.0 |
 | Target Board(s) | nRF54LM20DK + nRF7002EB2, nRF7002DK |
@@ -16,6 +16,7 @@
 
 | Version | Summary of changes |
 |---|---|
+| 2026-08-04-10-29 | Added FR-109 (P1): factory reset via a Wi-Fi control button hold (≥ 10 s) or the `zego_factory_reset` shell command — erases stored Wi-Fi credentials, saved Wi-Fi mode, and P2P GO MAC, then reboots to the fresh-flash state. `zego` bumped v3.4.0.2→v3.4.0.3 (adds `zego/bricks/factory_reset`). The 10 s hold is deliberately distinct from the existing 3 s mode-cycle gesture (FR-106) on the same button: the 3 s gesture now fires only on release when released before 10 s (guarded), and is superseded by the 10 s hold. Added a new row to the §2.4 button table. |
 | 2026-07-28-13-45 | v3.4.0 migration: FR-106 spec link updated — local `ux-module.md` removed, module consolidated onto `zego/bricks/ux` (see [zego/ux ↗ spec](../../../zego/bricks/ux/docs/ux-spec.md)). |
 | 2026-06-19-13-12 | FR-004/FR-005: factory default mode changed to STA (was P2P_GO); FR-107/FR-108: sysmon panel pauses polling when browser tab is hidden, resumes with immediate fetch on visibility. |
 | 2026-06-18-13-36 | Change FR-107/FR-108 sysmon dashboard refresh from 2 s to 5 s — matches firmware memonitor sample interval (`CONFIG_ZEGO_MEMONITOR_INTERVAL_MS=5000`) |
@@ -106,7 +107,7 @@ The active mode is changed at runtime with `uart:~$ zego_wifi_mode [softap|sta|p
 | Button | Behavior |
 |---|---|
 | All buttons | Monitored and displayed in real time on the WebDash |
-| **Button 0** | Single-click: print current Wi-Fi mode to UART log; Double-click: toggle BLE provisioning LED; Long-press: cycle Wi-Fi mode STA → SoftAP → P2P_GO → P2P_CLIENT, save to NVS, reboot |
+| **Button 0** | Single-click: print current Wi-Fi mode to UART log; Double-click: toggle BLE provisioning LED; Long-press ≥ 3 s (fires at release): cycle Wi-Fi mode STA → SoftAP → P2P_GO → P2P_CLIENT, save to NVS, reboot; Hold ≥ 10 s (fires immediately, no release needed): factory reset — erase stored Wi-Fi credentials, saved Wi-Fi mode, and P2P GO MAC, then reboot (FR-109); supersedes the 3 s mode-cycle gesture for that press |
 
 | LED | Meaning |
 |---|---|
@@ -145,6 +146,7 @@ The active mode is changed at runtime with `uart:~$ zego_wifi_mode [softap|sta|p
 | FR-106 | developer | have Button 0 gestures control Wi-Fi mode and LEDs | I can cycle modes and trigger BLE provisioning without a serial terminal | - Single-click: prints current Wi-Fi mode to UART log<br>- Double-click: toggles BLE provisioning LED (BREATHE ↔ last Wi-Fi state)<br>- Long-press: cycles mode STA → SoftAP → P2P_GO → P2P_CLIENT → STA, saves to NVS, reboots | [zego/ux ↗](../../../zego/bricks/ux/docs/ux-spec.md) |
 | FR-107 | developer | see live Zephyr thread status in the dashboard | I can monitor firmware health without connecting ZView or a debugger | - `GET /api/threads` returns JSON array: thread name, state string, CPU%, stack used bytes, stack size bytes<br>- Dashboard shows a table updated every 5 s<br>- Stack bar turns amber when usage exceeds 80% of stack size<br>- Sysmon polling pauses automatically when the browser tab is hidden; resumes with an immediate fetch on tab focus | [webserver-module.md](../dev-specs/webserver-module.md) |
 | FR-108 | developer | see live heap usage in the dashboard | I can detect memory growth during long-running demos | - `GET /api/heaps` returns JSON: allocated_bytes, free_bytes, peak_allocated_bytes, max_allocated_bytes<br>- Dashboard shows a progress bar (used/total) and numeric values updated every 5 s<br>- Bar turns amber at ≥ 70%, red at ≥ 90% of total heap | [webserver-module.md](../dev-specs/webserver-module.md) |
+| FR-109 | developer | factory-reset the device back to its as-flashed state | I can recover a misconfigured device or hand it off clean without reflashing | Holding the Wi-Fi control button (Button 0) for ≥ 10 s, or running the `zego_factory_reset` shell command, erases stored Wi-Fi credentials, the saved Wi-Fi mode, and the learned P2P GO MAC, then reboots; the 10 s hold is distinct from the existing 3 s mode-cycle gesture (FR-106) on the same button — releasing before 10 s still cycles the mode (now at release instead of immediately), holding to 10 s supersedes it and performs the reset instead | [zego/factory_reset ↗](https://github.com/chshzh/zego/blob/main/bricks/factory_reset/docs/factory-reset-spec.md) |
 
 ### P2 — Nice to Have
 
