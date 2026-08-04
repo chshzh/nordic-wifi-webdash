@@ -28,6 +28,7 @@ The firmware supports **four** Wi-Fi operating modes: SoftAP, STA, P2P_GO, and P
 - Gzip-compressed static web assets served from flash
 - mDNS hostname support via `http://nrfwebdash.local`
 - Modular architecture based on Zbus; button, LED, Wi-Fi mode-selector, and network event handling provided by standalone **[zego](../zego)** library modules (`zego/button`, `zego/led`, `zego/wifi`, `zego/network`)
+- Factory reset via a 10 s button hold or shell command — erases stored Wi-Fi credentials, saved Wi-Fi mode, and P2P GO MAC, then reboots to the fresh-flash state; provided by **[zego/factory_reset](https://github.com/chshzh/zego/blob/main/bricks/factory_reset/docs/factory-reset-spec.md)**
 - Light/dark mode: auto-detects `prefers-color-scheme` with a manual toggle in the header (resets on reload, no persistence)
 - Startup banner with firmware version string (git tag on CI / `v<NCS>-dev` locally), module boot sequence with SYS_INIT priorities, and periodic reminders (SSID/PIN) until a client connects
 
@@ -76,6 +77,28 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 |-------|---------|----------|
 | nRF54LM20DK + nRF7002EB2 | BUTTON0, BUTTON1, BUTTON2 | Same (BUTTON3 unavailable — shield pin conflict) |
 | nRF7002DK | Button 1, Button 2 | State and press count shown in dashboard and reported via `/api/buttons` |
+
+**Button 0 ("Wi-Fi control button") gestures** (same on every board):
+
+| Gesture | Action |
+|---------|--------|
+| Single click | Print current Wi-Fi mode to UART log |
+| Double-click | Toggle BLE provisioning LED |
+| Long press ≥ 3 s (fires at release) | Cycle Wi-Fi mode STA → SoftAP → P2P_GO → P2P_CLIENT → STA; save to NVS; reboot |
+| Longer press ≥ 10 s (fires at 10 s, no release needed) | Factory reset (FR-109) — erase stored Wi-Fi credentials, saved Wi-Fi mode, and P2P GO MAC; reboot to fresh-flash state; supersedes the 3 s mode cycle for that press |
+
+> **Why the two hold gestures fire at different points**: the ≥ 3 s mode
+> cycle is a *middle* tier — the device can't know at 3 s whether you meant
+> the short action or are on your way to the 10 s one — so it waits for
+> release and only fires if you let go before 10 s. The ≥ 10 s factory reset
+> is the *final* tier, so nothing can supersede it; it fires immediately at
+> 10 s while you're still holding, giving instant confirmation for a
+> destructive action. See
+> [`zego/bricks/button/docs/button-spec.md`](https://github.com/chshzh/zego/blob/main/bricks/button/docs/button-spec.md)
+> ("Two-Tier Hold Gesture").
+
+Factory reset is also available as the `zego_factory_reset
+[list|all|wifi_cred|wifi_mode|p2p_go_mac]` shell command on both boards.
 
 ### LEDs
 
