@@ -73,12 +73,16 @@ Open `http://192.168.7.1` (P2P_GO or SoftAP) or the IP printed in the terminal (
 
 ### Buttons
 
-| Board | Buttons | Function |
-|-------|---------|----------|
-| nRF54LM20DK + nRF7002EB2 | BUTTON0, BUTTON1, BUTTON2 | Same (BUTTON3 unavailable — shield pin conflict) |
-| nRF7002DK | Button 1, Button 2 | State and press count shown in dashboard and reported via `/api/buttons` |
+All buttons are monitored and displayed in real time on the WebDash and reported
+via `/api/buttons`. One button on each board — the **Wi-Fi control button** — also
+carries gesture-based Wi-Fi actions; only its physical location differs by board:
 
-**Button 0 ("Wi-Fi control button") gestures** (same on every board):
+| Board | Wi-Fi control button | Other buttons |
+|-------|-----------------------|----------------|
+| nRF54LM20DK + nRF7002EB2 | BUTTON0 (idx 0) | BUTTON1, BUTTON2 (idx 1–2; BUTTON3 unavailable — shield pin conflict) |
+| nRF7002DK | Button 1 / SW0 (idx 0) | Button 2 / SW1 (idx 1) |
+
+**Wi-Fi control button gestures** (same on every board):
 
 | Gesture | Action |
 |---------|--------|
